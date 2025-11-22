@@ -364,7 +364,7 @@ export default function ChatPage() {
         <main className="flex-1 overflow-y-auto bg-gradient-to-b from-background via-card/30 to-background">
           {messages.length === 0 && !streamingMessage && (
             <div className="flex items-center justify-center h-full animate-fade-in">
-              <div className="text-center space-y-4 p-8 animate-float">
+              <div className="text-center space-y-4 p-8">
                 <h2 className="text-2xl font-semibold text-muted-foreground animate-slide-in-bottom">
                   AIアシスタントへようこそ
                 </h2>

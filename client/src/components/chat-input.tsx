@@ -48,14 +48,14 @@ export function ChatInput({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           disabled={disabled}
-          className="min-h-[60px] max-h-[200px] resize-none"
+          className="min-h-[60px] max-h-[200px] resize-none focus-ring-interactive focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-1 focus:ring-offset-background"
           data-testid="input-message"
         />
         <Button
           onClick={handleSend}
           disabled={disabled || (!message.trim() && attachments.length === 0)}
           size="icon"
-          className="h-[60px] w-[60px] shrink-0"
+          className="h-[60px] w-[60px] shrink-0 interactive-scale interactive-glow bg-gradient-to-br from-blue-500 via-purple-500 to-blue-600 hover:from-blue-600 hover:via-purple-600 hover:to-blue-700 text-white shadow-lg"
           data-testid="button-send"
         >
           <Send className="h-5 w-5" />

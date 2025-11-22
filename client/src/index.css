@@ -273,12 +273,42 @@
   }
 }
 
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0px);
+@keyframes gradient-shimmer {
+  0% {
+    background-position: -1000px center;
+  }
+  100% {
+    background-position: 1000px center;
+  }
+}
+
+@keyframes focus-ring-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5), inset 0 0 0 1px rgba(59, 130, 246, 0.2);
   }
   50% {
-    transform: translateY(-8px);
+    box-shadow: 0 0 0 6px rgba(59, 130, 246, 0), inset 0 0 0 1px rgba(99, 102, 241, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0), inset 0 0 0 1px rgba(59, 130, 246, 0.2);
+  }
+}
+
+@keyframes glow-pulse {
+  0%, 100% {
+    text-shadow: 0 0 10px rgba(59, 130, 246, 0.3), 0 0 20px rgba(139, 92, 246, 0.2);
+  }
+  50% {
+    text-shadow: 0 0 15px rgba(59, 130, 246, 0.6), 0 0 30px rgba(139, 92, 246, 0.4);
+  }
+}
+
+@keyframes subtle-scale {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.01);
   }
 }
 
@@ -321,8 +351,44 @@
     animation: shimmer 2s infinite;
   }
 
-  .animate-float {
-    animation: float 3s ease-in-out infinite;
+  .animate-gradient-shimmer {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(59, 130, 246, 0.2) 25%,
+      rgba(139, 92, 246, 0.2) 50%,
+      rgba(59, 130, 246, 0.2) 75%,
+      transparent 100%
+    );
+    background-size: 1000px 100%;
+    animation: gradient-shimmer 3s ease-in-out infinite;
+  }
+
+  .focus-ring-interactive {
+    transition: all 0.2s ease-out;
+  }
+
+  .focus-ring-interactive:focus,
+  .focus-ring-interactive:focus-visible {
+    outline: none;
+    animation: focus-ring-pulse 0.6s ease-out;
+  }
+
+  .interactive-glow {
+    position: relative;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .interactive-glow:hover {
+    animation: glow-pulse 1.5s ease-in-out infinite;
+  }
+
+  .interactive-scale {
+    transition: all 0.25s ease-out;
+  }
+
+  .interactive-scale:active {
+    animation: subtle-scale 0.4s ease-in-out;
   }
 
   /* Placeholder styling for contentEditable div */

@@ -192,7 +192,7 @@ export function FileUpload({
         onClick={() => fileInputRef.current?.click()}
         disabled={disabled}
         data-testid="button-upload-file"
-        className="hover-elevate transition-transform duration-200"
+        className="hover-elevate transition-all duration-200 interactive-scale focus-ring-interactive hover:border-blue-500/50 hover:text-blue-500"
         title="ファイルを添付（画像、PDF、Wordなど対応）"
       >
         <Paperclip className="h-4 w-4" />
