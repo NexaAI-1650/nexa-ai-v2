@@ -13,7 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { localStorageManager, type AppSettings } from "@/lib/localStorage";
 import { aiModels } from "@shared/schema";
 import { useState, useEffect } from "react";
-import { useTheme } from "@/hooks/use-theme";
+import { useTheme } from "./theme-provider";
 
 interface AppSettingsProps {
   isOpen: boolean;
@@ -36,7 +36,7 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
   const [settings, setSettings] = useState<AppSettings>(
     localStorageManager.getAppSettings()
   );
-  const { theme, toggleTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
 
   useEffect(() => {
     setSettings(localStorageManager.getAppSettings());
@@ -174,7 +174,7 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
                 variant={theme === "light" ? "default" : "outline"}
                 size="sm"
                 className="flex-1"
-                onClick={() => toggleTheme("light")}
+                onClick={() => setTheme("light")}
                 data-testid="button-theme-light"
               >
                 <Sun className="h-4 w-4 mr-2" />
@@ -184,7 +184,7 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
                 variant={theme === "dark" ? "default" : "outline"}
                 size="sm"
                 className="flex-1"
-                onClick={() => toggleTheme("dark")}
+                onClick={() => setTheme("dark")}
                 data-testid="button-theme-dark"
               >
                 <Moon className="h-4 w-4 mr-2" />
