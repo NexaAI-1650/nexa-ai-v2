@@ -122,13 +122,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
             
             msg.attachments.forEach((att) => {
-              contentParts.push({
-                type: "image_url",
-                image_url: { 
-                  url: att.url,
-                  detail: "auto"
-                },
-              });
+              if (att.type === "image" && att.url) {
+                contentParts.push({
+                  type: "image_url",
+                  image_url: { 
+                    url: att.url,
+                    detail: "auto"
+                  },
+                });
+              } else if (att.type === "file" && att.url) {
+                // For non-image files, include as text attachment indicator
+                contentParts.push({
+                  type: "text",
+                  text: `[添付ファイル: ${att.name}]`,
+                });
+              }
             });
             
             return {
@@ -150,13 +158,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         attachments.forEach((att) => {
-          contentParts.push({
-            type: "image_url",
-            image_url: { 
-              url: att.url,
-              detail: "auto"
-            },
-          });
+          if (att.type === "image" && att.url) {
+            contentParts.push({
+              type: "image_url",
+              image_url: { 
+                url: att.url,
+                detail: "auto"
+              },
+            });
+          } else if (att.type === "file" && att.url) {
+            // For non-image files, include as text attachment indicator
+            contentParts.push({
+              type: "text",
+              text: `[添付ファイル: ${att.name}]`,
+            });
+          }
         });
         
         messages.push({

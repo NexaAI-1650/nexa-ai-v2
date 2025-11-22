@@ -44,13 +44,15 @@ export const chatRequestSchema = z.object({
   model: z.string(),
   conversationId: z.string().optional(),
   attachments: z.array(z.object({
-    type: z.enum(["image"]),
+    type: z.enum(["image", "file"]),
     url: z.string(),
     name: z.string(),
+    mimeType: z.string().optional(),
+    size: z.number().optional(),
   })).optional(),
 }).refine(
   (data) => data.message.trim().length > 0 || (data.attachments && data.attachments.length > 0),
-  { message: "メッセージまたは画像を入力してください" }
+  { message: "メッセージまたはファイルを入力してください" }
 );
 
 export type Message = z.infer<typeof messageSchema>;

@@ -14,7 +14,22 @@ export const localStorageManager = {
 
   saveConversations(conversations: Conversation[]): void {
     try {
-      localStorage.setItem(CONVERSATIONS_KEY, JSON.stringify(conversations));
+      // Remove attachments URLs to save storage space (Base64 URLs are large)
+      // Keep only metadata
+      const sanitized = conversations.map(conv => ({
+        ...conv,
+        messages: conv.messages.map(msg => ({
+          ...msg,
+          attachments: msg.attachments?.map(att => ({
+            type: att.type,
+            name: att.name,
+            mimeType: att.mimeType,
+            size: att.size,
+            url: '', // Clear the Base64 URL
+          })),
+        })),
+      }));
+      localStorage.setItem(CONVERSATIONS_KEY, JSON.stringify(sanitized));
     } catch (e) {
       console.error("Failed to save conversations to localStorage:", e);
     }
