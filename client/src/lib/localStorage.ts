@@ -1,0 +1,46 @@
+import type { Conversation } from "@shared/schema";
+
+const CONVERSATIONS_KEY = "ai_chat_conversations";
+
+export const localStorageManager = {
+  getConversations(): Conversation[] {
+    try {
+      const stored = localStorage.getItem(CONVERSATIONS_KEY);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  },
+
+  saveConversations(conversations: Conversation[]): void {
+    try {
+      localStorage.setItem(CONVERSATIONS_KEY, JSON.stringify(conversations));
+    } catch (e) {
+      console.error("Failed to save conversations to localStorage:", e);
+    }
+  },
+
+  addConversation(conversation: Conversation): void {
+    const conversations = this.getConversations();
+    conversations.unshift(conversation);
+    this.saveConversations(conversations);
+  },
+
+  updateConversation(id: string, conversation: Conversation): void {
+    const conversations = this.getConversations();
+    const index = conversations.findIndex((c) => c.id === id);
+    if (index >= 0) {
+      conversations[index] = conversation;
+      this.saveConversations(conversations);
+    }
+  },
+
+  deleteConversation(id: string): void {
+    const conversations = this.getConversations();
+    this.saveConversations(conversations.filter((c) => c.id !== id));
+  },
+
+  clearAll(): void {
+    localStorage.removeItem(CONVERSATIONS_KEY);
+  },
+};

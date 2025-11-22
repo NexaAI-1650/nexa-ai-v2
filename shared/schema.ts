@@ -14,6 +14,7 @@ export const messageSchema = z.object({
     url: z.string(),
     name: z.string(),
   })).optional(),
+  isEdited: z.boolean().optional(),
 });
 
 export const conversationSchema = z.object({
@@ -21,6 +22,7 @@ export const conversationSchema = z.object({
   title: z.string(),
   model: z.string(),
   messages: z.array(messageSchema),
+  tags: z.array(z.string()).optional(),
   createdAt: z.number(),
   updatedAt: z.number(),
 });

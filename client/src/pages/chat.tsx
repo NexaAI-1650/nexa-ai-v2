@@ -9,6 +9,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { ConversationSidebar } from "@/components/conversation-sidebar";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
+import { localStorageManager } from "@/lib/localStorage";
 import type { Message, Conversation } from "@shared/schema";
 import { aiModels } from "@shared/schema";
 
@@ -21,7 +22,9 @@ interface FileAttachment {
 export default function ChatPage() {
   const [currentConversationId, setCurrentConversationId] = useState<string | undefined>();
   const [messages, setMessages] = useState<Message[]>([]);
-  const [selectedModel, setSelectedModel] = useState(aiModels[0].id);
+  const [selectedModel, setSelectedModel] = useState(aiModels.length > 0 ? aiModels[0].id : "google/gemini-2.5-flash");
+  const [editingMessageId, setEditingMessageId] = useState<string | undefined>();
+  const [editingContent, setEditingContent] = useState("");
   const [streamingMessage, setStreamingMessage] = useState<string>("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -185,6 +188,49 @@ export default function ChatPage() {
       setMessages((prev) => prev.slice(0, -1));
     },
   });
+
+  const handleEditMessage = async (messageId: string, newContent: string) => {
+    if (!currentConversationId) return;
+    setMessages((prev) =>
+      prev.map((msg) =>
+        msg.id === messageId
+          ? { ...msg, content: newContent, isEdited: true }
+          : msg
+      )
+    );
+    const updatedMessages = messages.map((msg) =>
+      msg.id === messageId
+        ? { ...msg, content: newContent, isEdited: true }
+        : msg
+    );
+    const updated = await fetch(`/api/conversations/${currentConversationId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messages: updatedMessages }),
+    });
+    if (updated.ok) {
+      const conv = await updated.json();
+      localStorageManager.updateConversation(currentConversationId, conv);
+      queryClient.invalidateQueries({ queryKey: ["/api/conversations", currentConversationId] });
+    }
+    setEditingMessageId(undefined);
+  };
+
+  const handleDeleteMessage = async (messageId: string) => {
+    if (!currentConversationId) return;
+    const updatedMessages = messages.filter((msg) => msg.id !== messageId);
+    setMessages(updatedMessages);
+    const updated = await fetch(`/api/conversations/${currentConversationId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messages: updatedMessages }),
+    });
+    if (updated.ok) {
+      const conv = await updated.json();
+      localStorageManager.updateConversation(currentConversationId, conv);
+      queryClient.invalidateQueries({ queryKey: ["/api/conversations", currentConversationId] });
+    }
+  };
 
   const handleSend = (message: string, attachments?: FileAttachment[]) => {
     chatMutation.mutate({ userMessage: message, attachments });

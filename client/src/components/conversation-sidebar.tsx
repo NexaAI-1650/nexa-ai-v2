@@ -1,10 +1,12 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { MessageSquare, Plus, Trash2 } from "lucide-react";
+import { MessageSquare, Plus, Trash2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Input } from "@/components/ui/input";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Conversation } from "@shared/schema";
 import { cn } from "@/lib/utils";
+import { useState, useMemo } from "react";
 
 interface ConversationSidebarProps {
   currentConversationId?: string;
