@@ -1,10 +1,6 @@
 import { z } from "zod";
 
-export const aiModels = [
-  { id: "google/gemini-3-pro-preview", name: "Gemini 3 Pro Preview" },
-  { id: "openai/gpt-5.1", name: "GPT-5.1" },
-  { id: "openai/gpt-4.1-mini", name: "GPT-4.1 Mini" },
-] as const;
+export const aiModels = [] as const;
 
 export const messageSchema = z.object({
   id: z.string(),
