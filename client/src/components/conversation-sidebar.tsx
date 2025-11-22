@@ -12,6 +12,7 @@ interface ConversationSidebarProps {
   currentConversationId?: string;
   onSelectConversation: (id: string) => void;
   onNewConversation: () => void;
+  onSidebarResize?: (width: number) => void;
 }
 
 export function ConversationSidebar({
@@ -22,6 +23,8 @@ export function ConversationSidebar({
   const { data: conversations = [] } = useQuery<Conversation[]>({
     queryKey: ["/api/conversations"],
   });
+  
+  const [searchQuery, setSearchQuery] = useState("");
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => apiRequest("DELETE", `/api/conversations/${id}`, {}),
@@ -40,9 +43,18 @@ export function ConversationSidebar({
     }
   };
 
+  const filteredConversations = useMemo(() => {
+    if (!searchQuery) return conversations;
+    const query = searchQuery.toLowerCase();
+    return conversations.filter(conv => 
+      conv.title.toLowerCase().includes(query) ||
+      conv.messages.some(msg => msg.content.toLowerCase().includes(query))
+    );
+  }, [conversations, searchQuery]);
+
   return (
     <div className="flex flex-col h-full bg-sidebar border-r border-sidebar-border">
-      <div className="p-4 border-b border-sidebar-border">
+      <div className="p-4 border-b border-sidebar-border space-y-3">
         <Button
           onClick={onNewConversation}
           className="w-full"
@@ -51,11 +63,21 @@ export function ConversationSidebar({
           <Plus className="h-4 w-4 mr-2" />
           新しい会話
         </Button>
+        <div className="relative">
+          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="会話を検索..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-8 py-2 h-9"
+            data-testid="input-search-conversations"
+          />
+        </div>
       </div>
 
       <ScrollArea className="flex-1">
         <div className="p-2 space-y-1">
-          {conversations.map((conversation) => (
+          {filteredConversations.map((conversation) => (
             <button
               key={conversation.id}
               onClick={() => onSelectConversation(conversation.id)}
@@ -89,9 +111,15 @@ export function ConversationSidebar({
             </button>
           ))}
           
-          {conversations.length === 0 && (
+          {filteredConversations.length === 0 && conversations.length === 0 && (
             <div className="text-center p-8 text-muted-foreground text-sm">
               まだ会話がありません
+            </div>
+          )}
+          
+          {filteredConversations.length === 0 && conversations.length > 0 && (
+            <div className="text-center p-8 text-muted-foreground text-sm">
+              「{searchQuery}」に該当する会話がありません
             </div>
           )}
         </div>

@@ -9,6 +9,7 @@ import { ModelSelector } from "@/components/model-selector";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ConversationSidebar } from "@/components/conversation-sidebar";
 import { AISettingsPanel } from "@/components/ai-settings";
+import { AppSettings } from "@/components/app-settings";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import { localStorageManager } from "@/lib/localStorage";
@@ -26,9 +27,12 @@ export default function ChatPage() {
   const [editingContent, setEditingContent] = useState("");
   const [streamingMessage, setStreamingMessage] = useState<string>("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarWidth, setSidebarWidth] = useState(320);
   const [editingTitle, setEditingTitle] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showAppSettings, setShowAppSettings] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const sidebarRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   const { data: currentConversation } = useQuery<Conversation>({
@@ -276,16 +280,43 @@ export default function ChatPage() {
     setCurrentConversationId(id);
   };
 
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = sidebarWidth;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const diff = moveEvent.clientX - startX;
+      const newWidth = Math.max(240, Math.min(500, startWidth + diff));
+      setSidebarWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+  };
+
   return (
     <div className="flex h-screen">
       {sidebarOpen && (
-        <div className="w-80 shrink-0">
-          <ConversationSidebar
-            currentConversationId={currentConversationId}
-            onSelectConversation={handleSelectConversation}
-            onNewConversation={handleNewConversation}
+        <>
+          <div ref={sidebarRef} style={{ width: `${sidebarWidth}px` }} className="shrink-0 flex flex-col">
+            <ConversationSidebar
+              currentConversationId={currentConversationId}
+              onSelectConversation={handleSelectConversation}
+              onNewConversation={handleNewConversation}
+            />
+          </div>
+          <div
+            onMouseDown={handleMouseDown}
+            className="w-1 bg-sidebar-border hover:bg-blue-500/50 cursor-col-resize transition-colors"
+            data-testid="sidebar-resize-handle"
           />
-        </div>
+        </>
       )}
 
       <div className="flex flex-col flex-1 min-w-0">
@@ -333,6 +364,16 @@ export default function ChatPage() {
             </div>
 
             <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowAppSettings(true)}
+                data-testid="button-app-settings"
+                className="hover-elevate transition-transform duration-200"
+              >
+                <Settings className="h-5 w-5" />
+                <span className="sr-only">アプリ設定</span>
+              </Button>
               {currentConversationId && (
                 <Button
                   variant="ghost"
@@ -429,6 +470,8 @@ export default function ChatPage() {
           onClose={() => setShowSettings(false)}
         />
       )}
+
+      <AppSettings isOpen={showAppSettings} onClose={() => setShowAppSettings(false)} />
     </div>
   );
 }
