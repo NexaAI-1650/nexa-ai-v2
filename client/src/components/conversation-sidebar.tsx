@@ -82,8 +82,8 @@ export function ConversationSidebar({
               key={conversation.id}
               onClick={() => onSelectConversation(conversation.id)}
               className={cn(
-                "w-full text-left p-3 rounded-md hover-elevate active-elevate-2 group flex items-center justify-between gap-2",
-                currentConversationId === conversation.id && "bg-sidebar-accent"
+                "w-full text-left p-3 rounded-md hover-elevate active-elevate-2 group flex items-center justify-between gap-2 transition-all",
+                currentConversationId === conversation.id && "bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-blue-600/20 border border-blue-500/30"
               )}
               data-testid={`conversation-${conversation.id}`}
             >
