@@ -322,16 +322,6 @@ export default function ChatPage() {
       {sidebarOpen && (
         <>
           <div ref={sidebarRef} style={{ width: `${sidebarWidth}px` }} className="shrink-0 flex flex-col">
-            <div className="p-4 border-b border-sidebar-border">
-              <Button
-                onClick={handleNewConversation}
-                className="w-full"
-                data-testid="button-new-conversation"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                新しい会話
-              </Button>
-            </div>
             <div className="flex-1 flex flex-col">
               {!isTemporaryChat && (
                 <ConversationSidebar
