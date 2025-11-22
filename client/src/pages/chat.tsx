@@ -1,8 +1,14 @@
 import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Loader2, Menu, Trash2, Settings } from "lucide-react";
+import { Loader2, Menu, Trash2, Settings, Clock, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ChatMessage } from "@/components/chat-message";
 import { ChatInput } from "@/components/chat-input";
 import { ModelSelector } from "@/components/model-selector";
@@ -22,7 +28,10 @@ export default function ChatPage() {
   const [currentConversationId, setCurrentConversationId] = useState<string | undefined>();
   const [currentConversationTitle, setCurrentConversationTitle] = useState<string>("");
   const [messages, setMessages] = useState<Message[]>([]);
-  const [selectedModel, setSelectedModel] = useState(aiModels.length > 0 ? aiModels[0].id : "google/gemini-2.5-flash");
+  const [selectedModel, setSelectedModel] = useState(() => {
+    const settings = localStorageManager.getAppSettings();
+    return settings.defaultModel || (aiModels.length > 0 ? aiModels[0].id : "google/gemini-2.5-flash");
+  });
   const [editingMessageId, setEditingMessageId] = useState<string | undefined>();
   const [editingContent, setEditingContent] = useState("");
   const [streamingMessage, setStreamingMessage] = useState<string>("");
@@ -31,9 +40,11 @@ export default function ChatPage() {
   const [editingTitle, setEditingTitle] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showAppSettings, setShowAppSettings] = useState(false);
+  const [isTemporaryChat, setIsTemporaryChat] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const appSettings = localStorageManager.getAppSettings();
 
   const { data: currentConversation } = useQuery<Conversation>({
     queryKey: ["/api/conversations", currentConversationId],
@@ -274,6 +285,17 @@ export default function ChatPage() {
     setCurrentConversationId(undefined);
     setMessages([]);
     setStreamingMessage("");
+    setIsTemporaryChat(false);
+  };
+
+  const handleTemporaryChat = () => {
+    setCurrentConversationId(undefined);
+    setMessages([]);
+    setStreamingMessage("");
+    setIsTemporaryChat(true);
+    toast({
+      description: "一時チャットを開始しました（保存されません）",
+    });
   };
 
   const handleSelectConversation = (id: string) => {
@@ -305,11 +327,43 @@ export default function ChatPage() {
       {sidebarOpen && (
         <>
           <div ref={sidebarRef} style={{ width: `${sidebarWidth}px` }} className="shrink-0 flex flex-col">
-            <ConversationSidebar
-              currentConversationId={currentConversationId}
-              onSelectConversation={handleSelectConversation}
-              onNewConversation={handleNewConversation}
-            />
+            <div className="p-4 border-b border-sidebar-border space-y-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button className="w-full" data-testid="button-new-conversation-menu">
+                    <Plus className="h-4 w-4 mr-2" />
+                    新しい会話
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-48">
+                  <DropdownMenuItem onClick={handleNewConversation} data-testid="menu-persistent-chat">
+                    永続的な会話を開始
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleTemporaryChat} data-testid="menu-temporary-chat">
+                    <Clock className="h-4 w-4 mr-2" />
+                    一時チャットを開始
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+            <div className="flex-1 flex flex-col">
+              {!isTemporaryChat && (
+                <ConversationSidebar
+                  currentConversationId={currentConversationId}
+                  onSelectConversation={handleSelectConversation}
+                  onNewConversation={handleNewConversation}
+                />
+              )}
+              {isTemporaryChat && (
+                <div className="flex-1 flex flex-col items-center justify-center text-center p-4 text-muted-foreground text-sm">
+                  <Clock className="h-8 w-8 mb-2 opacity-50" />
+                  <p>一時チャット中</p>
+                  <p className="text-xs mt-1">
+                    このチャットは保存されません
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
           <div
             onMouseDown={handleMouseDown}
@@ -333,7 +387,12 @@ export default function ChatPage() {
                 <span className="sr-only">サイドバー切替</span>
               </Button>
 
-              {editingTitle && currentConversationId ? (
+              {isTemporaryChat ? (
+                <h1 className="text-xl font-semibold flex items-center gap-2">
+                  <Clock className="h-5 w-5" />
+                  一時チャット
+                </h1>
+              ) : editingTitle && currentConversationId ? (
                 <Input
                   value={currentConversationTitle}
                   onChange={(e) => setCurrentConversationTitle(e.target.value)}
@@ -402,15 +461,27 @@ export default function ChatPage() {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto bg-gradient-to-b from-background via-card/30 to-background">
+        <main
+          className="flex-1 overflow-y-auto bg-gradient-to-b from-background via-card/30 to-background"
+          style={{
+            fontSize: `${appSettings.fontSize}px`,
+            lineHeight: {
+              compact: "1.2",
+              normal: "1.5",
+              loose: "1.8",
+            }[appSettings.lineHeight],
+          }}
+        >
           {messages.length === 0 && !streamingMessage && (
             <div className="flex items-center justify-center h-full animate-fade-in">
               <div className="text-center space-y-4 p-8">
                 <h2 className="text-2xl font-semibold text-muted-foreground animate-slide-in-bottom">
-                  AIアシスタントへようこそ
+                  {isTemporaryChat ? "一時チャット開始" : "AIアシスタントへようこそ"}
                 </h2>
                 <p className="text-muted-foreground max-w-md animate-slide-in-bottom [animation-delay:100ms]">
-                  メッセージを入力して会話を始めましょう。複数のAIモデルから選択でき、画像を添付することもできます。
+                  {isTemporaryChat
+                    ? "このチャットは保存されません。自由に会話できます。"
+                    : "メッセージを入力して会話を始めましょう。複数のAIモデルから選択でき、画像を添付することもできます。"}
                 </p>
               </div>
             </div>
@@ -463,7 +534,7 @@ export default function ChatPage() {
         </footer>
       </div>
 
-      {showSettings && currentConversationId && (
+      {showSettings && currentConversationId && !isTemporaryChat && (
         <AISettingsPanel
           settings={messages.length > 0 ? (currentConversation?.aiSettings as AISettings) : undefined}
           onSave={handleSaveAISettings}

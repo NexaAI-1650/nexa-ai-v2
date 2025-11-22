@@ -1,6 +1,21 @@
 import type { Conversation } from "@shared/schema";
 
 const CONVERSATIONS_KEY = "ai_chat_conversations";
+const APP_SETTINGS_KEY = "app_settings";
+
+export interface AppSettings {
+  fontSize: number; // 12-20px
+  lineHeight: "compact" | "normal" | "loose"; // 1.2, 1.5, 1.8
+  persistenceEnabled: boolean;
+  defaultModel: string;
+}
+
+const DEFAULT_SETTINGS: AppSettings = {
+  fontSize: 16,
+  lineHeight: "normal",
+  persistenceEnabled: true,
+  defaultModel: "google/gemini-2.5-flash",
+};
 
 export const localStorageManager = {
   getConversations(): Conversation[] {
@@ -71,5 +86,22 @@ export const localStorageManager = {
       return localConv && localConv.updatedAt > serverConv.updatedAt ? localConv : serverConv;
     });
     this.saveConversations(merged);
+  },
+
+  getAppSettings(): AppSettings {
+    try {
+      const stored = localStorage.getItem(APP_SETTINGS_KEY);
+      return stored ? { ...DEFAULT_SETTINGS, ...JSON.parse(stored) } : DEFAULT_SETTINGS;
+    } catch {
+      return DEFAULT_SETTINGS;
+    }
+  },
+
+  saveAppSettings(settings: AppSettings): void {
+    try {
+      localStorage.setItem(APP_SETTINGS_KEY, JSON.stringify(settings));
+    } catch (e) {
+      console.error("Failed to save app settings:", e);
+    }
   },
 };
