@@ -1,4 +1,4 @@
-import { X, Settings } from "lucide-react";
+import { X, Settings, Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
@@ -13,6 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { localStorageManager, type AppSettings } from "@/lib/localStorage";
 import { aiModels } from "@shared/schema";
 import { useState, useEffect } from "react";
+import { useTheme } from "@/hooks/use-theme";
 
 interface AppSettingsProps {
   isOpen: boolean;
@@ -35,6 +36,7 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
   const [settings, setSettings] = useState<AppSettings>(
     localStorageManager.getAppSettings()
   );
+  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
     setSettings(localStorageManager.getAppSettings());
@@ -162,6 +164,33 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Theme Toggle */}
+          <div className="space-y-3">
+            <Label>テーマ</Label>
+            <div className="flex gap-2">
+              <Button
+                variant={theme === "light" ? "default" : "outline"}
+                size="sm"
+                className="flex-1"
+                onClick={() => toggleTheme("light")}
+                data-testid="button-theme-light"
+              >
+                <Sun className="h-4 w-4 mr-2" />
+                ライト
+              </Button>
+              <Button
+                variant={theme === "dark" ? "default" : "outline"}
+                size="sm"
+                className="flex-1"
+                onClick={() => toggleTheme("dark")}
+                data-testid="button-theme-dark"
+              >
+                <Moon className="h-4 w-4 mr-2" />
+                ダーク
+              </Button>
+            </div>
           </div>
 
           {/* Tag System Info */}

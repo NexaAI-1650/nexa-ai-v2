@@ -3,16 +3,9 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Loader2, Menu, Trash2, Settings, Clock, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { ChatMessage } from "@/components/chat-message";
 import { ChatInput } from "@/components/chat-input";
 import { ModelSelector } from "@/components/model-selector";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { ConversationSidebar } from "@/components/conversation-sidebar";
 import { AISettingsPanel } from "@/components/ai-settings";
 import { AppSettings } from "@/components/app-settings";
@@ -327,24 +320,15 @@ export default function ChatPage() {
       {sidebarOpen && (
         <>
           <div ref={sidebarRef} style={{ width: `${sidebarWidth}px` }} className="shrink-0 flex flex-col">
-            <div className="p-4 border-b border-sidebar-border space-y-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button className="w-full" data-testid="button-new-conversation-menu">
-                    <Plus className="h-4 w-4 mr-2" />
-                    新しい会話
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-48">
-                  <DropdownMenuItem onClick={handleNewConversation} data-testid="menu-persistent-chat">
-                    永続的な会話を開始
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleTemporaryChat} data-testid="menu-temporary-chat">
-                    <Clock className="h-4 w-4 mr-2" />
-                    一時チャットを開始
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+            <div className="p-4 border-b border-sidebar-border">
+              <Button
+                onClick={handleNewConversation}
+                className="w-full"
+                data-testid="button-new-conversation"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                新しい会話
+              </Button>
             </div>
             <div className="flex-1 flex flex-col">
               {!isTemporaryChat && (
@@ -426,6 +410,17 @@ export default function ChatPage() {
               <Button
                 variant="ghost"
                 size="icon"
+                onClick={handleTemporaryChat}
+                title={isTemporaryChat ? "永続的な会話に切り替え" : "一時チャットに切り替え"}
+                data-testid="button-toggle-temporary-chat"
+                className={isTemporaryChat ? "bg-blue-500/20 text-blue-600 dark:text-blue-400" : ""}
+              >
+                <Clock className="h-5 w-5" />
+                <span className="sr-only">一時チャット切り替え</span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => setShowAppSettings(true)}
                 data-testid="button-app-settings"
                 className="hover-elevate transition-transform duration-200"
@@ -456,7 +451,6 @@ export default function ChatPage() {
                   <span className="sr-only">新しい会話</span>
                 </Button>
               )}
-              <ThemeToggle />
             </div>
           </div>
         </header>
