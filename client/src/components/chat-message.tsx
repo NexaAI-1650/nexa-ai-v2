@@ -1,16 +1,13 @@
-import { Bot, User, Volume2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Bot, User } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import type { Message } from "@shared/schema";
 import { cn } from "@/lib/utils";
 
 interface ChatMessageProps {
   message: Message;
-  onPlayAudio?: (audioUrl: string) => void;
-  isPlaying?: boolean;
 }
 
-export function ChatMessage({ message, onPlayAudio, isPlaying }: ChatMessageProps) {
+export function ChatMessage({ message }: ChatMessageProps) {
   const isUser = message.role === "user";
 
   return (
@@ -32,19 +29,21 @@ export function ChatMessage({ message, onPlayAudio, isPlaying }: ChatMessageProp
           <span className="font-semibold text-sm">
             {isUser ? "あなた" : "AI アシスタント"}
           </span>
-          {!isUser && message.audioUrl && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              onClick={() => onPlayAudio?.(message.audioUrl!)}
-              data-testid={`button-play-audio-${message.id}`}
-            >
-              <Volume2 className={cn("h-4 w-4", isPlaying && "text-primary")} />
-              <span className="sr-only">音声を再生</span>
-            </Button>
-          )}
         </div>
+        
+        {message.attachments && message.attachments.length > 0 && (
+          <div className="flex gap-2 flex-wrap">
+            {message.attachments.map((attachment, index) => (
+              <img
+                key={index}
+                src={attachment.url}
+                alt={attachment.name}
+                className="max-w-xs rounded-md border"
+                data-testid={`message-attachment-${index}`}
+              />
+            ))}
+          </div>
+        )}
         
         <div className="prose dark:prose-invert max-w-none text-sm leading-relaxed whitespace-pre-wrap break-words">
           {message.content}

@@ -1,37 +1,59 @@
-import { type User, type InsertUser } from "@shared/schema";
+import { type Conversation, type Message } from "@shared/schema";
 import { randomUUID } from "crypto";
 
-// modify the interface with any CRUD methods
-// you might need
-
 export interface IStorage {
-  getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  getConversation(id: string): Promise<Conversation | undefined>;
+  getAllConversations(): Promise<Conversation[]>;
+  createConversation(title: string, model: string): Promise<Conversation>;
+  updateConversation(id: string, messages: Message[]): Promise<Conversation>;
+  deleteConversation(id: string): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
-  private users: Map<string, User>;
+  private conversations: Map<string, Conversation>;
 
   constructor() {
-    this.users = new Map();
+    this.conversations = new Map();
   }
 
-  async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+  async getConversation(id: string): Promise<Conversation | undefined> {
+    return this.conversations.get(id);
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
+  async getAllConversations(): Promise<Conversation[]> {
+    return Array.from(this.conversations.values()).sort(
+      (a, b) => b.updatedAt - a.updatedAt
     );
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
+  async createConversation(title: string, model: string): Promise<Conversation> {
     const id = randomUUID();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
+    const now = Date.now();
+    const conversation: Conversation = {
+      id,
+      title,
+      model,
+      messages: [],
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.conversations.set(id, conversation);
+    return conversation;
+  }
+
+  async updateConversation(id: string, messages: Message[]): Promise<Conversation> {
+    const conversation = this.conversations.get(id);
+    if (!conversation) {
+      throw new Error("Conversation not found");
+    }
+    conversation.messages = messages;
+    conversation.updatedAt = Date.now();
+    this.conversations.set(id, conversation);
+    return conversation;
+  }
+
+  async deleteConversation(id: string): Promise<void> {
+    this.conversations.delete(id);
   }
 }
 

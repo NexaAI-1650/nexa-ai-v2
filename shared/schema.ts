@@ -1,10 +1,9 @@
 import { z } from "zod";
 
 export const aiModels = [
-  { id: "google/gemini-pro-1.5", name: "Gemini 1.5 Pro" },
-  { id: "openai/gpt-4.5-preview", name: "GPT-4.5 Preview" },
-  { id: "anthropic/claude-3.5-sonnet", name: "Claude 3.5 Sonnet" },
-  { id: "meta-llama/llama-3.1-70b-instruct", name: "Llama 3.1 70B" },
+  { id: "google/gemini-3-pro-preview", name: "Gemini 3 Pro Preview" },
+  { id: "openai/gpt-5.1", name: "GPT-5.1" },
+  { id: "openai/gpt-4.1-mini", name: "GPT-4.1 Mini" },
 ] as const;
 
 export const messageSchema = z.object({
@@ -12,21 +11,37 @@ export const messageSchema = z.object({
   role: z.enum(["user", "assistant"]),
   content: z.string(),
   timestamp: z.number(),
-  audioUrl: z.string().optional(),
+  attachments: z.array(z.object({
+    type: z.enum(["image"]),
+    url: z.string(),
+    name: z.string(),
+  })).optional(),
+});
+
+export const conversationSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  model: z.string(),
+  messages: z.array(messageSchema),
+  createdAt: z.number(),
+  updatedAt: z.number(),
 });
 
 export const chatRequestSchema = z.object({
-  message: z.string().min(1, "メッセージを入力してください"),
+  message: z.string(),
   model: z.string(),
-  conversationHistory: z.array(messageSchema).optional(),
-});
-
-export const ttsRequestSchema = z.object({
-  text: z.string(),
-  voice: z.enum(["alloy", "echo", "fable", "onyx", "nova", "shimmer"]).default("nova"),
-});
+  conversationId: z.string().optional(),
+  attachments: z.array(z.object({
+    type: z.enum(["image"]),
+    url: z.string(),
+    name: z.string(),
+  })).optional(),
+}).refine(
+  (data) => data.message.trim().length > 0 || (data.attachments && data.attachments.length > 0),
+  { message: "メッセージまたは画像を入力してください" }
+);
 
 export type Message = z.infer<typeof messageSchema>;
+export type Conversation = z.infer<typeof conversationSchema>;
 export type ChatRequest = z.infer<typeof chatRequestSchema>;
-export type TTSRequest = z.infer<typeof ttsRequestSchema>;
 export type AIModel = typeof aiModels[number];
