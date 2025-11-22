@@ -293,8 +293,8 @@ export default function ChatPage() {
       )}
 
       <div className="flex flex-col flex-1 min-w-0">
-        <header className="border-b bg-card">
-          <div className="flex items-center justify-between px-6 py-4">
+        <header className="border-b bg-card backdrop-blur-sm bg-card/80 shadow-sm transition-all duration-300">
+          <div className="flex items-center justify-between px-6 py-4 animate-fade-in">
             <div className="flex items-center gap-4">
               <Button
                 variant="ghost"
@@ -343,8 +343,9 @@ export default function ChatPage() {
                   size="icon"
                   onClick={() => setShowSettings(true)}
                   data-testid="button-ai-settings"
+                  className="hover-elevate transition-transform duration-200 hover:scale-110"
                 >
-                  <Settings className="h-5 w-5" />
+                  <Settings className="h-5 w-5 transition-transform duration-300 hover:rotate-90" />
                   <span className="sr-only">AI設定</span>
                 </Button>
               )}
@@ -364,14 +365,14 @@ export default function ChatPage() {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto bg-gradient-to-b from-background via-card/30 to-background">
           {messages.length === 0 && !streamingMessage && (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center space-y-4 p-8">
-                <h2 className="text-2xl font-semibold text-muted-foreground">
+            <div className="flex items-center justify-center h-full animate-fade-in">
+              <div className="text-center space-y-4 p-8 animate-float">
+                <h2 className="text-2xl font-semibold text-muted-foreground animate-slide-in-bottom">
                   AIアシスタントへようこそ
                 </h2>
-                <p className="text-muted-foreground max-w-md">
+                <p className="text-muted-foreground max-w-md animate-slide-in-bottom [animation-delay:100ms]">
                   メッセージを入力して会話を始めましょう。複数のAIモデルから選択でき、画像を添付することもできます。
                 </p>
               </div>

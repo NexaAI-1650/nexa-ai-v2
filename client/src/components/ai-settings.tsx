@@ -31,9 +31,12 @@ export function AISettingsPanel({ settings, onSave, onClose }: AISettingsPanelPr
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
+    <div 
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fade-in backdrop-blur-sm" 
+      onClick={onClose}
+    >
       <div
-        className="bg-background border rounded-lg p-6 max-w-md w-full max-h-[90vh] overflow-y-auto"
+        className="bg-background border rounded-lg p-6 max-w-md w-full max-h-[90vh] overflow-y-auto animate-slide-in-bottom shadow-lg"
         onClick={(e) => e.stopPropagation()}
         data-testid="panel-ai-settings"
       >

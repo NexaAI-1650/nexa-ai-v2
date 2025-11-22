@@ -19,7 +19,7 @@ export function ChatMessage({ message, isOwn = false, onEdit, onDelete }: ChatMe
   return (
     <div
       className={cn(
-        "flex gap-4 p-6 group",
+        "flex gap-4 p-6 group animate-slide-in-bottom transition-all duration-300",
         isUser ? "bg-background" : "bg-muted/30"
       )}
       data-testid={`message-${message.id}`}
