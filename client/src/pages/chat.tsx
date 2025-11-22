@@ -285,9 +285,11 @@ export default function ChatPage() {
     setCurrentConversationId(undefined);
     setMessages([]);
     setStreamingMessage("");
-    setIsTemporaryChat(true);
+    setIsTemporaryChat(!isTemporaryChat);
     toast({
-      description: "一時チャットを開始しました（保存されません）",
+      description: isTemporaryChat
+        ? "永続的な会話に切り替えました"
+        : "一時チャットを開始しました（保存されません）",
     });
   };
 
