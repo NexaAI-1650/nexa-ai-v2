@@ -2,7 +2,16 @@ import { z } from "zod";
 
 export const aiModels = [
   { id: "google/gemini-2.5-flash", name: "Gemini 2.5 Flash" },
+  { id: "openai/gpt-5-mini", name: "GPT-5 Mini" },
 ] as const;
+
+export const aiSettingsSchema = z.object({
+  customInstructions: z.string().optional(),
+  nickname: z.string().optional(),
+  role: z.string().optional(),
+  memory: z.array(z.string()).optional(),
+  memoryEnabled: z.boolean().optional(),
+});
 
 export const messageSchema = z.object({
   id: z.string(),
@@ -23,6 +32,7 @@ export const conversationSchema = z.object({
   model: z.string(),
   messages: z.array(messageSchema),
   tags: z.array(z.string()).optional(),
+  aiSettings: aiSettingsSchema.optional(),
   createdAt: z.number(),
   updatedAt: z.number(),
 });
@@ -44,4 +54,5 @@ export const chatRequestSchema = z.object({
 export type Message = z.infer<typeof messageSchema>;
 export type Conversation = z.infer<typeof conversationSchema>;
 export type ChatRequest = z.infer<typeof chatRequestSchema>;
+export type AISettings = z.infer<typeof aiSettingsSchema>;
 export type AIModel = typeof aiModels[number];

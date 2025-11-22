@@ -35,6 +35,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update conversation (PATCH - for messages, title, settings)
+  app.patch("/api/conversations/:id", async (req, res) => {
+    try {
+      const { messages, title, settings } = req.body;
+      let conversation = await storage.getConversation(req.params.id);
+      if (!conversation) {
+        return res.status(404).json({ error: "会話が見つかりません" });
+      }
+
+      if (messages) {
+        conversation = await storage.updateConversationMessages(req.params.id, messages);
+      }
+      if (title) {
+        conversation = await storage.updateConversationTitle(req.params.id, title);
+      }
+      if (settings) {
+        conversation = await storage.updateConversationSettings(req.params.id, settings);
+      }
+
+      res.json(conversation);
+    } catch (error) {
+      console.error("Update conversation error:", error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "会話の更新に失敗しました",
+      });
+    }
+  });
+
   // Delete conversation
   app.delete("/api/conversations/:id", async (req, res) => {
     try {

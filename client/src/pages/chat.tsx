@@ -1,16 +1,18 @@
 import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Loader2, Menu, Trash2 } from "lucide-react";
+import { Loader2, Menu, Trash2, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { ChatMessage } from "@/components/chat-message";
 import { ChatInput } from "@/components/chat-input";
 import { ModelSelector } from "@/components/model-selector";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ConversationSidebar } from "@/components/conversation-sidebar";
+import { AISettingsPanel } from "@/components/ai-settings";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import { localStorageManager } from "@/lib/localStorage";
-import type { Message, Conversation } from "@shared/schema";
+import type { Message, Conversation, AISettings } from "@shared/schema";
 import { aiModels } from "@shared/schema";
 
 interface FileAttachment {
@@ -21,12 +23,15 @@ interface FileAttachment {
 
 export default function ChatPage() {
   const [currentConversationId, setCurrentConversationId] = useState<string | undefined>();
+  const [currentConversationTitle, setCurrentConversationTitle] = useState<string>("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [selectedModel, setSelectedModel] = useState(aiModels.length > 0 ? aiModels[0].id : "google/gemini-2.5-flash");
   const [editingMessageId, setEditingMessageId] = useState<string | undefined>();
   const [editingContent, setEditingContent] = useState("");
   const [streamingMessage, setStreamingMessage] = useState<string>("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -46,6 +51,7 @@ export default function ChatPage() {
     if (currentConversation) {
       setMessages(currentConversation.messages);
       setSelectedModel(currentConversation.model);
+      setCurrentConversationTitle(currentConversation.title);
     }
   }, [currentConversation]);
 
@@ -191,18 +197,12 @@ export default function ChatPage() {
 
   const handleEditMessage = async (messageId: string, newContent: string) => {
     if (!currentConversationId) return;
-    setMessages((prev) =>
-      prev.map((msg) =>
-        msg.id === messageId
-          ? { ...msg, content: newContent, isEdited: true }
-          : msg
-      )
-    );
     const updatedMessages = messages.map((msg) =>
       msg.id === messageId
         ? { ...msg, content: newContent, isEdited: true }
         : msg
     );
+    setMessages(updatedMessages);
     const updated = await fetch(`/api/conversations/${currentConversationId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -212,6 +212,7 @@ export default function ChatPage() {
       const conv = await updated.json();
       localStorageManager.updateConversation(currentConversationId, conv);
       queryClient.invalidateQueries({ queryKey: ["/api/conversations", currentConversationId] });
+      toast({ description: "メッセージを編集しました" });
     }
     setEditingMessageId(undefined);
   };
@@ -229,6 +230,39 @@ export default function ChatPage() {
       const conv = await updated.json();
       localStorageManager.updateConversation(currentConversationId, conv);
       queryClient.invalidateQueries({ queryKey: ["/api/conversations", currentConversationId] });
+      toast({ description: "メッセージを削除しました" });
+    }
+  };
+
+  const handleUpdateTitle = async (newTitle: string) => {
+    if (!currentConversationId) return;
+    const updated = await fetch(`/api/conversations/${currentConversationId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: newTitle }),
+    });
+    if (updated.ok) {
+      const conv = await updated.json();
+      setCurrentConversationTitle(newTitle);
+      localStorageManager.updateConversation(currentConversationId, conv);
+      queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
+      setEditingTitle(false);
+      toast({ description: "会話名を更新しました" });
+    }
+  };
+
+  const handleSaveAISettings = async (settings: AISettings) => {
+    if (!currentConversationId) return;
+    const updated = await fetch(`/api/conversations/${currentConversationId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ settings }),
+    });
+    if (updated.ok) {
+      const conv = await updated.json();
+      localStorageManager.updateConversation(currentConversationId, conv);
+      queryClient.invalidateQueries({ queryKey: ["/api/conversations", currentConversationId] });
+      toast({ description: "AI設定を保存しました" });
     }
   };
 
@@ -272,9 +306,28 @@ export default function ChatPage() {
                 <span className="sr-only">サイドバー切替</span>
               </Button>
 
-              <h1 className="text-xl font-semibold" data-testid="text-app-title">
-                AI Chat
-              </h1>
+              {editingTitle && currentConversationId ? (
+                <Input
+                  value={currentConversationTitle}
+                  onChange={(e) => setCurrentConversationTitle(e.target.value)}
+                  onBlur={() => handleUpdateTitle(currentConversationTitle)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleUpdateTitle(currentConversationTitle);
+                    if (e.key === "Escape") setEditingTitle(false);
+                  }}
+                  autoFocus
+                  className="max-w-xs"
+                  data-testid="input-conversation-title"
+                />
+              ) : (
+                <h1
+                  className="text-xl font-semibold cursor-pointer hover:opacity-70"
+                  onClick={() => currentConversationId && setEditingTitle(true)}
+                  data-testid="text-conversation-title"
+                >
+                  {currentConversationTitle || "AI Chat"}
+                </h1>
+              )}
               
               <ModelSelector
                 value={selectedModel}
@@ -284,6 +337,17 @@ export default function ChatPage() {
             </div>
 
             <div className="flex items-center gap-2">
+              {currentConversationId && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowSettings(true)}
+                  data-testid="button-ai-settings"
+                >
+                  <Settings className="h-5 w-5" />
+                  <span className="sr-only">AI設定</span>
+                </Button>
+              )}
               {messages.length > 0 && (
                 <Button
                   variant="ghost"
@@ -315,7 +379,16 @@ export default function ChatPage() {
           )}
 
           {messages.map((message) => (
-            <ChatMessage key={message.id} message={message} />
+            <ChatMessage
+              key={message.id}
+              message={message}
+              isOwn={true}
+              onEdit={(msg) => {
+                setEditingMessageId(msg.id);
+                setEditingContent(msg.content);
+              }}
+              onDelete={handleDeleteMessage}
+            />
           ))}
 
           {streamingMessage && (
@@ -351,6 +424,14 @@ export default function ChatPage() {
           </div>
         </footer>
       </div>
+
+      {showSettings && currentConversationId && (
+        <AISettingsPanel
+          settings={messages.length > 0 ? (currentConversation?.aiSettings as AISettings) : undefined}
+          onSave={handleSaveAISettings}
+          onClose={() => setShowSettings(false)}
+        />
+      )}
     </div>
   );
 }

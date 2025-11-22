@@ -6,8 +6,10 @@ export interface IStorage {
   getAllConversations(): Promise<Conversation[]>;
   createConversation(title: string, model: string): Promise<Conversation>;
   updateConversation(id: string, messages: Message[]): Promise<Conversation>;
+  updateConversationMessages(id: string, messages: Message[]): Promise<Conversation>;
   updateConversationTags(id: string, tags: string[]): Promise<Conversation>;
   updateConversationTitle(id: string, title: string): Promise<Conversation>;
+  updateConversationSettings(id: string, settings: any): Promise<Conversation>;
   deleteConversation(id: string): Promise<void>;
 }
 
@@ -65,12 +67,34 @@ export class MemStorage implements IStorage {
     return conversation;
   }
 
+  async updateConversationMessages(id: string, messages: Message[]): Promise<Conversation> {
+    const conversation = this.conversations.get(id);
+    if (!conversation) {
+      throw new Error("Conversation not found");
+    }
+    conversation.messages = messages;
+    conversation.updatedAt = Date.now();
+    this.conversations.set(id, conversation);
+    return conversation;
+  }
+
   async updateConversationTitle(id: string, title: string): Promise<Conversation> {
     const conversation = this.conversations.get(id);
     if (!conversation) {
       throw new Error("Conversation not found");
     }
     conversation.title = title;
+    conversation.updatedAt = Date.now();
+    this.conversations.set(id, conversation);
+    return conversation;
+  }
+
+  async updateConversationSettings(id: string, settings: any): Promise<Conversation> {
+    const conversation = this.conversations.get(id);
+    if (!conversation) {
+      throw new Error("Conversation not found");
+    }
+    conversation.aiSettings = { ...conversation.aiSettings, ...settings };
     conversation.updatedAt = Date.now();
     this.conversations.set(id, conversation);
     return conversation;

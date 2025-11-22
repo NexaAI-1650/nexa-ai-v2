@@ -20,6 +20,11 @@ export const localStorageManager = {
     }
   },
 
+  getConversation(id: string): Conversation | undefined {
+    const conversations = this.getConversations();
+    return conversations.find((c) => c.id === id);
+  },
+
   addConversation(conversation: Conversation): void {
     const conversations = this.getConversations();
     conversations.unshift(conversation);
@@ -42,5 +47,14 @@ export const localStorageManager = {
 
   clearAll(): void {
     localStorage.removeItem(CONVERSATIONS_KEY);
+  },
+
+  syncFromServer(serverConversations: Conversation[]): void {
+    const local = this.getConversations();
+    const merged = serverConversations.map((serverConv) => {
+      const localConv = local.find((c) => c.id === serverConv.id);
+      return localConv && localConv.updatedAt > serverConv.updatedAt ? localConv : serverConv;
+    });
+    this.saveConversations(merged);
   },
 };
