@@ -15,6 +15,10 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
+localPort = 33027
+externalPort = 3001
+
+[[ports]]
 localPort = 39655
 externalPort = 3002
 
@@ -45,3 +49,8 @@ author = "agent"
 task = "shell.exec"
 args = "npm run dev"
 waitForPort = 5000
+
+[userenv]
+
+[userenv.shared]
+OPENROUTER_API_KEY = "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"
