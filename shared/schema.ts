@@ -1,6 +1,8 @@
 import { z } from "zod";
 
-export const aiModels = [] as const;
+export const aiModels = [
+  { id: "google/gemini-2.5-flash", name: "Gemini 2.5 Flash" },
+] as const;
 
 export const messageSchema = z.object({
   id: z.string(),
