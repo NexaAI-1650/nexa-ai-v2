@@ -19,9 +19,11 @@ export const messageSchema = z.object({
   content: z.string(),
   timestamp: z.number(),
   attachments: z.array(z.object({
-    type: z.enum(["image"]),
+    type: z.enum(["image", "file"]),
     url: z.string(),
     name: z.string(),
+    mimeType: z.string().optional(),
+    size: z.number().optional(),
   })).optional(),
   isEdited: z.boolean().optional(),
 });

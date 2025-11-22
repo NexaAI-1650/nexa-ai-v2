@@ -2,13 +2,7 @@ import { useState, KeyboardEvent } from "react";
 import { Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { FileUpload } from "./file-upload";
-
-interface FileAttachment {
-  type: "image";
-  url: string;
-  name: string;
-}
+import { FileUpload, type FileAttachment } from "./file-upload";
 
 interface ChatInputProps {
   onSend: (message: string, attachments?: FileAttachment[]) => void;

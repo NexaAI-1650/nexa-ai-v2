@@ -15,11 +15,7 @@ import { localStorageManager } from "@/lib/localStorage";
 import type { Message, Conversation, AISettings } from "@shared/schema";
 import { aiModels } from "@shared/schema";
 
-interface FileAttachment {
-  type: "image";
-  url: string;
-  name: string;
-}
+import type { FileAttachment } from "@/components/file-upload";
 
 export default function ChatPage() {
   const [currentConversationId, setCurrentConversationId] = useState<string | undefined>();

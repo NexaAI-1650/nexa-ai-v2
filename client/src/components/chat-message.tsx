@@ -65,16 +65,40 @@ export function ChatMessage({ message, isOwn = false, onEdit, onDelete }: ChatMe
         </div>
         
         {message.attachments && message.attachments.length > 0 && (
-          <div className="flex gap-2 flex-wrap">
-            {message.attachments.map((attachment, index) => (
-              <img
-                key={index}
-                src={attachment.url}
-                alt={attachment.name}
-                className="max-w-xs rounded-md border"
-                data-testid={`message-attachment-${index}`}
-              />
-            ))}
+          <div className="space-y-2">
+            {/* Images */}
+            {message.attachments
+              .filter((a) => a.type === "image")
+              .map((attachment, index) => (
+                <img
+                  key={`image-${index}`}
+                  src={attachment.url}
+                  alt={attachment.name}
+                  className="max-w-xs rounded-md border animate-slide-in-bottom"
+                  data-testid={`message-attachment-image-${index}`}
+                />
+              ))}
+            
+            {/* Files */}
+            {message.attachments
+              .filter((a) => a.type === "file")
+              .map((attachment, index) => (
+                <a
+                  key={`file-${index}`}
+                  href={attachment.url}
+                  download={attachment.name}
+                  className="inline-flex items-center gap-2 p-3 bg-primary/10 hover:bg-primary/20 border border-primary/30 rounded-md transition-colors animate-slide-in-bottom group"
+                  data-testid={`message-attachment-file-${index}`}
+                >
+                  <span className="text-primary">📎</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate text-foreground">
+                      {attachment.name}
+                    </p>
+                  </div>
+                  <span className="text-xs text-muted-foreground ml-2">⬇️</span>
+                </a>
+              ))}
           </div>
         )}
         
