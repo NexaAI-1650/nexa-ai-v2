@@ -152,6 +152,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           model,
           messages,
           stream: true,
+          max_tokens: 4000,
         }),
       });
 
