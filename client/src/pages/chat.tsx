@@ -440,17 +440,6 @@ export default function ChatPage() {
                   <span className="sr-only">AI設定</span>
                 </Button>
               )}
-              {messages.length > 0 && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleNewConversation}
-                  data-testid="button-clear-chat"
-                >
-                  <Trash2 className="h-5 w-5" />
-                  <span className="sr-only">新しい会話</span>
-                </Button>
-              )}
             </div>
           </div>
         </header>

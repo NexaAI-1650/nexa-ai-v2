@@ -1,7 +1,8 @@
-import { X, Settings, Moon, Sun } from "lucide-react";
+import { X, Settings, Moon, Sun, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -77,13 +78,23 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
         <div className="space-y-6">
           {/* Font Size */}
           <div className="space-y-3">
-            <Label htmlFor="font-size">
-              フォントサイズ: {settings.fontSize}px
-            </Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="font-size">フォントサイズ</Label>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleSave({ ...settings, fontSize: 16 })}
+                data-testid="button-font-size-reset"
+                title="デフォルトサイズ（16px）に戻す"
+              >
+                <RotateCcw className="h-3 w-3 mr-1" />
+                リセット
+              </Button>
+            </div>
             <Slider
               id="font-size"
-              min={12}
-              max={20}
+              min={10}
+              max={40}
               step={1}
               value={[settings.fontSize]}
               onValueChange={(value) =>
@@ -92,9 +103,24 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
               className="w-full"
               data-testid="slider-font-size"
             />
-            <p className="text-xs text-muted-foreground">
-              12px～20pxで調整できます
-            </p>
+            <div className="flex items-center gap-2">
+              <Input
+                type="number"
+                min={10}
+                max={40}
+                value={settings.fontSize}
+                onChange={(e) => {
+                  const val = Math.min(40, Math.max(10, parseInt(e.target.value) || 10));
+                  handleSave({ ...settings, fontSize: val });
+                }}
+                className="w-16 text-center"
+                data-testid="input-font-size"
+              />
+              <span className="text-xs text-muted-foreground">px</span>
+              <span className="text-xs text-muted-foreground ml-auto">
+                10px～40px
+              </span>
+            </div>
           </div>
 
           {/* Line Height */}
