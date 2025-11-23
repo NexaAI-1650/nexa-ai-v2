@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits, SlashCommandBuilder, ChannelType } from "discord.js";
+import { Client, GatewayIntentBits, SlashCommandBuilder, ChannelType, AttachmentBuilder } from "discord.js";
 
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
@@ -151,16 +151,24 @@ export async function initDiscordBot() {
       }
 
       const aiResponse = data.choices[0]?.message?.content || "応答がありません";
-      const truncated = aiResponse.length > 1900 ? aiResponse.slice(0, 1897) + "..." : aiResponse;
 
       botChatStats.totalMessages += 2;
       botChatStats.totalTokens += Math.ceil((userMessage.length + aiResponse.length) / 4);
       botChatStats.modelCounts[currentModel] = (botChatStats.modelCounts[currentModel] || 0) + 1;
       botChatStats.totalChats = Object.keys(botChatStats.modelCounts).length;
 
-      await message.reply({
-        content: `${truncated}`,
-      });
+      if (aiResponse.length > 2000) {
+        const attachment = new AttachmentBuilder(Buffer.from(aiResponse, "utf-8"), {
+          name: "response.txt",
+        });
+        await message.reply({
+          files: [attachment],
+        });
+      } else {
+        await message.reply({
+          content: aiResponse,
+        });
+      }
     } catch (error) {
       console.error("Discord Bot メッセージ処理エラー:", error);
       await message.reply("エラーが発生しました");
@@ -209,11 +217,19 @@ export async function initDiscordBot() {
         }
 
         const aiResponse = data.choices[0]?.message?.content || "応答がありません";
-        const truncated = aiResponse.length > 1900 ? aiResponse.slice(0, 1897) + "..." : aiResponse;
 
-        await interaction.editReply({
-          content: `${truncated}`,
-        });
+        if (aiResponse.length > 2000) {
+          const attachment = new AttachmentBuilder(Buffer.from(aiResponse, "utf-8"), {
+            name: "response.txt",
+          });
+          await interaction.editReply({
+            files: [attachment],
+          });
+        } else {
+          await interaction.editReply({
+            content: aiResponse,
+          });
+        }
       } catch (error) {
         console.error("Discord Bot エラー:", error);
         await interaction.editReply("エラーが発生しました");
