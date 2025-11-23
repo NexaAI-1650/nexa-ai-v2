@@ -95,19 +95,19 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
       onClick={onClose}
     >
       <div
-        className="bg-background border rounded-lg w-full max-w-lg max-h-[90vh] animate-slide-in-bottom shadow-lg flex overflow-hidden"
+        className="bg-background border rounded-lg w-full max-w-2xl max-h-[90vh] animate-slide-in-bottom shadow-lg flex overflow-hidden"
         onClick={(e) => e.stopPropagation()}
         data-testid="panel-app-settings"
       >
         {/* Left Sidebar Menu */}
-        <div className="w-48 bg-muted/30 border-r flex flex-col">
+        <div className="w-32 bg-muted/30 border-r flex flex-col">
           <div className="p-4 border-b">
             <h2 className="font-semibold text-lg">アプリ設定</h2>
           </div>
-          <nav className="flex-1 overflow-y-auto p-2 space-y-1">
+          <nav className="flex-1 overflow-y-auto p-1 space-y-1">
             <button
               onClick={() => setActiveSection("general")}
-              className={`w-full text-left px-4 py-3 rounded-md transition-colors ${
+              className={`w-full text-left px-2 py-2 text-sm rounded-md transition-colors ${
                 activeSection === "general"
                   ? "bg-primary text-primary-foreground"
                   : "hover:bg-muted"
@@ -118,7 +118,7 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
             </button>
             <button
               onClick={() => setActiveSection("ai")}
-              className={`w-full text-left px-4 py-3 rounded-md transition-colors ${
+              className={`w-full text-left px-2 py-2 text-sm rounded-md transition-colors ${
                 activeSection === "ai"
                   ? "bg-primary text-primary-foreground"
                   : "hover:bg-muted"
@@ -129,7 +129,7 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
             </button>
             <button
               onClick={() => setActiveSection("data")}
-              className={`w-full text-left px-4 py-3 rounded-md transition-colors ${
+              className={`w-full text-left px-2 py-2 text-sm rounded-md transition-colors ${
                 activeSection === "data"
                   ? "bg-primary text-primary-foreground"
                   : "hover:bg-muted"
