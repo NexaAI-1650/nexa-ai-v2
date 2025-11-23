@@ -253,29 +253,18 @@ export default function ChatPage() {
   };
 
   const handleSend = (message: string) => {
-    const messages = message.split('\n').map(m => m.trim()).filter(m => m.length > 0);
-    if (messages.length === 0) return;
+    const msgs = message.split('\n').map(m => m.trim()).filter(m => m.length > 0);
+    if (msgs.length === 0) return;
     
-    if (messages.length === 1) {
-      chatMutation.mutate({ userMessage: messages[0] });
+    if (msgs.length === 1) {
+      chatMutation.mutate({ userMessage: msgs[0] });
     } else {
-      // バッチ処理：複数メッセージを順次送信
-      const sendBatch = async (index: number) => {
-        if (index >= messages.length) return;
-        await new Promise(resolve => {
-          chatMutation.mutate({ userMessage: messages[index] }, {
-            onSuccess: () => {
-              setTimeout(() => {
-                sendBatch(index + 1).then(resolve);
-              }, 500);
-            },
-            onError: () => {
-              resolve(undefined);
-            }
-          } as any);
-        });
-      };
-      sendBatch(0);
+      // バッチ処理：複数メッセージを順次送信（1秒間隔）
+      msgs.forEach((msg, index) => {
+        setTimeout(() => {
+          chatMutation.mutate({ userMessage: msg });
+        }, index * 1000);
+      });
     }
   };
 
