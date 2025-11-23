@@ -176,7 +176,7 @@ export async function initDiscordBot() {
         ephemeral: true,
       });
     } else if (interaction.commandName === "model") {
-      const newModel = interaction.options.getString("model") || "google/gemini-2.5-flash";
+      const newModel = interaction.options.getString("model") || "openai/gpt-oss-20b:free";
       currentModel = newModel;
       await interaction.reply({
         content: `✅ **モデルを変更しました**\n選択: ${newModel}`,
@@ -198,7 +198,7 @@ export async function initDiscordBot() {
 
 **利用可能なモデル:**
 • Gemini 2.5 Flash
-• GPT-4.1 Mini
+• openai/gpt-oss-20b:free
 • O4 Mini High`,
         ephemeral: true,
       });
