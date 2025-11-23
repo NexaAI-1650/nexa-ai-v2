@@ -163,66 +163,41 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
 
         {/* Right Content Area */}
         <ScrollArea className="flex-1">
-          <div className="p-6">
+          <div className="p-6 space-y-4">
             {/* 一般 */}
             {activeSection === "general" && (
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-semibold mb-4">{t("generalSettings")}</h3>
+              <div className="space-y-3">
+                <h3 className="text-base font-semibold text-foreground">{t("generalSettings")}</h3>
 
-                  {/* Theme */}
-                  <div className="space-y-2 mb-6">
-                    <Label>{t("theme")}</Label>
-                    <div className="flex gap-2">
-                      <Button
-                        variant={theme === "light" ? "default" : "outline"}
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => setTheme("light")}
-                        data-testid="button-theme-light"
-                      >
-                        <Sun className="h-3 w-3 mr-1" />
-                        {t("light")}
-                      </Button>
-                      <Button
-                        variant={theme === "dark" ? "default" : "outline"}
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => setTheme("dark")}
-                        data-testid="button-theme-dark"
-                      >
-                        <Moon className="h-3 w-3 mr-1" />
-                        {t("dark")}
-                      </Button>
-                    </div>
+                {/* Theme */}
+                <div className="flex items-center justify-between py-2 px-3 hover:bg-muted/30 rounded-md transition-colors">
+                  <Label className="text-sm">{t("theme")}</Label>
+                  <div className="flex gap-1">
+                    <Button
+                      variant={theme === "light" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setTheme("light")}
+                      data-testid="button-theme-light"
+                      className="h-8"
+                    >
+                      <Sun className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      variant={theme === "dark" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setTheme("dark")}
+                      data-testid="button-theme-dark"
+                      className="h-8"
+                    >
+                      <Moon className="h-3 w-3" />
+                    </Button>
                   </div>
+                </div>
 
-                  {/* Font Size */}
-                  <div className="space-y-2 mb-6">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="font-size">{t("fontSize")}</Label>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleSave({ ...settings, fontSize: 16 })}
-                        data-testid="button-font-size-reset"
-                      >
-                        <RotateCcw className="h-3 w-3 mr-1" />
-                        {t("reset")}
-                      </Button>
-                    </div>
-                    <Slider
-                      id="font-size"
-                      min={10}
-                      max={40}
-                      step={1}
-                      value={[settings.fontSize]}
-                      onValueChange={(value) =>
-                        handleSave({ ...settings, fontSize: value[0] })
-                      }
-                      className="w-full"
-                      data-testid="slider-font-size"
-                    />
+                {/* Font Size */}
+                <div className="py-2 px-3 hover:bg-muted/30 rounded-md transition-colors">
+                  <div className="flex items-center justify-between mb-1">
+                    <Label htmlFor="font-size" className="text-sm">{t("fontSize")}</Label>
                     <div className="flex items-center gap-2">
                       <Input
                         type="number"
@@ -233,108 +208,114 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
                           const val = Math.min(40, Math.max(10, parseInt(e.target.value) || 10));
                           handleSave({ ...settings, fontSize: val });
                         }}
-                        className="w-16 text-center"
+                        className="w-12 h-8 text-center text-xs"
                         data-testid="input-font-size"
                       />
                       <span className="text-xs text-muted-foreground">{t("px")}</span>
                     </div>
                   </div>
+                  <Slider
+                    id="font-size"
+                    min={10}
+                    max={40}
+                    step={1}
+                    value={[settings.fontSize]}
+                    onValueChange={(value) =>
+                      handleSave({ ...settings, fontSize: value[0] })
+                    }
+                    className="w-full"
+                    data-testid="slider-font-size"
+                  />
+                </div>
 
-                  {/* Line Height */}
-                  <div className="space-y-2 mb-6">
-                    <Label htmlFor="line-height">{t("messageLineHeight")}</Label>
-                    <Select
-                      value={settings.lineHeight}
-                      onValueChange={(value) =>
-                        handleSave({
-                          ...settings,
-                          lineHeight: value as "compact" | "normal" | "loose",
-                        })
-                      }
-                    >
-                      <SelectTrigger id="line-height" data-testid="select-line-height">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="compact">
-                          {t("compact")}
-                        </SelectItem>
-                        <SelectItem value="normal">
-                          {t("normal")}
-                        </SelectItem>
-                        <SelectItem value="loose">
-                          {t("loose")}
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                {/* Line Height */}
+                <div className="flex items-center justify-between py-2 px-3 hover:bg-muted/30 rounded-md transition-colors">
+                  <Label htmlFor="line-height" className="text-sm">{t("messageLineHeight")}</Label>
+                  <Select
+                    value={settings.lineHeight}
+                    onValueChange={(value) =>
+                      handleSave({
+                        ...settings,
+                        lineHeight: value as "compact" | "normal" | "loose",
+                      })
+                    }
+                  >
+                    <SelectTrigger id="line-height" data-testid="select-line-height" className="w-32 h-8">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="compact">{t("compact")}</SelectItem>
+                      <SelectItem value="normal">{t("normal")}</SelectItem>
+                      <SelectItem value="loose">{t("loose")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                  {/* Language */}
-                  <div className="space-y-2">
-                    <Label htmlFor="language">{t("language")}</Label>
-                    <Select
-                      value={language}
-                      onValueChange={(value) => {
-                        localStorageManager.saveLanguage(value);
-                        setLanguage(value);
-                        window.location.reload();
-                      }}
-                    >
-                      <SelectTrigger id="language" data-testid="select-language">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ja">{t("japanese")}</SelectItem>
-                        <SelectItem value="en">{t("english")}</SelectItem>
-                        <SelectItem value="zh">{t("chinese")}</SelectItem>
-                        <SelectItem value="hi">{t("hindi")}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                {/* Language */}
+                <div className="flex items-center justify-between py-2 px-3 hover:bg-muted/30 rounded-md transition-colors">
+                  <Label htmlFor="language" className="text-sm">{t("language")}</Label>
+                  <Select
+                    value={language}
+                    onValueChange={(value) => {
+                      localStorageManager.saveLanguage(value);
+                      setLanguage(value);
+                      window.location.reload();
+                    }}
+                  >
+                    <SelectTrigger id="language" data-testid="select-language" className="w-32 h-8">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ja">{t("japanese")}</SelectItem>
+                      <SelectItem value="en">{t("english")}</SelectItem>
+                      <SelectItem value="zh">{t("chinese")}</SelectItem>
+                      <SelectItem value="hi">{t("hindi")}</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             )}
 
             {/* AI設定 */}
             {activeSection === "ai" && (
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-semibold mb-4">{t("aiSettings")}</h3>
+              <div className="space-y-3">
+                <h3 className="text-base font-semibold text-foreground">{t("aiSettings")}</h3>
 
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="ai-nickname">{t("aiNickname")}</Label>
-                      <Input
-                        id="ai-nickname"
-                        placeholder={`${t("example")}${t("assistant")}`}
-                        value={aiNickname}
-                        onChange={(e) => setAiNickname(e.target.value)}
-                        data-testid="input-ai-nickname"
-                      />
-                    </div>
+                <div className="space-y-2">
+                  <div className="py-2 px-3 hover:bg-muted/30 rounded-md transition-colors">
+                    <Label htmlFor="ai-nickname" className="text-sm">{t("aiNickname")}</Label>
+                    <Input
+                      id="ai-nickname"
+                      placeholder={`${t("example")}${t("assistant")}`}
+                      value={aiNickname}
+                      onChange={(e) => setAiNickname(e.target.value)}
+                      className="mt-1 h-8"
+                      data-testid="input-ai-nickname"
+                    />
+                  </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="ai-role">{t("role")}</Label>
-                      <Input
-                        id="ai-role"
-                        placeholder={`${t("example")}${t("programmer")}`}
-                        value={aiRole}
-                        onChange={(e) => setAiRole(e.target.value)}
-                        data-testid="input-ai-role"
-                      />
-                    </div>
+                  <div className="py-2 px-3 hover:bg-muted/30 rounded-md transition-colors">
+                    <Label htmlFor="ai-role" className="text-sm">{t("role")}</Label>
+                    <Input
+                      id="ai-role"
+                      placeholder={`${t("example")}${t("programmer")}`}
+                      value={aiRole}
+                      onChange={(e) => setAiRole(e.target.value)}
+                      className="mt-1 h-8"
+                      data-testid="input-ai-role"
+                    />
+                  </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="ai-custom">{t("customInstructions")}</Label>
-                      <Textarea
-                        id="ai-custom"
-                        placeholder={t("specialInstructions")}
-                        value={aiCustom}
-                        onChange={(e) => setAiCustom(e.target.value)}
-                        className="resize-none h-24"
-                        data-testid="textarea-ai-custom"
-                      />
-                    </div>
+                  <div className="py-2 px-3 hover:bg-muted/30 rounded-md transition-colors">
+                    <Label htmlFor="ai-custom" className="text-sm">{t("customInstructions")}</Label>
+                    <Textarea
+                      id="ai-custom"
+                      placeholder={t("specialInstructions")}
+                      value={aiCustom}
+                      onChange={(e) => setAiCustom(e.target.value)}
+                      className="mt-1 min-h-20 resize-none"
+                      data-testid="textarea-ai-custom"
+                    />
                   </div>
                 </div>
               </div>
@@ -342,84 +323,83 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
 
             {/* データコントロール */}
             {activeSection === "data" && (
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-semibold mb-4">{t("dataControl")}</h3>
+              <div className="space-y-3">
+                <h3 className="text-base font-semibold text-foreground">{t("dataControl")}</h3>
 
-                  <div className="space-y-4">
-                    {/* Archived Chats */}
-                    <div className="flex items-center justify-between p-3 bg-muted/50 rounded-md">
-                      <div className="flex items-center gap-2">
-                        <Archive className="h-4 w-4 text-muted-foreground" />
-                        <div>
-                          <p className="text-sm font-medium">{t("archivedChats")}</p>
-                          <p className="text-xs text-muted-foreground">{archivedCount}{t("items")}</p>
-                        </div>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {}}
-                        data-testid="button-manage-archived"
-                      >
-                        {t("manage")}
-                      </Button>
-                    </div>
-
-                    <Separator />
-
-                    {/* Archive All */}
-                    <div className="flex items-center justify-between p-3">
-                      <Label className="text-sm">
-                        {t("archiveAllChats")}
-                      </Label>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          if (confirm(`${t("archiveAllChats")}${language === "ja" ? "？" : "?"}`)) {
-                            archiveAllMutation.mutate();
-                          }
-                        }}
-                        data-testid="button-archive-all"
-                      >
-                        {t("archiveAll")}
-                      </Button>
-                    </div>
-
-                    {/* Delete All */}
-                    <div className="flex items-center justify-between p-3">
-                      <Label className="text-sm text-destructive">
-                        {t("deleteAllChats")}
-                      </Label>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => {
-                          if (confirm(`${t("deleteAllChats")}${language === "ja" ? "？この操作は取り消せません。" : "? This action cannot be undone."}`)) {
-                            deleteAllMutation.mutate();
-                          }
-                        }}
-                        data-testid="button-delete-all"
-                      >
-                        {t("deleteAll")}
-                      </Button>
-                    </div>
-
-                    <Separator />
-
-                    {/* Persistence */}
-                    <div className="flex items-center justify-between p-3">
-                      <Label className="text-sm">{t("persistenceToggle")}</Label>
-                      <Switch
-                        checked={settings.persistenceEnabled}
-                        onCheckedChange={(checked) =>
-                          handleSave({ ...settings, persistenceEnabled: checked })
-                        }
-                        data-testid="toggle-persistence"
-                      />
+                {/* Archived Chats */}
+                <div className="flex items-center justify-between py-2 px-3 hover:bg-muted/30 rounded-md transition-colors">
+                  <div className="flex items-center gap-2">
+                    <Archive className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm">{t("archivedChats")}</p>
+                      <p className="text-xs text-muted-foreground">{archivedCount}{t("items")}</p>
                     </div>
                   </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {}}
+                    className="h-8"
+                    data-testid="button-manage-archived"
+                  >
+                    {t("manage")}
+                  </Button>
+                </div>
+
+                <Separator />
+
+                {/* Archive All */}
+                <div className="flex items-center justify-between py-2 px-3 hover:bg-muted/30 rounded-md transition-colors">
+                  <Label className="text-sm">
+                    {t("archiveAllChats")}
+                  </Label>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8"
+                    onClick={() => {
+                      if (confirm(`${t("archiveAllChats")}${language === "ja" ? "？" : "?"}`)) {
+                        archiveAllMutation.mutate();
+                      }
+                    }}
+                    data-testid="button-archive-all"
+                  >
+                    {t("archiveAll")}
+                  </Button>
+                </div>
+
+                {/* Delete All */}
+                <div className="flex items-center justify-between py-2 px-3 hover:bg-muted/30 rounded-md transition-colors">
+                  <Label className="text-sm text-destructive">
+                    {t("deleteAllChats")}
+                  </Label>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="h-8"
+                    onClick={() => {
+                      if (confirm(`${t("deleteAllChats")}${language === "ja" ? "？この操作は取り消せません。" : "? This action cannot be undone."}`)) {
+                        deleteAllMutation.mutate();
+                      }
+                    }}
+                    data-testid="button-delete-all"
+                  >
+                    {t("deleteAll")}
+                  </Button>
+                </div>
+
+                <Separator />
+
+                {/* Persistence */}
+                <div className="flex items-center justify-between py-2 px-3 hover:bg-muted/30 rounded-md transition-colors">
+                  <Label className="text-sm">{t("persistenceToggle")}</Label>
+                  <Switch
+                    checked={settings.persistenceEnabled}
+                    onCheckedChange={(checked) =>
+                      handleSave({ ...settings, persistenceEnabled: checked })
+                    }
+                    data-testid="toggle-persistence"
+                  />
                 </div>
               </div>
             )}
