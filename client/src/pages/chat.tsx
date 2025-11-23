@@ -377,6 +377,12 @@ export default function ChatPage() {
                       title: "注意",
                       description: "既存のチャットでモデルを切り替えました。このチャット内のメッセージは新しいモデルで生成されます。",
                     });
+                    // Update the conversation model on server
+                    apiRequest("PATCH", `/api/conversations/${currentConversationId}`, { model }).then(() => {
+                      queryClient.invalidateQueries({ queryKey: ["/api/conversations", currentConversationId] });
+                    }).catch(err => {
+                      console.error("Failed to update conversation model:", err);
+                    });
                   }
                   setSelectedModel(model);
                   const settings = localStorageManager.getAppSettings();

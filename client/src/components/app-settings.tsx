@@ -238,7 +238,8 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
                           const val = Math.min(40, Math.max(10, parseInt(e.target.value) || 10));
                           handleSave({ ...settings, fontSize: val });
                         }}
-                        className="w-12 h-8 text-center text-xs"
+                        className="w-12 h-8 text-center text-xs [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [&]:m-0"
+                        style={{ MozAppearance: 'textfield' }}
                         data-testid="input-font-size"
                       />
                       <span className="text-xs text-muted-foreground">{t("px")}</span>
@@ -376,19 +377,19 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-card border border-border rounded-lg p-4 space-y-2">
-                    <p className="text-xs text-muted-foreground">総チャット数</p>
+                    <p className="text-xs text-muted-foreground">{t("totalChats") || "総チャット数"}</p>
                     <p className="text-2xl font-bold text-foreground">{totalConversations}</p>
                   </div>
                   <div className="bg-card border border-border rounded-lg p-4 space-y-2">
-                    <p className="text-xs text-muted-foreground">総メッセージ数</p>
+                    <p className="text-xs text-muted-foreground">{t("totalMessages") || "総メッセージ数"}</p>
                     <p className="text-2xl font-bold text-foreground">{totalMessages}</p>
                   </div>
                   <div className="bg-card border border-border rounded-lg p-4 space-y-2">
-                    <p className="text-xs text-muted-foreground">推定トークン数</p>
+                    <p className="text-xs text-muted-foreground">{t("estimatedTokens") || "推定トークン数"}</p>
                     <p className="text-2xl font-bold text-foreground">{totalTokens.toLocaleString()}</p>
                   </div>
                   <div className="bg-card border border-border rounded-lg p-4 space-y-2">
-                    <p className="text-xs text-muted-foreground">アーカイブ済み</p>
+                    <p className="text-xs text-muted-foreground">{t("archived") || "アーカイブ済み"}</p>
                     <p className="text-2xl font-bold text-foreground">{archivedCount}</p>
                   </div>
                 </div>
@@ -396,9 +397,9 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
                 <Separator />
 
                 <div className="space-y-3 text-sm text-muted-foreground">
-                  <p>• トークン数は文字数を4で割った推定値です</p>
-                  <p>• 統計情報はローカルストレージのデータに基づいています</p>
-                  <p>• アーカイブされたチャットも統計に含まれます</p>
+                  <p>• {t("tokenEstimate") || "トークン数は文字数を4で割った推定値です"}</p>
+                  <p>• {t("statsBasedOnLocal") || "統計情報はローカルストレージのデータに基づいています"}</p>
+                  <p>• {t("archivedIncluded") || "アーカイブされたチャットも統計に含まれます"}</p>
                 </div>
               </div>
             )}
@@ -406,7 +407,7 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
             {/* アーカイブ済みチャット管理 */}
             {activeSection === "archived" && (
               <div className="space-y-5">
-                <h3 className="text-base font-semibold text-foreground">アーカイブ済みチャット ({archivedCount})</h3>
+                <h3 className="text-base font-semibold text-foreground">{t("archivedChats") || "アーカイブ済みチャット"} ({archivedCount})</h3>
 
                 {archivedConversations.length === 0 ? (
                   <div className="text-center p-8 text-muted-foreground text-sm">
