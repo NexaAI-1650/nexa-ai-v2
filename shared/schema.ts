@@ -43,7 +43,7 @@ export const conversationSchema = z.object({
 
 export const chatRequestSchema = z.object({
   message: z.string(),
-  model: z.string(),
+  model: z.string().optional().default("google/gemini-2.5-flash"),
   conversationId: z.string().optional(),
   attachments: z.array(z.object({
     type: z.enum(["image", "file"]),
