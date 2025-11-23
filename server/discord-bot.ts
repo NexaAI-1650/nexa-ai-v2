@@ -151,6 +151,7 @@ export async function initDiscordBot() {
       }
 
       const aiResponse = data.choices[0]?.message?.content || "応答がありません";
+      console.log(`AI Response length: ${aiResponse.length} characters`);
 
       botChatStats.totalMessages += 2;
       botChatStats.totalTokens += Math.ceil((userMessage.length + aiResponse.length) / 4);
@@ -158,6 +159,7 @@ export async function initDiscordBot() {
       botChatStats.totalChats = Object.keys(botChatStats.modelCounts).length;
 
       if (aiResponse.length > 2000) {
+        console.log("Sending response as file (>2000 chars)");
         const attachment = new AttachmentBuilder(Buffer.from(aiResponse, "utf-8"), {
           name: "response.txt",
         });
@@ -165,6 +167,7 @@ export async function initDiscordBot() {
           files: [attachment],
         });
       } else {
+        console.log("Sending response as message (<2000 chars)");
         await message.reply({
           content: aiResponse,
         });
@@ -217,8 +220,10 @@ export async function initDiscordBot() {
         }
 
         const aiResponse = data.choices[0]?.message?.content || "応答がありません";
+        console.log(`AI Response length: ${aiResponse.length} characters`);
 
         if (aiResponse.length > 2000) {
+          console.log("Sending response as file (>2000 chars)");
           const attachment = new AttachmentBuilder(Buffer.from(aiResponse, "utf-8"), {
             name: "response.txt",
           });
@@ -226,6 +231,7 @@ export async function initDiscordBot() {
             files: [attachment],
           });
         } else {
+          console.log("Sending response as message (<2000 chars)");
           await interaction.editReply({
             content: aiResponse,
           });
