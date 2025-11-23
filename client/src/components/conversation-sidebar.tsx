@@ -51,9 +51,15 @@ export function ConversationSidebar({
 
   const handleDelete = useCallback((convId: string) => {
     if (confirm(t("deleteConfirm"))) {
-      deleteMutation.mutate(convId);
+      deleteMutation.mutate(convId, {
+        onSuccess: () => {
+          if (currentConversationId === convId) {
+            onSelectConversation("");
+          }
+        }
+      });
     }
-  }, [deleteMutation, t]);
+  }, [deleteMutation, t, currentConversationId, onSelectConversation]);
 
   const handleArchive = useCallback((convId: string) => {
     archiveMutation.mutate(convId);
