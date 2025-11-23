@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { chatRequestSchema } from "@shared/schema";
 import { storage } from "./storage";
-import { restartDiscordBot, shutdownDiscordBot, getBotStatus, startDiscordBot } from "./discord-bot";
+import { restartDiscordBot, shutdownDiscordBot, getBotStatus, startDiscordBot, getBotChatStats } from "./discord-bot";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
@@ -356,30 +356,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/admin/bot-stats", async (_req, res) => {
     try {
-      const conversations = await storage.getAllConversations();
-      const totalChats = conversations.length;
-      const totalMessages = conversations.reduce(
-        (sum, c) => sum + (c.messages?.length || 0),
-        0
-      );
-      const totalTokens = conversations.reduce(
-        (sum, c) =>
-          sum +
-          (c.messages?.reduce(
-            (msgSum, m) => msgSum + Math.ceil((m.content?.length || 0) / 4),
-            0
-          ) || 0),
-        0
-      );
-      const models = [
-        ...new Set(conversations.map((c) => c.model || "unknown")),
-      ];
-
+      const botStats = getBotChatStats();
       res.json({
-        totalChats,
-        totalMessages,
-        totalTokens,
-        modelCount: models.length,
+        totalChats: botStats.totalChats,
+        totalMessages: botStats.totalMessages,
+        totalTokens: botStats.totalTokens,
+        modelCount: Object.keys(botStats.modelCounts).length,
       });
     } catch (error) {
       console.error("Bot stats error:", error);
@@ -391,15 +373,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/admin/bot-models", async (_req, res) => {
     try {
-      const conversations = await storage.getAllConversations();
-      const modelCounts: Record<string, number> = {};
-      
-      conversations.forEach((conv) => {
-        const model = conv.model || "unknown";
-        modelCounts[model] = (modelCounts[model] || 0) + 1;
-      });
-
-      res.json(modelCounts);
+      const botStats = getBotChatStats();
+      res.json(botStats.modelCounts);
     } catch (error) {
       console.error("Bot models error:", error);
       res.status(500).json({

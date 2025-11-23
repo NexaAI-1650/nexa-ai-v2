@@ -10,6 +10,12 @@ let botStats = {
   commandCount: 0,
   startTime: Date.now(),
 };
+let botChatStats = {
+  totalChats: 0,
+  totalMessages: 0,
+  totalTokens: 0,
+  modelCounts: {} as Record<string, number>,
+};
 
 export async function initDiscordBot() {
   if (!DISCORD_TOKEN || !OPENROUTER_API_KEY) {
@@ -74,6 +80,11 @@ export async function initDiscordBot() {
 
       const aiResponse = data.choices[0]?.message?.content || "応答がありません";
       const truncated = aiResponse.length > 1900 ? aiResponse.slice(0, 1897) + "..." : aiResponse;
+
+      botChatStats.totalMessages += 2;
+      botChatStats.totalTokens += Math.ceil((userMessage.length + aiResponse.length) / 4);
+      botChatStats.modelCounts[currentModel] = (botChatStats.modelCounts[currentModel] || 0) + 1;
+      botChatStats.totalChats = Object.keys(botChatStats.modelCounts).length;
 
       await message.reply({
         content: `**AI の回答:**\n\`\`\`\n${truncated}\n\`\`\``,
@@ -159,6 +170,11 @@ export async function initDiscordBot() {
         content: `✅ **モデルを変更しました**\n選択: ${newModel}`,
         ephemeral: true,
       });
+    } else if (interaction.commandName === "model-current") {
+      await interaction.reply({
+        content: `📊 **現在のモデル**\n${currentModel}`,
+        ephemeral: true,
+      });
     } else if (interaction.commandName === "help") {
       await interaction.reply({
         content: `🆘 **コマンドヘルプ**
@@ -219,6 +235,10 @@ export function getBotStatus() {
   return botStats;
 }
 
+export function getBotChatStats() {
+  return botChatStats;
+}
+
 export async function registerSlashCommands() {
   if (!client || !client.isReady()) {
     console.log("Discord Bot がまだ準備完了していません");
@@ -264,6 +284,9 @@ export async function registerSlashCommands() {
       new SlashCommandBuilder()
         .setName("admin")
         .setDescription("Bot 管理ダッシュボードを表示します"),
+      new SlashCommandBuilder()
+        .setName("model-current")
+        .setDescription("現在のモデルを表示します"),
       new SlashCommandBuilder()
         .setName("help")
         .setDescription("コマンドヘルプを表示します"),
