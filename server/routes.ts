@@ -35,10 +35,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update conversation (PATCH - for messages, title, settings)
+  // Update conversation (PATCH - for messages, title, settings, archived)
   app.patch("/api/conversations/:id", async (req, res) => {
     try {
-      const { messages, title, settings } = req.body;
+      const { messages, title, settings, archived } = req.body;
       let conversation = await storage.getConversation(req.params.id);
       if (!conversation) {
         return res.status(404).json({ error: "会話が見つかりません" });
@@ -52,6 +52,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       if (settings) {
         conversation = await storage.updateConversationSettings(req.params.id, settings);
+      }
+      if (archived !== undefined) {
+        conversation = { ...conversation, archived };
+        await storage.updateConversation(req.params.id, conversation);
       }
 
       res.json(conversation);

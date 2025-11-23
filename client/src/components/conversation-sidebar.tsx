@@ -129,16 +129,14 @@ export function ConversationSidebar({
                 </p>
               </div>
               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                  <button
+                    className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 hover:bg-muted/50 rounded p-0 flex items-center justify-center"
                     data-testid={`button-menu-${conversation.id}`}
                   >
                     <MoreVertical className="h-3 w-3" />
                     <span className="sr-only">メニュー</span>
-                  </Button>
+                  </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem
