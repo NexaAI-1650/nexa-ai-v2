@@ -163,14 +163,14 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
 
         {/* Right Content Area */}
         <ScrollArea className="flex-1">
-          <div className="p-6 space-y-4">
+          <div className="p-6 space-y-6">
             {/* 一般 */}
             {activeSection === "general" && (
-              <div className="space-y-3">
+              <div className="space-y-5">
                 <h3 className="text-base font-semibold text-foreground">{t("generalSettings")}</h3>
 
                 {/* Theme */}
-                <div className="flex items-center justify-between py-2 px-3 hover:bg-muted/30 rounded-md transition-colors">
+                <div className="flex items-center justify-between py-3 px-3 hover:bg-muted/30 rounded-md transition-colors">
                   <Label className="text-sm">{t("theme")}</Label>
                   <div className="flex gap-1">
                     <Button
@@ -195,8 +195,8 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
                 </div>
 
                 {/* Font Size */}
-                <div className="py-2 px-3 hover:bg-muted/30 rounded-md transition-colors">
-                  <div className="flex items-center justify-between mb-1">
+                <div className="py-3 px-3 hover:bg-muted/30 rounded-md transition-colors">
+                  <div className="flex items-center justify-between mb-2">
                     <Label htmlFor="font-size" className="text-sm">{t("fontSize")}</Label>
                     <div className="flex items-center gap-2">
                       <Input
@@ -229,7 +229,7 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
                 </div>
 
                 {/* Line Height */}
-                <div className="flex items-center justify-between py-2 px-3 hover:bg-muted/30 rounded-md transition-colors">
+                <div className="flex items-center justify-between py-3 px-3 hover:bg-muted/30 rounded-md transition-colors">
                   <Label htmlFor="line-height" className="text-sm">{t("messageLineHeight")}</Label>
                   <Select
                     value={settings.lineHeight}
@@ -252,7 +252,7 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
                 </div>
 
                 {/* Language */}
-                <div className="flex items-center justify-between py-2 px-3 hover:bg-muted/30 rounded-md transition-colors">
+                <div className="flex items-center justify-between py-3 px-3 hover:bg-muted/30 rounded-md transition-colors">
                   <Label htmlFor="language" className="text-sm">{t("language")}</Label>
                   <Select
                     value={language}
@@ -278,42 +278,42 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
 
             {/* AI設定 */}
             {activeSection === "ai" && (
-              <div className="space-y-3">
+              <div className="space-y-5">
                 <h3 className="text-base font-semibold text-foreground">{t("aiSettings")}</h3>
 
-                <div className="space-y-2">
-                  <div className="py-2 px-3 hover:bg-muted/30 rounded-md transition-colors">
+                <div className="space-y-4">
+                  <div className="py-3 px-3 hover:bg-muted/30 rounded-md transition-colors">
                     <Label htmlFor="ai-nickname" className="text-sm">{t("aiNickname")}</Label>
                     <Input
                       id="ai-nickname"
                       placeholder={`${t("example")}${t("assistant")}`}
                       value={aiNickname}
                       onChange={(e) => setAiNickname(e.target.value)}
-                      className="mt-1 h-8"
+                      className="mt-2 h-8"
                       data-testid="input-ai-nickname"
                     />
                   </div>
 
-                  <div className="py-2 px-3 hover:bg-muted/30 rounded-md transition-colors">
+                  <div className="py-3 px-3 hover:bg-muted/30 rounded-md transition-colors">
                     <Label htmlFor="ai-role" className="text-sm">{t("role")}</Label>
                     <Input
                       id="ai-role"
                       placeholder={`${t("example")}${t("programmer")}`}
                       value={aiRole}
                       onChange={(e) => setAiRole(e.target.value)}
-                      className="mt-1 h-8"
+                      className="mt-2 h-8"
                       data-testid="input-ai-role"
                     />
                   </div>
 
-                  <div className="py-2 px-3 hover:bg-muted/30 rounded-md transition-colors">
+                  <div className="py-3 px-3 hover:bg-muted/30 rounded-md transition-colors">
                     <Label htmlFor="ai-custom" className="text-sm">{t("customInstructions")}</Label>
                     <Textarea
                       id="ai-custom"
                       placeholder={t("specialInstructions")}
                       value={aiCustom}
                       onChange={(e) => setAiCustom(e.target.value)}
-                      className="mt-1 min-h-20 resize-none"
+                      className="mt-2 min-h-24 resize-none"
                       data-testid="textarea-ai-custom"
                     />
                   </div>
@@ -323,11 +323,11 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
 
             {/* データコントロール */}
             {activeSection === "data" && (
-              <div className="space-y-3">
+              <div className="space-y-5">
                 <h3 className="text-base font-semibold text-foreground">{t("dataControl")}</h3>
 
                 {/* Archived Chats */}
-                <div className="flex items-center justify-between py-2 px-3 hover:bg-muted/30 rounded-md transition-colors">
+                <div className="flex items-center justify-between py-3 px-3 hover:bg-muted/30 rounded-md transition-colors">
                   <div className="flex items-center gap-2">
                     <Archive className="h-4 w-4 text-muted-foreground" />
                     <div>
@@ -349,7 +349,7 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
                 <Separator />
 
                 {/* Archive All */}
-                <div className="flex items-center justify-between py-2 px-3 hover:bg-muted/30 rounded-md transition-colors">
+                <div className="flex items-center justify-between py-3 px-3 hover:bg-muted/30 rounded-md transition-colors">
                   <Label className="text-sm">
                     {t("archiveAllChats")}
                   </Label>
@@ -369,7 +369,7 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
                 </div>
 
                 {/* Delete All */}
-                <div className="flex items-center justify-between py-2 px-3 hover:bg-muted/30 rounded-md transition-colors">
+                <div className="flex items-center justify-between py-3 px-3 hover:bg-muted/30 rounded-md transition-colors">
                   <Label className="text-sm text-destructive">
                     {t("deleteAllChats")}
                   </Label>
@@ -391,7 +391,7 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
                 <Separator />
 
                 {/* Persistence */}
-                <div className="flex items-center justify-between py-2 px-3 hover:bg-muted/30 rounded-md transition-colors">
+                <div className="flex items-center justify-between py-3 px-3 hover:bg-muted/30 rounded-md transition-colors">
                   <Label className="text-sm">{t("persistenceToggle")}</Label>
                   <Switch
                     checked={settings.persistenceEnabled}
