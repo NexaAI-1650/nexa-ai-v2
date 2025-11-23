@@ -98,12 +98,12 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
       onClick={onClose}
     >
       <div
-        className="bg-background border border-border rounded-lg w-full max-w-2xl max-h-[90vh] aspect-video animate-slide-in-bottom shadow-lg flex flex-col overflow-hidden"
+        className="bg-background border border-border rounded-lg w-full max-w-3xl max-h-[95vh] animate-slide-in-bottom shadow-lg flex overflow-hidden"
         onClick={(e) => e.stopPropagation()}
         data-testid="panel-app-settings"
       >
         {/* Left Sidebar Menu */}
-        <div className="w-40 bg-sidebar border-r border-sidebar-border flex flex-col">
+        <div className="w-48 bg-sidebar border-r border-sidebar-border flex flex-col">
           <div className="p-4 border-b border-sidebar-border">
             <h2 className="font-semibold text-base text-sidebar-foreground flex items-center gap-2">
               <Settings className="h-4 w-4" />
