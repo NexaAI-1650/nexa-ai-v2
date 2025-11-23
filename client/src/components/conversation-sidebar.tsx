@@ -10,6 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useLanguage } from "@/lib/useLanguage";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Conversation } from "@shared/schema";
 import { cn } from "@/lib/utils";
@@ -27,6 +28,7 @@ export function ConversationSidebar({
   onSelectConversation,
   onNewConversation,
 }: ConversationSidebarProps) {
+  const { t } = useLanguage();
   const { data: conversations = [] } = useQuery<Conversation[]>({
     queryKey: ["/api/conversations"],
   });
@@ -49,7 +51,7 @@ export function ConversationSidebar({
 
   const handleDelete = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    if (confirm("この会話を削除しますか？")) {
+    if (confirm(t("deleteConfirm"))) {
       deleteMutation.mutate(id);
       if (currentConversationId === id) {
         onNewConversation();
@@ -69,7 +71,7 @@ export function ConversationSidebar({
     e.stopPropagation();
     const conversation = conversations.find(c => c.id === id);
     if (!conversation) return;
-    const newTitle = prompt("会話の名前を変更:", conversation.title);
+    const newTitle = prompt(t("renameConversation"), conversation.title);
     if (newTitle && newTitle.trim()) {
       apiRequest("PATCH", `/api/conversations/${id}`, { title: newTitle.trim() }).then(() => {
         queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
@@ -96,12 +98,12 @@ export function ConversationSidebar({
           data-testid="button-new-conversation"
         >
           <Plus className="h-4 w-4 mr-2" />
-          新しい会話
+          {t("newConversation")}
         </Button>
         <div className="relative">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="会話を検索..."
+            placeholder={t("search")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-8 py-2 h-9"
@@ -143,21 +145,21 @@ export function ConversationSidebar({
                     onClick={(e) => handleRename(e as any, conversation.id)}
                     data-testid={`menu-rename-${conversation.id}`}
                   >
-                    名前を変更する
+                    {t("rename")}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={(e) => handleArchive(e as any, conversation.id)}
                     data-testid={`menu-archive-${conversation.id}`}
                   >
-                    アーカイブする
+                    {t("archive")}
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={(e) => handleDelete(e as any, conversation.id)}
                     data-testid={`menu-delete-${conversation.id}`}
                     className="text-destructive"
                   >
-                    削除する
+                    {t("delete")}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -166,13 +168,13 @@ export function ConversationSidebar({
           
           {filteredConversations.length === 0 && conversations.length === 0 && (
             <div className="text-center p-8 text-muted-foreground text-sm">
-              まだ会話がありません
+              {t("noConversations")}
             </div>
           )}
           
           {filteredConversations.length === 0 && conversations.length > 0 && (
             <div className="text-center p-8 text-muted-foreground text-sm">
-              「{searchQuery}」に該当する会話がありません
+              {t("noResults")} "{searchQuery}"
             </div>
           )}
         </div>

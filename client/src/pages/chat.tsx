@@ -9,14 +9,14 @@ import { ModelSelector } from "@/components/model-selector";
 import { ConversationSidebar } from "@/components/conversation-sidebar";
 import { AppSettings } from "@/components/app-settings";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/lib/useLanguage";
 import { queryClient } from "@/lib/queryClient";
 import { localStorageManager } from "@/lib/localStorage";
 import type { Message, Conversation } from "@shared/schema";
 import { aiModels } from "@shared/schema";
 
-import type { FileAttachment } from "@/components/file-upload";
-
 export default function ChatPage() {
+  const { t } = useLanguage();
   const [currentConversationId, setCurrentConversationId] = useState<string | undefined>();
   const [currentConversationTitle, setCurrentConversationTitle] = useState<string>("");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -68,17 +68,14 @@ export default function ChatPage() {
   const chatMutation = useMutation({
     mutationFn: async ({
       userMessage,
-      attachments,
     }: {
       userMessage: string;
-      attachments?: FileAttachment[];
     }) => {
       const userMsg: Message = {
         id: `user-${Date.now()}`,
         role: "user",
         content: userMessage,
         timestamp: Date.now(),
-        attachments,
       };
       setMessages((prev) => [...prev, userMsg]);
 
@@ -92,13 +89,12 @@ export default function ChatPage() {
           message: userMessage,
           model: selectedModel,
           conversationId: currentConversationId,
-          attachments,
         }),
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(errorText || "チャットリクエストが失敗しました");
+        throw new Error(errorText || t("error"));
       }
 
       const reader = response.body?.getReader();
@@ -107,7 +103,7 @@ export default function ChatPage() {
       let newConversationId: string | undefined = currentConversationId;
 
       if (!reader) {
-        throw new Error("ストリームの読み取りに失敗しました");
+        throw new Error(t("error"));
       }
 
       while (true) {
@@ -181,10 +177,10 @@ export default function ChatPage() {
     onError: (error) => {
       console.error("Chat error:", error);
       
-      const errorMessage = error instanceof Error ? error.message : "メッセージの送信に失敗しました";
+      const errorMessage = error instanceof Error ? error.message : t("error");
       
       toast({
-        title: "エラー",
+        title: t("error"),
         description: errorMessage,
         variant: "destructive",
       });
@@ -214,7 +210,7 @@ export default function ChatPage() {
       const conv = await updated.json();
       localStorageManager.updateConversation(currentConversationId, conv);
       queryClient.invalidateQueries({ queryKey: ["/api/conversations", currentConversationId] });
-      toast({ description: "メッセージを編集しました" });
+      toast({ description: t("messageEdited") });
     }
     setEditingMessageId(undefined);
   };
@@ -232,7 +228,7 @@ export default function ChatPage() {
       const conv = await updated.json();
       localStorageManager.updateConversation(currentConversationId, conv);
       queryClient.invalidateQueries({ queryKey: ["/api/conversations", currentConversationId] });
-      toast({ description: "メッセージを削除しました" });
+      toast({ description: t("messageDeleted") });
     }
   };
 
@@ -249,12 +245,12 @@ export default function ChatPage() {
       localStorageManager.updateConversation(currentConversationId, conv);
       queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
       setEditingTitle(false);
-      toast({ description: "会話名を更新しました" });
+      toast({ description: t("conversationUpdated") });
     }
   };
 
-  const handleSend = (message: string, attachments?: FileAttachment[]) => {
-    chatMutation.mutate({ userMessage: message, attachments });
+  const handleSend = (message: string) => {
+    chatMutation.mutate({ userMessage: message });
   };
 
   const handleNewConversation = () => {
@@ -343,13 +339,13 @@ export default function ChatPage() {
                 data-testid="button-toggle-sidebar"
               >
                 <Menu className="h-5 w-5" />
-                <span className="sr-only">サイドバー切替</span>
+                <span className="sr-only">{t("toggleSidebar")}</span>
               </Button>
 
               {isTemporaryChat ? (
                 <h1 className="text-xl font-semibold flex items-center gap-2">
                   <Clock className="h-5 w-5" />
-                  一時チャット
+                  {t("temporaryChat")}
                 </h1>
               ) : editingTitle && currentConversationId ? (
                 <Input
@@ -390,12 +386,12 @@ export default function ChatPage() {
                 variant="ghost"
                 size="icon"
                 onClick={handleTemporaryChat}
-                title={isTemporaryChat ? "保存するモードに切り替え" : "一時的なチャットに切り替え"}
+                title={isTemporaryChat ? t("switchToSave") : t("switchToTemporary")}
                 data-testid="button-toggle-temporary-chat"
                 className={isTemporaryChat ? "bg-blue-500/20 text-blue-600 dark:text-blue-400" : ""}
               >
                 <Clock className="h-5 w-5" />
-                <span className="sr-only">一時チャット切り替え</span>
+                <span className="sr-only">{t("temporaryChat")}</span>
               </Button>
               <Button
                 variant="ghost"
@@ -405,7 +401,7 @@ export default function ChatPage() {
                 className="hover-elevate transition-transform duration-200"
               >
                 <Settings className="h-5 w-5" />
-                <span className="sr-only">アプリ設定</span>
+                <span className="sr-only">{t("appSettings")}</span>
               </Button>
             </div>
           </div>
@@ -426,12 +422,12 @@ export default function ChatPage() {
             <div className="flex items-center justify-center h-full animate-fade-in">
               <div className="text-center space-y-4 p-8">
                 <h2 className="text-2xl font-semibold text-muted-foreground animate-slide-in-bottom">
-                  {isTemporaryChat ? "一時的なチャット" : "AIアシスタントへようこそ"}
+                  {isTemporaryChat ? t("temporaryChat") : t("welcomeMessage")}
                 </h2>
                 <p className="text-muted-foreground max-w-md animate-slide-in-bottom [animation-delay:100ms]">
                   {isTemporaryChat
-                    ? "このチャットは保存されません。試しに会話することができます。"
-                    : "メッセージを入力して会話を始めましょう。複数のAIモデルから選択でき、画像を添付することもできます。"}
+                    ? t("temporaryDescription")
+                    : t("welcomeDescription")}
                 </p>
               </div>
             </div>
@@ -466,7 +462,7 @@ export default function ChatPage() {
               <div className="h-8 w-8 shrink-0 rounded-full bg-accent flex items-center justify-center">
                 <Loader2 className="h-4 w-4 animate-spin" />
               </div>
-              <div className="text-sm text-muted-foreground">考え中...</div>
+              <div className="text-sm text-muted-foreground">{t("thinking")}</div>
             </div>
           )}
 
@@ -478,7 +474,7 @@ export default function ChatPage() {
             <ChatInput
               onSend={handleSend}
               disabled={chatMutation.isPending}
-              placeholder="メッセージを入力... (Shift+Enterで改行)"
+              placeholder={t("messageInput")}
             />
           </div>
         </footer>
