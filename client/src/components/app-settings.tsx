@@ -44,7 +44,7 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
   const [aiNickname, setAiNickname] = useState("");
   const [aiRole, setAiRole] = useState("");
   const [aiCustom, setAiCustom] = useState("");
-  const [language, setLanguage] = useState("ja");
+  const [language, setLanguage] = useState(() => localStorageManager.getLanguage());
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
   const { data: conversations = [] } = useQuery<Conversation[]>({
@@ -267,6 +267,7 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
                     <Select
                       value={language}
                       onValueChange={(value) => {
+                        localStorageManager.saveLanguage(value);
                         setLanguage(value);
                         window.location.reload();
                       }}

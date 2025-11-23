@@ -2,6 +2,7 @@ import type { Conversation } from "@shared/schema";
 
 const CONVERSATIONS_KEY = "ai_chat_conversations";
 const APP_SETTINGS_KEY = "app_settings";
+const LANGUAGE_KEY = "app_language";
 
 export interface AppSettings {
   fontSize: number; // 12-20px
@@ -73,6 +74,22 @@ export const localStorageManager = {
   deleteConversation(id: string): void {
     const conversations = this.getConversations();
     this.saveConversations(conversations.filter((c) => c.id !== id));
+  },
+
+  getLanguage(): string {
+    try {
+      return localStorage.getItem(LANGUAGE_KEY) || "ja";
+    } catch {
+      return "ja";
+    }
+  },
+
+  saveLanguage(language: string): void {
+    try {
+      localStorage.setItem(LANGUAGE_KEY, language);
+    } catch (e) {
+      console.error("Failed to save language to localStorage:", e);
+    }
   },
 
   clearAll(): void {
