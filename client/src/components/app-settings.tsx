@@ -53,7 +53,7 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
     queryKey: ["/api/conversations"],
   });
 
-  const archivedCount = conversations.filter(c => c.archived).length;
+  const archivedCount = (conversations && Array.isArray(conversations)) ? conversations.filter(c => c.archived === true).length : 0;
 
   useEffect(() => {
     setSettings(localStorageManager.getAppSettings());
