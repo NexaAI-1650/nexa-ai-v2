@@ -474,4 +474,14 @@
   .border.hover-elevate:not(.no-hover-interaction-elevate)::after {
     inset: -1px;
   }
+
+  .animate-dots {
+    animation: dots 1.4s infinite;
+  }
+}
+
+@keyframes dots {
+  0%, 20%, 50% { opacity: 0; }
+  40% { opacity: 1; }
+  60% { opacity: 0; }
 }
