@@ -330,7 +330,7 @@ export default function ChatPage() {
       )}
 
       <div className="flex flex-col flex-1 min-w-0">
-        <header className="border-b bg-gradient-to-r from-blue-400/70 via-purple-400/70 to-pink-400/70 backdrop-blur-sm shadow-lg transition-all duration-300 animate-gradient-flow bg-[length:200%_100%]">
+        <header className="border-b bg-gradient-to-r from-blue-400/70 via-purple-400/70 to-pink-400/70 backdrop-blur-sm shadow-lg transition-all duration-300">
           <div className="flex items-center justify-between px-6 py-4 animate-fade-in">
             <div className="flex items-center gap-4">
               <Button
