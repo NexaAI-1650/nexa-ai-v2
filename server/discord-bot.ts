@@ -4,6 +4,7 @@ const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 
 let client: Client | null = null;
+let currentModel = "google/gemini-2.5-flash";
 let botStats = {
   isRunning: false,
   commandCount: 0,
@@ -56,7 +57,7 @@ export async function initDiscordBot() {
           "X-Title": "AI Chat Discord Bot",
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
+          model: currentModel,
           messages: [{ role: "user", content: userMessage }],
           max_tokens: 1000,
         }),
@@ -153,6 +154,7 @@ export async function initDiscordBot() {
       });
     } else if (interaction.commandName === "model") {
       const newModel = interaction.options.getString("model") || "google/gemini-2.5-flash";
+      currentModel = newModel;
       await interaction.reply({
         content: `✅ **モデルを変更しました**\n選択: ${newModel}`,
         ephemeral: true,
