@@ -4,7 +4,7 @@ const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 
 let client: Client | null = null;
-let currentModel = "google/gemini-2.5-flash";
+let currentModel = "openai/gpt-oss-20b:free";
 let botStats = {
   isRunning: false,
   commandCount: 0,
