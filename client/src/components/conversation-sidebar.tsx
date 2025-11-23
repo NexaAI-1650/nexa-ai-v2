@@ -151,8 +151,13 @@ export function ConversationSidebar({
               >
                 <div className="flex items-center gap-2 min-w-0 flex-1">
                   <MessageSquare className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  <p className="text-sm font-medium truncate text-sidebar-foreground">
-                    {conversation.title || "無題の会話"}
+                  <p className="text-sm font-medium text-sidebar-foreground" title={conversation.title || "無題のチャット"} style={{
+                    maxWidth: "180px",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap"
+                  }}>
+                    {conversation.title || "無題のチャット"}
                   </p>
                 </div>
                 <DropdownMenu>
