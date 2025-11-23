@@ -393,7 +393,11 @@ export default function ChatPage() {
               
               <ModelSelector
                 value={selectedModel}
-                onChange={setSelectedModel}
+                onChange={(model) => {
+                  setSelectedModel(model);
+                  const settings = localStorageManager.getAppSettings();
+                  localStorageManager.saveAppSettings({ ...settings, defaultModel: model });
+                }}
                 disabled={chatMutation.isPending}
               />
             </div>
