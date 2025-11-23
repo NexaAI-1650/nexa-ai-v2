@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/lib/useLanguage";
 import { queryClient } from "@/lib/queryClient";
 import { localStorageManager } from "@/lib/localStorage";
+import { cn } from "@/lib/utils";
 import type { Message, Conversation } from "@shared/schema";
 import { aiModels } from "@shared/schema";
 
