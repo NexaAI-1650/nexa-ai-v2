@@ -26,9 +26,9 @@ export function ChatMessage({ message, isOwn = false, onEdit, onDelete }: ChatMe
     >
       <Avatar className={cn(
         "h-8 w-8 shrink-0 shadow-lg",
-        isUser ? "bg-gradient-to-br from-blue-500 to-purple-600 text-white" : "bg-gradient-to-br from-purple-500 to-pink-600 text-white"
+        isUser ? "bg-gradient-to-br from-cyan-500 via-blue-600 to-purple-700 text-white" : "bg-gradient-to-br from-pink-600 via-purple-600 to-red-600 text-white"
       )}>
-        <AvatarFallback className={cn(isUser ? "bg-gradient-to-br from-blue-500 to-purple-600 text-white" : "bg-gradient-to-br from-purple-500 to-pink-600 text-white")}>
+        <AvatarFallback className={cn(isUser ? "bg-gradient-to-br from-cyan-500 via-blue-600 to-purple-700 text-white" : "bg-gradient-to-br from-pink-600 via-purple-600 to-red-600 text-white")}>
           {isUser ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
         </AvatarFallback>
       </Avatar>
