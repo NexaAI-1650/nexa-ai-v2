@@ -10,7 +10,7 @@ import { ConversationSidebar } from "@/components/conversation-sidebar";
 import { AppSettings } from "@/components/app-settings";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/lib/useLanguage";
-import { queryClient } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { localStorageManager } from "@/lib/localStorage";
 import { cn } from "@/lib/utils";
 import type { Message, Conversation } from "@shared/schema";

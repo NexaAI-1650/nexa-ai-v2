@@ -235,8 +235,13 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
                         max={40}
                         value={settings.fontSize}
                         onChange={(e) => {
-                          const val = Math.min(40, Math.max(10, parseInt(e.target.value) || 10));
-                          handleSave({ ...settings, fontSize: val });
+                          const inputVal = e.target.value;
+                          if (inputVal === "") return;
+                          const parsed = parseInt(inputVal);
+                          if (!isNaN(parsed)) {
+                            const val = Math.min(40, Math.max(10, parsed));
+                            handleSave({ ...settings, fontSize: val });
+                          }
                         }}
                         className="w-12 h-8 text-center text-xs [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [&]:m-0"
                         style={{ MozAppearance: 'textfield' }}
