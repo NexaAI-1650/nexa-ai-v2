@@ -47,7 +47,6 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
   const [aiRole, setAiRole] = useState("");
   const [aiCustom, setAiCustom] = useState("");
   const [language, setLanguage] = useState(() => localStorageManager.getLanguage());
-  const [fontSizeInput, setFontSizeInput] = useState<string>(settings.fontSize.toString());
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
   const { data: conversations = [] } = useQuery<Conversation[]>({
@@ -223,107 +222,6 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
                       <Moon className="h-3 w-3" />
                     </Button>
                   </div>
-                </div>
-
-                {/* Font Size */}
-                <div className="py-3 px-3 hover:bg-muted/30 rounded-md transition-colors">
-                  <div className="flex items-center justify-between mb-2">
-                    <Label htmlFor="font-size" className="text-sm">{t("fontSize")}</Label>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type="number"
-                        min={10}
-                        max={40}
-                        value={fontSizeInput}
-                        onChange={(e) => {
-                          setFontSizeInput(e.target.value);
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            const inputVal = (e.target as HTMLInputElement).value;
-                            if (inputVal === "") {
-                              setFontSizeInput(settings.fontSize.toString());
-                            } else {
-                              const parsed = parseInt(inputVal);
-                              if (!isNaN(parsed)) {
-                                if (parsed < 10 || parsed > 40) {
-                                  toast({
-                                    title: "注意",
-                                    description: "値は10～40以内に設定してください。",
-                                    variant: "destructive",
-                                  });
-                                  setFontSizeInput(settings.fontSize.toString());
-                                } else {
-                                  handleSave({ ...settings, fontSize: parsed });
-                                  setFontSizeInput(parsed.toString());
-                                }
-                              } else {
-                                setFontSizeInput(settings.fontSize.toString());
-                              }
-                            }
-                          }
-                        }}
-                        onBlur={(e) => {
-                          const inputVal = e.target.value;
-                          if (inputVal === "") {
-                            setFontSizeInput(settings.fontSize.toString());
-                          }
-                        }}
-                        className="w-12 h-8 text-center text-xs [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [&]:m-0"
-                        style={{ MozAppearance: 'textfield' }}
-                        data-testid="input-font-size"
-                      />
-                      <span className="text-xs text-muted-foreground">{t("px")}</span>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          handleSave({ ...settings, fontSize: 16 });
-                          setFontSizeInput("16");
-                        }}
-                        className="h-8"
-                        data-testid="button-reset-font-size"
-                      >
-                        {t("reset")}
-                      </Button>
-                    </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground mb-2">値は10～40以内</p>
-                  <Slider
-                    id="font-size"
-                    min={10}
-                    max={40}
-                    step={1}
-                    value={[settings.fontSize]}
-                    onValueChange={(value) =>
-                      handleSave({ ...settings, fontSize: value[0] })
-                    }
-                    className="w-full"
-                    data-testid="slider-font-size"
-                  />
-                </div>
-
-                {/* Line Height */}
-                <div className="flex items-center justify-between py-3 px-3 hover:bg-muted/30 rounded-md transition-colors">
-                  <Label htmlFor="line-height" className="text-sm">{t("messageLineHeight")}</Label>
-                  <Select
-                    value={settings.lineHeight}
-                    onValueChange={(value) =>
-                      handleSave({
-                        ...settings,
-                        lineHeight: value as "compact" | "normal" | "loose",
-                      })
-                    }
-                  >
-                    <SelectTrigger id="line-height" data-testid="select-line-height" className="w-32 h-8">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="compact">{t("compact")}</SelectItem>
-                      <SelectItem value="normal">{t("normal")}</SelectItem>
-                      <SelectItem value="loose">{t("loose")}</SelectItem>
-                    </SelectContent>
-                  </Select>
                 </div>
 
                 {/* Language */}
