@@ -86,12 +86,13 @@ export default function ChatPage() {
       // Show loading immediately
       setStreamingMessage("...");
 
+      const model = selectedModel || "google/gemini-2.5-flash";
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: userMessage,
-          model: selectedModel,
+          model: model,
           conversationId: currentConversationId,
         }),
       });
