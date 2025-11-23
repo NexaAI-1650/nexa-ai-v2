@@ -116,6 +116,11 @@ export default {
           "0%": { backgroundPosition: "-1000px center" },
           "100%": { backgroundPosition: "1000px center" },
         },
+        "gradient-flow": {
+          "0%": { backgroundPosition: "0% center" },
+          "50%": { backgroundPosition: "100% center" },
+          "100%": { backgroundPosition: "0% center" },
+        },
         "focus-ring-pulse": {
           "0%": { boxShadow: "0 0 0 0 rgba(59, 130, 246, 0.5), inset 0 0 0 1px rgba(59, 130, 246, 0.2)" },
           "50%": { boxShadow: "0 0 0 6px rgba(59, 130, 246, 0), inset 0 0 0 1px rgba(99, 102, 241, 0.4)" },
@@ -137,6 +142,7 @@ export default {
         "fade-in": "fade-in 0.3s ease-in",
         "slide-in-left": "slide-in-left 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)",
         "slide-out-left": "slide-out-left 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)",
+        "gradient-flow": "gradient-flow 8s ease infinite",
       },
       transitionDelay: {
         "150": "150ms",
