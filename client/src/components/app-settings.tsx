@@ -44,6 +44,7 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
   const [aiNickname, setAiNickname] = useState("");
   const [aiRole, setAiRole] = useState("");
   const [aiCustom, setAiCustom] = useState("");
+  const [language, setLanguage] = useState("ja");
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
   const { data: conversations = [] } = useQuery<Conversation[]>({
@@ -263,7 +264,13 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
                   {/* Language */}
                   <div className="space-y-2">
                     <Label htmlFor="language">言語</Label>
-                    <Select defaultValue="ja">
+                    <Select
+                      value={language}
+                      onValueChange={(value) => {
+                        setLanguage(value);
+                        window.location.reload();
+                      }}
+                    >
                       <SelectTrigger id="language" data-testid="select-language">
                         <SelectValue />
                       </SelectTrigger>
