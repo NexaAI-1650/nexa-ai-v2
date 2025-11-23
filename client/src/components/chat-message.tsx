@@ -20,15 +20,15 @@ export function ChatMessage({ message, isOwn = false, onEdit, onDelete }: ChatMe
     <div
       className={cn(
         "flex gap-4 p-6 group animate-slide-in-bottom transition-all duration-300",
-        isUser ? "bg-gradient-to-br from-blue-100/40 via-purple-100/20 to-transparent dark:from-blue-900/15 dark:via-purple-900/8 dark:to-transparent" : "bg-gradient-to-br from-purple-100/40 via-pink-100/20 to-transparent dark:from-purple-900/15 dark:via-pink-900/8 dark:to-transparent"
+        isUser ? "bg-background" : "bg-muted/30"
       )}
       data-testid={`message-${message.id}`}
     >
       <Avatar className={cn(
         "h-8 w-8 shrink-0 shadow-lg",
-        isUser ? "bg-gradient-to-br from-cyan-500 via-blue-600 to-purple-700 text-white" : "bg-gradient-to-br from-pink-600 via-purple-600 to-red-600 text-white"
+        isUser ? "bg-purple-600 text-white" : "bg-pink-500 text-white"
       )}>
-        <AvatarFallback className={cn(isUser ? "bg-gradient-to-br from-cyan-500 via-blue-600 to-purple-700 text-white" : "bg-gradient-to-br from-pink-600 via-purple-600 to-red-600 text-white")}>
+        <AvatarFallback className={cn(isUser ? "bg-purple-600 text-white" : "bg-pink-500 text-white")}>
           {isUser ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
         </AvatarFallback>
       </Avatar>
