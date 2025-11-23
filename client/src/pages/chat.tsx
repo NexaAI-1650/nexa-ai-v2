@@ -372,6 +372,12 @@ export default function ChatPage() {
               <ModelSelector
                 value={selectedModel}
                 onChange={(model) => {
+                  if (currentConversationId && currentConversation && currentConversation.model !== model) {
+                    toast({
+                      title: "注意",
+                      description: "既存のチャットでモデルを切り替えました。このチャット内のメッセージは新しいモデルで生成されます。",
+                    });
+                  }
                   setSelectedModel(model);
                   const settings = localStorageManager.getAppSettings();
                   localStorageManager.saveAppSettings({ ...settings, defaultModel: model });
