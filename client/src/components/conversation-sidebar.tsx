@@ -86,8 +86,8 @@ export function ConversationSidebar({
     const newTitle = conversation.title + " (コピー)";
     apiRequest("POST", "/api/conversations", {
       title: newTitle,
-      messages: conversation.messages,
-      model: conversation.model,
+      messages: conversation.messages || [],
+      model: conversation.model || "google/gemini-2.5-flash",
       archived: false,
     }).then(() => {
       queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
