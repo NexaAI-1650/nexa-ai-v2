@@ -5,7 +5,7 @@ export interface IStorage {
   getConversation(id: string): Promise<Conversation | undefined>;
   getAllConversations(): Promise<Conversation[]>;
   createConversation(title: string, model: string): Promise<Conversation>;
-  updateConversation(id: string, messages: Message[]): Promise<Conversation>;
+  updateConversation(id: string, conversation: Conversation): Promise<Conversation>;
   updateConversationMessages(id: string, messages: Message[]): Promise<Conversation>;
   updateConversationTags(id: string, tags: string[]): Promise<Conversation>;
   updateConversationTitle(id: string, title: string): Promise<Conversation>;
@@ -45,12 +45,11 @@ export class MemStorage implements IStorage {
     return conversation;
   }
 
-  async updateConversation(id: string, messages: Message[]): Promise<Conversation> {
-    const conversation = this.conversations.get(id);
-    if (!conversation) {
+  async updateConversation(id: string, conversation: Conversation): Promise<Conversation> {
+    const existing = this.conversations.get(id);
+    if (!existing) {
       throw new Error("Conversation not found");
     }
-    conversation.messages = messages;
     conversation.updatedAt = Date.now();
     this.conversations.set(id, conversation);
     return conversation;

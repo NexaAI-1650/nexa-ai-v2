@@ -56,6 +56,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (archived !== undefined) {
         conversation = { ...conversation, archived };
         await storage.updateConversation(req.params.id, conversation);
+        return res.json(conversation);
       }
 
       res.json(conversation);
