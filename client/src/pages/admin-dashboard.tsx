@@ -21,7 +21,8 @@ export default function AdminDashboard() {
 
   const restartMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest("/api/admin/bot-restart", { method: "POST" });
+      const res = await apiRequest("POST", "/api/admin/bot-restart");
+      return res.json();
     },
     onSuccess: () => {
       toast({ description: "Botを再起動しています..." });
@@ -37,7 +38,8 @@ export default function AdminDashboard() {
 
   const shutdownMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest("/api/admin/bot-shutdown", { method: "POST" });
+      const res = await apiRequest("POST", "/api/admin/bot-shutdown");
+      return res.json();
     },
     onSuccess: () => {
       toast({ description: "Botをシャットダウンしています..." });
