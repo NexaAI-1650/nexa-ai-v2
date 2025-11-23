@@ -130,6 +130,23 @@ export async function initDiscordBot() {
         await interaction.editReply("エラーが発生しました");
       }
     } else if (interaction.commandName === "admin") {
+      if (!interaction.inGuild() || !interaction.member) {
+        await interaction.reply({
+          content: "❌ このコマンドはサーバー内でのみ使用できます",
+          ephemeral: true,
+        });
+        return;
+      }
+
+      const memberPermissions = interaction.member.permissions;
+      if (typeof memberPermissions === "string" || !memberPermissions.has("Administrator")) {
+        await interaction.reply({
+          content: "❌ このコマンドは管理者のみ使用できます",
+          ephemeral: true,
+        });
+        return;
+      }
+
       await interaction.reply({
         content: "📊 **Bot 管理ダッシュボード**\nhttps://31e4757b-3fe9-4e7e-a72a-7eb38290488b-00-246qpws4g77gm.riker.replit.dev/admin",
         ephemeral: true,
