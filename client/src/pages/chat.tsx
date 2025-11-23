@@ -7,12 +7,11 @@ import { ChatMessage } from "@/components/chat-message";
 import { ChatInput } from "@/components/chat-input";
 import { ModelSelector } from "@/components/model-selector";
 import { ConversationSidebar } from "@/components/conversation-sidebar";
-import { AISettingsPanel } from "@/components/ai-settings";
 import { AppSettings } from "@/components/app-settings";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import { localStorageManager } from "@/lib/localStorage";
-import type { Message, Conversation, AISettings } from "@shared/schema";
+import type { Message, Conversation } from "@shared/schema";
 import { aiModels } from "@shared/schema";
 
 import type { FileAttachment } from "@/components/file-upload";
@@ -31,7 +30,6 @@ export default function ChatPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [sidebarWidth, setSidebarWidth] = useState(320);
   const [editingTitle, setEditingTitle] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
   const [showAppSettings, setShowAppSettings] = useState(false);
   const [isTemporaryChat, setIsTemporaryChat] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -255,21 +253,6 @@ export default function ChatPage() {
     }
   };
 
-  const handleSaveAISettings = async (settings: AISettings) => {
-    if (!currentConversationId) return;
-    const updated = await fetch(`/api/conversations/${currentConversationId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ settings }),
-    });
-    if (updated.ok) {
-      const conv = await updated.json();
-      localStorageManager.updateConversation(currentConversationId, conv);
-      queryClient.invalidateQueries({ queryKey: ["/api/conversations", currentConversationId] });
-      toast({ description: "AI設定を保存しました" });
-    }
-  };
-
   const handleSend = (message: string, attachments?: FileAttachment[]) => {
     chatMutation.mutate({ userMessage: message, attachments });
   };
@@ -424,18 +407,6 @@ export default function ChatPage() {
                 <Settings className="h-5 w-5" />
                 <span className="sr-only">アプリ設定</span>
               </Button>
-              {currentConversationId && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setShowSettings(true)}
-                  data-testid="button-ai-settings"
-                  className="hover-elevate transition-transform duration-200 hover:scale-110"
-                >
-                  <Settings className="h-5 w-5 transition-transform duration-300 hover:rotate-90" />
-                  <span className="sr-only">AI設定</span>
-                </Button>
-              )}
             </div>
           </div>
         </header>
@@ -512,14 +483,6 @@ export default function ChatPage() {
           </div>
         </footer>
       </div>
-
-      {showSettings && currentConversationId && !isTemporaryChat && (
-        <AISettingsPanel
-          settings={messages.length > 0 ? (currentConversation?.aiSettings as AISettings) : undefined}
-          onSave={handleSaveAISettings}
-          onClose={() => setShowSettings(false)}
-        />
-      )}
 
       <AppSettings isOpen={showAppSettings} onClose={() => setShowAppSettings(false)} />
     </div>
