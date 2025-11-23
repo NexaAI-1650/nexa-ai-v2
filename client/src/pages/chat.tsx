@@ -444,7 +444,7 @@ export default function ChatPage() {
             }[appSettings.lineHeight],
           }}
         >
-          {messages.length === 0 && !streamingMessage && (
+          {(!messages || messages.length === 0) && !streamingMessage && (
             <div className="flex items-center justify-center h-full animate-fade-in">
               <div className="text-center space-y-4 p-8">
                 <h2 className="text-2xl font-semibold text-muted-foreground animate-slide-in-bottom">
@@ -459,7 +459,7 @@ export default function ChatPage() {
             </div>
           )}
 
-          {messages.map((message) => (
+          {(messages && Array.isArray(messages)) && messages.map((message) => (
             <ChatMessage
               key={message.id}
               message={message}
