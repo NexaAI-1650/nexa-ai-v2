@@ -35,7 +35,7 @@ const LINE_HEIGHT_OPTIONS = {
   loose: "広め (1.8)",
 };
 
-type SectionType = "general" | "ai" | "data" | "stats";
+type SectionType = "general" | "ai" | "data" | "stats" | "archived";
 
 export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
   const { t } = useLanguage();
@@ -52,8 +52,17 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
   const { data: conversations = [] } = useQuery<Conversation[]>({
     queryKey: ["/api/conversations"],
   });
+  
+  const unarchiveMutation = useMutation({
+    mutationFn: (id: string) => apiRequest("PATCH", `/api/conversations/${id}`, { archived: false }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
+      toast({ description: "チャットを復元しました" });
+    },
+  });
 
-  const archivedCount = (conversations && Array.isArray(conversations)) ? conversations.filter(c => c.archived === true).length : 0;
+  const archivedConversations = (conversations && Array.isArray(conversations)) ? conversations.filter(c => c.archived === true) : [];
+  const archivedCount = archivedConversations.length;
   const totalConversations = (conversations && Array.isArray(conversations)) ? conversations.length : 0;
   const totalTokens = (conversations && Array.isArray(conversations)) ? conversations.reduce((sum, c) => sum + (c.messages ? c.messages.reduce((msgSum, m) => msgSum + Math.ceil((m.content?.length || 0) / 4), 0) : 0), 0) : 0;
   const totalMessages = (conversations && Array.isArray(conversations)) ? conversations.reduce((sum, c) => sum + (c.messages ? c.messages.length : 0), 0) : 0;
@@ -148,7 +157,7 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
               data-testid="section-stats"
             >
               <BarChart3 className="h-4 w-4 shrink-0" />
-              統計
+              使用統計
             </button>
             <button
               onClick={() => setActiveSection("data")}
@@ -343,7 +352,7 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-card border border-border rounded-lg p-4 space-y-2">
-                    <p className="text-xs text-muted-foreground">総会話数</p>
+                    <p className="text-xs text-muted-foreground">総チャット数</p>
                     <p className="text-2xl font-bold text-foreground">{totalConversations}</p>
                   </div>
                   <div className="bg-card border border-border rounded-lg p-4 space-y-2">
@@ -370,6 +379,42 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
               </div>
             )}
 
+            {/* アーカイブ済みチャット管理 */}
+            {activeSection === "archived" && (
+              <div className="space-y-5">
+                <h3 className="text-base font-semibold text-foreground">アーカイブ済みチャット ({archivedCount})</h3>
+
+                {archivedConversations.length === 0 ? (
+                  <div className="text-center p-8 text-muted-foreground text-sm">
+                    アーカイブ済みのチャットはありません
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {archivedConversations.map((conv) => (
+                      <div
+                        key={conv.id}
+                        className="flex items-center justify-between p-3 bg-muted/30 rounded-md hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate text-foreground">{conv.title}</p>
+                          <p className="text-xs text-muted-foreground">{conv.messages?.length || 0} メッセージ</p>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 ml-2 shrink-0"
+                          onClick={() => unarchiveMutation.mutate(conv.id)}
+                          disabled={unarchiveMutation.isPending}
+                        >
+                          復元
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* データコントロール */}
             {activeSection === "data" && (
               <div className="space-y-5">
@@ -387,7 +432,7 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => {}}
+                    onClick={() => setActiveSection("archived")}
                     className="h-8"
                     data-testid="button-manage-archived"
                   >
