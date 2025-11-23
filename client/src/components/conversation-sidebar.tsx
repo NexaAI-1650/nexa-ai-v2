@@ -90,23 +90,23 @@ export function ConversationSidebar({
   }, [conversations, searchQuery]);
 
   return (
-    <div className="flex flex-col h-full bg-purple-600 dark:bg-purple-800 border-r border-purple-700 dark:border-purple-900">
-      <div className="p-4 border-b border-purple-500/20 dark:border-purple-800/30 space-y-3">
+    <div className="flex flex-col h-full bg-sidebar border-r border-sidebar-border">
+      <div className="p-4 border-b border-sidebar-border space-y-3">
         <Button
           onClick={onNewConversation}
-          className="w-full bg-pink-500 hover:bg-pink-600 text-white shadow-lg font-semibold"
+          className="w-full"
           data-testid="button-new-conversation"
         >
           <Plus className="h-4 w-4 mr-2" />
           {t("newConversation")}
         </Button>
         <div className="relative">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-white/60" />
+          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder={t("search")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-8 py-2 h-9 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:bg-white/15 focus:border-white/40"
+            className="pl-8 py-2 h-9"
             data-testid="input-search-conversations"
           />
         </div>
@@ -119,24 +119,24 @@ export function ConversationSidebar({
               key={conversation.id}
               onClick={() => onSelectConversation(conversation.id)}
               className={cn(
-                "w-full text-left p-3 rounded-md hover:bg-white/10 active:bg-white/20 group flex items-center justify-between gap-2 transition-all text-white hover-elevate active-elevate-2",
-                currentConversationId === conversation.id && "bg-gradient-to-r from-blue-500/60 to-purple-500/60 border border-white/30 shadow-lg"
+                "w-full text-left p-3 rounded-md hover-elevate active-elevate-2 group flex items-center justify-between gap-2 transition-all",
+                currentConversationId === conversation.id && "bg-sidebar-accent"
               )}
               data-testid={`conversation-${conversation.id}`}
             >
               <div className="flex items-center gap-2 min-w-0 flex-1">
-                <MessageSquare className="h-4 w-4 shrink-0 text-white/80" />
-                <p className="text-sm font-medium truncate text-white">
+                <MessageSquare className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <p className="text-sm font-medium truncate text-sidebar-foreground">
                   {conversation.title}
                 </p>
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                   <button
-                    className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 hover:bg-white/20 rounded p-0 flex items-center justify-center"
+                    className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 hover:bg-muted/50 rounded p-0 flex items-center justify-center"
                     data-testid={`button-menu-${conversation.id}`}
                   >
-                    <MoreVertical className="h-3 w-3 text-white" />
+                    <MoreVertical className="h-3 w-3" />
                     <span className="sr-only">メニュー</span>
                   </button>
                 </DropdownMenuTrigger>
@@ -167,13 +167,13 @@ export function ConversationSidebar({
           ))}
           
           {filteredConversations.length === 0 && conversations.length === 0 && (
-            <div className="text-center p-8 text-white/60 text-sm">
+            <div className="text-center p-8 text-muted-foreground text-sm">
               {t("noConversations")}
             </div>
           )}
           
           {filteredConversations.length === 0 && conversations.length > 0 && (
-            <div className="text-center p-8 text-white/60 text-sm">
+            <div className="text-center p-8 text-muted-foreground text-sm">
               {t("noResults")} "{searchQuery}"
             </div>
           )}
