@@ -98,7 +98,7 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
       onClick={onClose}
     >
       <div
-        className="bg-background border border-border rounded-lg w-full max-w-3xl max-h-[95vh] animate-slide-in-bottom shadow-lg flex overflow-hidden"
+        className="bg-background border border-border rounded-lg w-full max-w-2xl max-h-screen animate-slide-in-bottom shadow-lg flex overflow-hidden"
         onClick={(e) => e.stopPropagation()}
         data-testid="panel-app-settings"
       >
