@@ -74,7 +74,7 @@ export function ChatMessage({ message, isOwn = false, onEdit, onDelete }: ChatMe
                   key={`image-${index}`}
                   src={attachment.url}
                   alt={attachment.name}
-                  className="max-w-xs rounded-md border animate-slide-in-bottom"
+                  className="max-w-xs rounded-lg border border-muted/30 animate-slide-in-bottom"
                   data-testid={`message-attachment-image-${index}`}
                 />
               ))}
@@ -87,7 +87,7 @@ export function ChatMessage({ message, isOwn = false, onEdit, onDelete }: ChatMe
                   key={`file-${index}`}
                   href={attachment.url}
                   download={attachment.name}
-                  className="inline-flex items-center gap-2 p-3 bg-primary/10 hover:bg-primary/20 border border-primary/30 rounded-md transition-colors animate-slide-in-bottom group"
+                  className="inline-flex items-center gap-2 p-3 bg-primary/10 hover:bg-primary/20 border border-primary/30 rounded-lg transition-colors animate-slide-in-bottom group"
                   data-testid={`message-attachment-file-${index}`}
                 >
                   <span className="text-primary">📎</span>

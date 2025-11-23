@@ -95,13 +95,13 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
       onClick={onClose}
     >
       <div
-        className="bg-background border rounded-lg w-full max-w-2xl max-h-[90vh] animate-slide-in-bottom shadow-lg flex overflow-hidden"
+        className="bg-background border border-muted/30 rounded-lg w-full max-w-2xl max-h-[95vh] animate-slide-in-bottom shadow-lg flex overflow-hidden"
         onClick={(e) => e.stopPropagation()}
         data-testid="panel-app-settings"
       >
         {/* Left Sidebar Menu */}
-        <div className="w-32 bg-muted/30 border-r flex flex-col">
-          <div className="p-4 border-b">
+        <div className="w-32 bg-muted/30 border-r border-muted/30 flex flex-col">
+          <div className="p-4 border-b border-muted/30">
             <h2 className="font-semibold text-lg">アプリ設定</h2>
           </div>
           <nav className="flex-1 overflow-y-auto p-1 space-y-1">
@@ -139,7 +139,7 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
               データコントロール
             </button>
           </nav>
-          <div className="p-2 border-t">
+          <div className="p-2 border-t border-muted/30">
             <Button
               variant="ghost"
               className="w-full"
