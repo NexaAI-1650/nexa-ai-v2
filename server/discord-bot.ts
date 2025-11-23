@@ -106,6 +106,14 @@ export async function shutdownDiscordBot() {
   }
 }
 
+export async function startDiscordBot() {
+  if (botStats.isRunning) {
+    console.log("Discord Bot:既に実行中です");
+    return;
+  }
+  await initDiscordBot();
+}
+
 export function getBotStatus() {
   return botStats;
 }

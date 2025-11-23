@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { chatRequestSchema } from "@shared/schema";
 import { storage } from "./storage";
-import { restartDiscordBot, shutdownDiscordBot, getBotStatus } from "./discord-bot";
+import { restartDiscordBot, shutdownDiscordBot, getBotStatus, startDiscordBot } from "./discord-bot";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
@@ -338,6 +338,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Bot shutdown error:", error);
       res.status(500).json({
         error: error instanceof Error ? error.message : "シャットダウンに失敗しました",
+      });
+    }
+  });
+
+  app.post("/api/admin/bot-start", async (_req, res) => {
+    try {
+      await startDiscordBot();
+      res.json({ success: true, message: "Botを起動しました" });
+    } catch (error) {
+      console.error("Bot start error:", error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "起動に失敗しました",
       });
     }
   });

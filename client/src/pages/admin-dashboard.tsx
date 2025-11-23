@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { BarChart3, MessageSquare, Users, ArrowLeft, Power, RotateCcw } from "lucide-react";
+import { BarChart3, MessageSquare, Users, ArrowLeft, Power, RotateCcw, PowerOff } from "lucide-react";
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -48,6 +48,23 @@ export default function AdminDashboard() {
     onError: (error: any) => {
       toast({
         description: error?.message || "シャットダウンに失敗しました",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const startMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/admin/bot-start");
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ description: "Botを起動しています..." });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/bot-status"] });
+    },
+    onError: (error: any) => {
+      toast({
+        description: error?.message || "起動に失敗しました",
         variant: "destructive",
       });
     },
@@ -170,6 +187,16 @@ export default function AdminDashboard() {
                 コマンド実行数: {botStatus?.commandCount || 0}
               </p>
               <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => startMutation.mutate()}
+                  disabled={startMutation.isPending || botStatus?.isRunning}
+                  data-testid="button-bot-start"
+                >
+                  <PowerOff className="h-4 w-4 mr-2" />
+                  起動
+                </Button>
                 <Button
                   size="sm"
                   variant="outline"
