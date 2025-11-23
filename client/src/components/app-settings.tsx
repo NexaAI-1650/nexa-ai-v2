@@ -1,4 +1,4 @@
-import { X, Settings, Moon, Sun, RotateCcw, Archive, Trash2, ChevronDown } from "lucide-react";
+import { X, Settings, Moon, Sun, RotateCcw, Archive, Trash2, ChevronDown, Bell, Palette, Sliders } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
@@ -98,54 +98,60 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
       onClick={onClose}
     >
       <div
-        className="bg-background border border-muted/30 rounded-lg w-full max-w-2xl max-h-[95vh] animate-slide-in-bottom shadow-lg flex overflow-hidden"
+        className="bg-background border border-border rounded-lg w-full max-w-3xl max-h-[95vh] animate-slide-in-bottom shadow-lg flex overflow-hidden"
         onClick={(e) => e.stopPropagation()}
         data-testid="panel-app-settings"
       >
         {/* Left Sidebar Menu */}
-        <div className="w-32 bg-muted/30 border-r border-muted/30 flex flex-col">
-          <div className="p-4 border-b border-muted/30">
-            <h2 className="font-semibold text-lg">{t("appSettings")}</h2>
+        <div className="w-48 bg-sidebar border-r border-sidebar-border flex flex-col">
+          <div className="p-4 border-b border-sidebar-border">
+            <h2 className="font-semibold text-base text-sidebar-foreground flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              {t("appSettings")}
+            </h2>
           </div>
-          <nav className="flex-1 overflow-y-auto p-1 space-y-1">
+          <nav className="flex-1 overflow-y-auto p-2 space-y-1">
             <button
               onClick={() => setActiveSection("general")}
-              className={`w-full text-left px-2 py-2 text-sm rounded-lg transition-colors ${
+              className={`w-full text-left px-3 py-2.5 text-sm rounded-md transition-colors flex items-center gap-3 font-medium ${
                 activeSection === "general"
-                  ? "bg-primary text-primary-foreground"
-                  : "hover:bg-muted"
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent/50"
               }`}
               data-testid="section-general"
             >
+              <Settings className="h-4 w-4 shrink-0" />
               {t("general")}
             </button>
             <button
               onClick={() => setActiveSection("ai")}
-              className={`w-full text-left px-2 py-2 text-sm rounded-lg transition-colors ${
+              className={`w-full text-left px-3 py-2.5 text-sm rounded-md transition-colors flex items-center gap-3 font-medium ${
                 activeSection === "ai"
-                  ? "bg-primary text-primary-foreground"
-                  : "hover:bg-muted"
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent/50"
               }`}
               data-testid="section-ai"
             >
+              <Palette className="h-4 w-4 shrink-0" />
               {t("aiSettings")}
             </button>
             <button
               onClick={() => setActiveSection("data")}
-              className={`w-full text-left px-2 py-2 text-sm rounded-lg transition-colors ${
+              className={`w-full text-left px-3 py-2.5 text-sm rounded-md transition-colors flex items-center gap-3 font-medium ${
                 activeSection === "data"
-                  ? "bg-primary text-primary-foreground"
-                  : "hover:bg-muted"
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent/50"
               }`}
               data-testid="section-data"
             >
+              <Sliders className="h-4 w-4 shrink-0" />
               {t("dataControl")}
             </button>
           </nav>
-          <div className="p-2 border-t border-muted/30">
+          <div className="p-2 border-t border-sidebar-border">
             <Button
               variant="ghost"
-              className="w-full"
+              className="w-full justify-start text-sidebar-foreground"
               onClick={onClose}
               data-testid="button-close-settings"
             >
