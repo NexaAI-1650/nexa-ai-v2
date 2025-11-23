@@ -442,7 +442,6 @@ export default function ChatPage() {
                 setEditingMessageId(msg.id);
                 setEditingContent(msg.content);
               }}
-              onDelete={handleDeleteMessage}
             />
           ))}
 
@@ -471,11 +470,35 @@ export default function ChatPage() {
         </main>
 
         <footer className="border-t bg-card p-6">
-          <div className="max-w-4xl mx-auto">
+          <div className="max-w-4xl mx-auto space-y-3">
+            {editingMessageId && (
+              <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg border border-border">
+                <span className="text-sm text-muted-foreground flex-1">メッセージを編集中...</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setEditingMessageId(undefined);
+                    setEditingContent("");
+                  }}
+                  className="h-8"
+                >
+                  キャンセル
+                </Button>
+              </div>
+            )}
             <ChatInput
-              onSend={handleSend}
+              onSend={(text) => {
+                if (editingMessageId) {
+                  handleEditMessage(editingMessageId, editingContent);
+                } else {
+                  handleSend(text);
+                }
+              }}
               disabled={chatMutation.isPending}
-              placeholder={t("messageInput")}
+              placeholder={editingMessageId ? "編集内容を入力してください..." : t("messageInput")}
+              value={editingMessageId ? editingContent : undefined}
+              onChange={editingMessageId ? (val) => setEditingContent(val) : undefined}
             />
           </div>
         </footer>

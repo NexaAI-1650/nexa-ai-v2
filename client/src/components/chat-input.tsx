@@ -7,19 +7,33 @@ interface ChatInputProps {
   onSend: (message: string) => void;
   disabled?: boolean;
   placeholder?: string;
+  value?: string;
+  onChange?: (value: string) => void;
 }
 
 export function ChatInput({
   onSend,
   disabled = false,
   placeholder = "メッセージを入力...",
+  value: externalValue,
+  onChange: externalOnChange,
 }: ChatInputProps) {
   const [message, setMessage] = useState("");
+  const messageValue = externalValue !== undefined ? externalValue : message;
+  
+  const handleChange = (val: string) => {
+    if (externalValue === undefined) {
+      setMessage(val);
+    }
+    externalOnChange?.(val);
+  };
 
   const handleSend = () => {
-    if (message.trim() && !disabled) {
-      onSend(message.trim());
-      setMessage("");
+    if (messageValue.trim() && !disabled) {
+      onSend(messageValue.trim());
+      if (externalValue === undefined) {
+        setMessage("");
+      }
     }
   };
 
@@ -34,8 +48,8 @@ export function ChatInput({
     <div className="space-y-3">
       <div className="flex gap-3 items-end">
         <Textarea
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
+          value={messageValue}
+          onChange={(e) => handleChange(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           disabled={disabled}
@@ -44,7 +58,7 @@ export function ChatInput({
         />
         <Button
           onClick={handleSend}
-          disabled={disabled || !message.trim()}
+          disabled={disabled || !messageValue.trim()}
           size="icon"
           className="h-[60px] w-[60px] shrink-0 interactive-scale interactive-glow bg-gradient-to-br from-blue-500 via-purple-500 to-blue-600 hover:from-blue-600 hover:via-purple-600 hover:to-blue-700 active:from-blue-700 active:via-purple-700 active:to-blue-800 dark:active:shadow-lg dark:active:shadow-white/30 light:active:shadow-lg light:active:shadow-black/30 text-white shadow-lg transition-all"
           data-testid="button-send"
