@@ -47,6 +47,7 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
   const [aiRole, setAiRole] = useState("");
   const [aiCustom, setAiCustom] = useState("");
   const [language, setLanguage] = useState(() => localStorageManager.getLanguage());
+  const [fontSizeInput, setFontSizeInput] = useState<string>(settings.fontSize.toString());
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
   const { data: conversations = [] } = useQuery<Conversation[]>({
@@ -163,7 +164,7 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
               data-testid="section-stats"
             >
               <BarChart3 className="h-4 w-4 shrink-0" />
-              使用統計
+              {t("statistics") || "使用統計"}
             </button>
             <button
               onClick={() => setActiveSection("data")}
@@ -233,14 +234,23 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
                         type="number"
                         min={10}
                         max={40}
-                        value={settings.fontSize}
+                        value={fontSizeInput}
                         onChange={(e) => {
+                          setFontSizeInput(e.target.value);
+                        }}
+                        onBlur={(e) => {
                           const inputVal = e.target.value;
-                          if (inputVal === "") return;
-                          const parsed = parseInt(inputVal);
-                          if (!isNaN(parsed)) {
-                            const val = Math.min(40, Math.max(10, parsed));
-                            handleSave({ ...settings, fontSize: val });
+                          if (inputVal === "") {
+                            setFontSizeInput(settings.fontSize.toString());
+                          } else {
+                            const parsed = parseInt(inputVal);
+                            if (!isNaN(parsed)) {
+                              const val = Math.min(40, Math.max(10, parsed));
+                              handleSave({ ...settings, fontSize: val });
+                              setFontSizeInput(val.toString());
+                            } else {
+                              setFontSizeInput(settings.fontSize.toString());
+                            }
                           }
                         }}
                         className="w-12 h-8 text-center text-xs [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [&]:m-0"
