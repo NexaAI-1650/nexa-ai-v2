@@ -1,4 +1,4 @@
-import { X, Settings, Moon, Sun, RotateCcw, Archive, Trash2, ChevronDown, Bell, Palette, Sliders } from "lucide-react";
+import { X, Settings, Moon, Sun, RotateCcw, Archive, Trash2, ChevronDown, Bell, Palette, Sliders, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
@@ -35,7 +35,7 @@ const LINE_HEIGHT_OPTIONS = {
   loose: "広め (1.8)",
 };
 
-type SectionType = "general" | "ai" | "data";
+type SectionType = "general" | "ai" | "data" | "stats";
 
 export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
   const { t } = useLanguage();
@@ -54,6 +54,9 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
   });
 
   const archivedCount = (conversations && Array.isArray(conversations)) ? conversations.filter(c => c.archived === true).length : 0;
+  const totalConversations = (conversations && Array.isArray(conversations)) ? conversations.length : 0;
+  const totalTokens = (conversations && Array.isArray(conversations)) ? conversations.reduce((sum, c) => sum + (c.messages ? c.messages.reduce((msgSum, m) => msgSum + Math.ceil((m.content?.length || 0) / 4), 0) : 0), 0) : 0;
+  const totalMessages = (conversations && Array.isArray(conversations)) ? conversations.reduce((sum, c) => sum + (c.messages ? c.messages.length : 0), 0) : 0;
 
   useEffect(() => {
     setSettings(localStorageManager.getAppSettings());

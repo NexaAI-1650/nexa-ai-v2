@@ -1,5 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { MessageSquare, Plus, Search, MoreVertical } from "lucide-react";
+import { MessageSquare, Plus, Search, MoreVertical, Copy, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
@@ -79,6 +79,35 @@ export function ConversationSidebar({
     }
   };
 
+  const handleDuplicate = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    const conversation = conversations.find(c => c.id === id);
+    if (!conversation) return;
+    const newTitle = conversation.title + " (コピー)";
+    apiRequest("POST", "/api/conversations", {
+      title: newTitle,
+      messages: conversation.messages,
+      model: conversation.model,
+      archived: false,
+    }).then(() => {
+      queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
+    });
+  };
+
+  const handleExport = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    const conversation = conversations.find(c => c.id === id);
+    if (!conversation) return;
+    const content = conversation.messages.map(msg => `${msg.role}: ${msg.content}`).join("\n\n");
+    const blob = new Blob([content], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${conversation.title}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const filteredConversations = useMemo(() => {
     const notArchived = conversations.filter(c => !c.archived);
     if (!searchQuery) return notArchived;
@@ -146,6 +175,20 @@ export function ConversationSidebar({
                     data-testid={`menu-rename-${conversation.id}`}
                   >
                     {t("rename")}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e) => handleDuplicate(e as any, conversation.id)}
+                    data-testid={`menu-duplicate-${conversation.id}`}
+                  >
+                    <Copy className="h-3 w-3 mr-2" />
+                    複製
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e) => handleExport(e as any, conversation.id)}
+                    data-testid={`menu-export-${conversation.id}`}
+                  >
+                    <Download className="h-3 w-3 mr-2" />
+                    エクスポート
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem

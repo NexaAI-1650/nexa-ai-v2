@@ -112,36 +112,38 @@ export default function ChatPage() {
         if (done) break;
 
         const chunk = decoder.decode(value);
-        const lines = chunk.split("\n");
+        const lines = chunk && typeof chunk === 'string' ? chunk.split("\n") : [];
 
-        for (const line of lines) {
-          if (line.startsWith("data: ")) {
-            const data = line.slice(6);
-            if (data === "[DONE]") continue;
+        if (lines && Array.isArray(lines)) {
+          for (const line of lines) {
+            if (line && line.startsWith("data: ")) {
+              const data = line.slice(6);
+              if (data === "[DONE]") continue;
 
-            try {
-              const parsed = JSON.parse(data);
-              
-              // Handle conversation ID (emitted early)
-              if (parsed.conversationId && !newConversationId) {
-                newConversationId = parsed.conversationId;
+              try {
+                const parsed = JSON.parse(data);
+                
+                // Handle conversation ID (emitted early)
+                if (parsed.conversationId && !newConversationId) {
+                  newConversationId = parsed.conversationId;
+                }
+                
+                // Handle content from delta
+                if (parsed.content) {
+                  fullText += parsed.content;
+                  setStreamingMessage(fullText);
+                }
+                
+                // Handle error
+                if (parsed.error) {
+                  throw new Error(parsed.error);
+                }
+              } catch (e) {
+                if (e instanceof Error) {
+                  throw e;
+                }
+                console.error("Failed to parse SSE data:", e);
               }
-              
-              // Handle content from delta
-              if (parsed.content) {
-                fullText += parsed.content;
-                setStreamingMessage(fullText);
-              }
-              
-              // Handle error
-              if (parsed.error) {
-                throw new Error(parsed.error);
-              }
-            } catch (e) {
-              if (e instanceof Error) {
-                throw e;
-              }
-              console.error("Failed to parse SSE data:", e);
             }
           }
         }
@@ -190,12 +192,12 @@ export default function ChatPage() {
       setStreamingMessage("");
       
       // Remove the user message if there was an error
-      setMessages((prev) => prev.slice(0, -1));
+      setMessages((prev) => (prev && Array.isArray(prev) ? prev.slice(0, -1) : []));
     },
   });
 
   const handleEditMessage = async (messageId: string, newContent: string) => {
-    if (!currentConversationId) return;
+    if (!currentConversationId || !messages || !Array.isArray(messages)) return;
     const updatedMessages = messages.map((msg) =>
       msg.id === messageId
         ? { ...msg, content: newContent, isEdited: true }
@@ -217,7 +219,7 @@ export default function ChatPage() {
   };
 
   const handleDeleteMessage = async (messageId: string) => {
-    if (!currentConversationId) return;
+    if (!currentConversationId || !messages || !Array.isArray(messages)) return;
     const updatedMessages = messages.filter((msg) => msg.id !== messageId);
     setMessages(updatedMessages);
     const updated = await fetch(`/api/conversations/${currentConversationId}`, {
