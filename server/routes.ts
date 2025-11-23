@@ -354,6 +354,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/admin/bot-stats", async (_req, res) => {
+    try {
+      const conversations = await storage.getAllConversations();
+      const totalChats = conversations.length;
+      const totalMessages = conversations.reduce(
+        (sum, c) => sum + (c.messages?.length || 0),
+        0
+      );
+      const totalTokens = conversations.reduce(
+        (sum, c) =>
+          sum +
+          (c.messages?.reduce(
+            (msgSum, m) => msgSum + Math.ceil((m.content?.length || 0) / 4),
+            0
+          ) || 0),
+        0
+      );
+      const models = [
+        ...new Set(conversations.map((c) => c.model || "unknown")),
+      ];
+
+      res.json({
+        totalChats,
+        totalMessages,
+        totalTokens,
+        modelCount: models.length,
+      });
+    } catch (error) {
+      console.error("Bot stats error:", error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "統計取得に失敗しました",
+      });
+    }
+  });
+
+  app.get("/api/admin/bot-models", async (_req, res) => {
+    try {
+      const conversations = await storage.getAllConversations();
+      const modelCounts: Record<string, number> = {};
+      
+      conversations.forEach((conv) => {
+        const model = conv.model || "unknown";
+        modelCounts[model] = (modelCounts[model] || 0) + 1;
+      });
+
+      res.json(modelCounts);
+    } catch (error) {
+      console.error("Bot models error:", error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "モデル情報取得に失敗しました",
+      });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

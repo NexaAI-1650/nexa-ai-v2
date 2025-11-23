@@ -19,6 +19,16 @@ export default function AdminDashboard() {
     refetchInterval: 2000,
   });
 
+  const { data: botStats } = useQuery({
+    queryKey: ["/api/admin/bot-stats"],
+    refetchInterval: 30000,
+  });
+
+  const { data: botModels } = useQuery({
+    queryKey: ["/api/admin/bot-models"],
+    refetchInterval: 300000,
+  });
+
   const restartMutation = useMutation({
     mutationFn: async () => {
       const res = await apiRequest("POST", "/api/admin/bot-restart");
@@ -106,46 +116,89 @@ export default function AdminDashboard() {
 
       {/* Main Content */}
       <main className="p-6 max-w-6xl mx-auto">
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <Card className="p-6 space-y-2">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">総チャット数</p>
-              <MessageSquare className="h-4 w-4 text-primary" />
-            </div>
-            <p className="text-3xl font-bold">{totalChats}</p>
-          </Card>
+        {/* Web Stats */}
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold mb-4">Web チャット統計</h2>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Card className="p-6 space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">総チャット数</p>
+                <MessageSquare className="h-4 w-4 text-primary" />
+              </div>
+              <p className="text-3xl font-bold">{totalChats}</p>
+            </Card>
 
-          <Card className="p-6 space-y-2">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">総メッセージ数</p>
-              <Users className="h-4 w-4 text-primary" />
-            </div>
-            <p className="text-3xl font-bold">{totalMessages}</p>
-          </Card>
+            <Card className="p-6 space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">総メッセージ数</p>
+                <Users className="h-4 w-4 text-primary" />
+              </div>
+              <p className="text-3xl font-bold">{totalMessages}</p>
+            </Card>
 
-          <Card className="p-6 space-y-2">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">推定トークン数</p>
-              <BarChart3 className="h-4 w-4 text-primary" />
-            </div>
-            <p className="text-3xl font-bold">
-              {Math.floor(totalTokens / 1000)}K
-            </p>
-          </Card>
+            <Card className="p-6 space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">推定トークン数</p>
+                <BarChart3 className="h-4 w-4 text-primary" />
+              </div>
+              <p className="text-3xl font-bold">
+                {Math.floor(totalTokens / 1000)}K
+              </p>
+            </Card>
 
-          <Card className="p-6 space-y-2">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">利用モデル数</p>
-              <BarChart3 className="h-4 w-4 text-primary" />
-            </div>
-            <p className="text-3xl font-bold">{models.length}</p>
-          </Card>
+            <Card className="p-6 space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">利用モデル数</p>
+                <BarChart3 className="h-4 w-4 text-primary" />
+              </div>
+              <p className="text-3xl font-bold">{models.length}</p>
+            </Card>
+          </div>
         </div>
 
-        {/* Models Section */}
+        {/* Bot Stats */}
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold mb-4">Bot 統計 (30秒ごと更新)</h2>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Card className="p-6 space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">総チャット数</p>
+                <MessageSquare className="h-4 w-4 text-primary" />
+              </div>
+              <p className="text-3xl font-bold">{botStats?.totalChats || 0}</p>
+            </Card>
+
+            <Card className="p-6 space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">総メッセージ数</p>
+                <Users className="h-4 w-4 text-primary" />
+              </div>
+              <p className="text-3xl font-bold">{botStats?.totalMessages || 0}</p>
+            </Card>
+
+            <Card className="p-6 space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">推定トークン数</p>
+                <BarChart3 className="h-4 w-4 text-primary" />
+              </div>
+              <p className="text-3xl font-bold">
+                {Math.floor((botStats?.totalTokens || 0) / 1000)}K
+              </p>
+            </Card>
+
+            <Card className="p-6 space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">利用モデル数</p>
+                <BarChart3 className="h-4 w-4 text-primary" />
+              </div>
+              <p className="text-3xl font-bold">{botStats?.modelCount || 0}</p>
+            </Card>
+          </div>
+        </div>
+
+        {/* Models Section - Web */}
         <Card className="p-6 mb-8">
-          <h2 className="text-lg font-semibold mb-4">利用中のAIモデル</h2>
+          <h2 className="text-lg font-semibold mb-4">利用中のAIモデル (Web)</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {models.map((model) => {
               const count = conversations.filter((c) => c.model === model)
@@ -164,6 +217,31 @@ export default function AdminDashboard() {
                 </div>
               );
             })}
+          </div>
+        </Card>
+
+        {/* Models Section - Bot (5分ごと更新) */}
+        <Card className="p-6 mb-8">
+          <h2 className="text-lg font-semibold mb-4">利用中のAIモデル (Bot) (5分ごと更新)</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {botModels && Object.entries(botModels).map(([model, count]) => (
+              <div
+                key={model}
+                className="p-4 bg-muted/30 rounded-lg border border-border"
+              >
+                <p className="font-mono text-sm text-foreground break-all">
+                  {model}
+                </p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  使用: {count as number}
+                </p>
+              </div>
+            ))}
+            {(!botModels || Object.keys(botModels).length === 0) && (
+              <p className="text-xs text-muted-foreground col-span-2">
+                データなし
+              </p>
+            )}
           </div>
         </Card>
 
@@ -201,7 +279,7 @@ export default function AdminDashboard() {
                   size="sm"
                   variant="outline"
                   onClick={() => restartMutation.mutate()}
-                  disabled={restartMutation.isPending}
+                  disabled={restartMutation.isPending || !botStatus?.isRunning}
                   data-testid="button-bot-restart"
                 >
                   <RotateCcw className="h-4 w-4 mr-2" />
@@ -211,7 +289,7 @@ export default function AdminDashboard() {
                   size="sm"
                   variant="destructive"
                   onClick={() => shutdownMutation.mutate()}
-                  disabled={shutdownMutation.isPending}
+                  disabled={shutdownMutation.isPending || !botStatus?.isRunning}
                   data-testid="button-bot-shutdown"
                 >
                   <Power className="h-4 w-4 mr-2" />
