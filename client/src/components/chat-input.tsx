@@ -1,4 +1,4 @@
-import { useState, KeyboardEvent, useRef, useEffect } from "react";
+import { useState, KeyboardEvent } from "react";
 import { Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,25 +19,8 @@ export function ChatInput({
   onChange: externalOnChange,
 }: ChatInputProps) {
   const [message, setMessage] = useState("");
-  const [textareaHeight, setTextareaHeight] = useState(60);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messageValue = externalValue !== undefined ? externalValue : message;
   
-  const adjustHeight = () => {
-    const textarea = textareaRef.current;
-    if (textarea) {
-      textarea.style.height = "auto";
-      const scrollHeight = textarea.scrollHeight;
-      const newHeight = Math.min(Math.max(scrollHeight, 60), 200);
-      setTextareaHeight(newHeight);
-      textarea.style.height = `${newHeight}px`;
-    }
-  };
-
-  useEffect(() => {
-    adjustHeight();
-  }, [messageValue]);
-
   const handleChange = (val: string) => {
     if (externalValue === undefined) {
       setMessage(val);
@@ -50,7 +33,6 @@ export function ChatInput({
       onSend(messageValue.trim());
       if (externalValue === undefined) {
         setMessage("");
-        setTextareaHeight(60);
       }
     }
   };
@@ -66,22 +48,19 @@ export function ChatInput({
     <div className="space-y-3">
       <div className="flex gap-3 items-end">
         <Textarea
-          ref={textareaRef}
           value={messageValue}
           onChange={(e) => handleChange(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           disabled={disabled}
-          className="resize-none focus-ring-interactive focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-1 focus:ring-offset-background overflow-hidden"
-          style={{ height: `${textareaHeight}px` }}
+          className="min-h-[60px] max-h-[200px] resize-none focus-ring-interactive focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-1 focus:ring-offset-background"
           data-testid="input-message"
         />
         <Button
           onClick={handleSend}
           disabled={disabled || !messageValue.trim()}
           size="icon"
-          className="shrink-0 interactive-scale interactive-glow bg-gradient-to-br from-blue-500 via-purple-500 to-blue-600 hover:from-blue-600 hover:via-purple-600 hover:to-blue-700 active:from-blue-700 active:via-purple-700 active:to-blue-800 dark:active:shadow-lg dark:active:shadow-white/30 light:active:shadow-lg light:active:shadow-black/30 text-white shadow-lg transition-all"
-          style={{ height: `${textareaHeight}px`, width: `${textareaHeight}px` }}
+          className="h-[60px] w-[60px] shrink-0 interactive-scale interactive-glow bg-gradient-to-br from-blue-500 via-purple-500 to-blue-600 hover:from-blue-600 hover:via-purple-600 hover:to-blue-700 active:from-blue-700 active:via-purple-700 active:to-blue-800 dark:active:shadow-lg dark:active:shadow-white/30 light:active:shadow-lg light:active:shadow-black/30 text-white shadow-lg transition-all"
           data-testid="button-send"
         >
           <Send className="h-5 w-5" />
