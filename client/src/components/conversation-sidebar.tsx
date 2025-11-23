@@ -1,5 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { MessageSquare, Plus, Search, MoreVertical, Copy, Download } from "lucide-react";
+import { MessageSquare, Plus, Search, MoreVertical, Copy, Download, Archive, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
@@ -14,7 +14,7 @@ import { useLanguage } from "@/lib/useLanguage";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Conversation } from "@shared/schema";
 import { cn } from "@/lib/utils";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 
 interface ConversationSidebarProps {
   currentConversationId?: string;
@@ -49,39 +49,35 @@ export function ConversationSidebar({
     },
   });
 
-  const handleDelete = (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
+  const handleDelete = useCallback((convId: string) => {
     if (confirm(t("deleteConfirm"))) {
-      deleteMutation.mutate(id);
-      if (currentConversationId === id) {
+      deleteMutation.mutate(convId);
+      if (currentConversationId === convId) {
         onNewConversation();
       }
     }
-  };
+  }, [currentConversationId, deleteMutation, onNewConversation, t]);
 
-  const handleArchive = (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
-    archiveMutation.mutate(id);
-    if (currentConversationId === id) {
+  const handleArchive = useCallback((convId: string) => {
+    archiveMutation.mutate(convId);
+    if (currentConversationId === convId) {
       onNewConversation();
     }
-  };
+  }, [currentConversationId, archiveMutation, onNewConversation]);
 
-  const handleRename = (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
-    const conversation = conversations.find(c => c.id === id);
+  const handleRename = useCallback((convId: string) => {
+    const conversation = conversations.find(c => c.id === convId);
     if (!conversation) return;
     const newTitle = prompt(t("renameConversation"), conversation.title);
     if (newTitle && newTitle.trim()) {
-      apiRequest("PATCH", `/api/conversations/${id}`, { title: newTitle.trim() }).then(() => {
+      apiRequest("PATCH", `/api/conversations/${convId}`, { title: newTitle.trim() }).then(() => {
         queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
       });
     }
-  };
+  }, [conversations, t]);
 
-  const handleDuplicate = (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
-    const conversation = conversations.find(c => c.id === id);
+  const handleDuplicate = useCallback((convId: string) => {
+    const conversation = conversations.find(c => c.id === convId);
     if (!conversation) return;
     const newTitle = conversation.title + " (コピー)";
     apiRequest("POST", "/api/conversations", {
@@ -92,11 +88,10 @@ export function ConversationSidebar({
     }).then(() => {
       queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
     });
-  };
+  }, [conversations]);
 
-  const handleExport = (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
-    const conversation = conversations.find(c => c.id === id);
+  const handleExport = useCallback((convId: string) => {
+    const conversation = conversations.find(c => c.id === convId);
     if (!conversation) return;
     const content = conversation.messages.map(msg => `${msg.role}: ${msg.content}`).join("\n\n");
     const blob = new Blob([content], { type: "text/markdown" });
@@ -106,7 +101,7 @@ export function ConversationSidebar({
     a.download = `${conversation.title}.md`;
     a.click();
     URL.revokeObjectURL(url);
-  };
+  }, [conversations]);
 
   const filteredConversations = useMemo(() => {
     const notArchived = conversations.filter(c => !c.archived);
@@ -143,74 +138,79 @@ export function ConversationSidebar({
 
       <ScrollArea className="flex-1">
         <div className="p-2 space-y-1">
-          {filteredConversations.map((conversation) => (
-            <div
-              key={conversation.id}
-              onClick={() => onSelectConversation(conversation.id)}
-              className={cn(
-                "w-full text-left p-3 rounded-md hover-elevate active-elevate-2 group flex items-center justify-between gap-2 transition-all cursor-pointer",
-                currentConversationId === conversation.id && "bg-sidebar-accent"
-              )}
-              data-testid={`conversation-${conversation.id}`}
-            >
-              <div className="flex items-center gap-2 min-w-0 flex-1">
-                <MessageSquare className="h-4 w-4 shrink-0 text-muted-foreground" />
-                <p className="text-sm font-medium truncate text-sidebar-foreground">
-                  {conversation.title || "無題の会話"}
-                </p>
+          {filteredConversations.map((conversation) => {
+            const convId = conversation.id;
+            return (
+              <div
+                key={convId}
+                onClick={() => onSelectConversation(convId)}
+                className={cn(
+                  "w-full text-left p-3 rounded-md hover-elevate active-elevate-2 group flex items-center justify-between gap-2 transition-all cursor-pointer",
+                  currentConversationId === convId && "bg-sidebar-accent"
+                )}
+                data-testid={`conversation-${convId}`}
+              >
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  <MessageSquare className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <p className="text-sm font-medium truncate text-sidebar-foreground">
+                    {conversation.title || "無題の会話"}
+                  </p>
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                      onClick={(e) => e.stopPropagation()}
+                      data-testid={`button-menu-${convId}`}
+                    >
+                      <MoreVertical className="h-3 w-3" />
+                      <span className="sr-only">メニュー</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem
+                      onClick={() => handleRename(convId)}
+                      data-testid={`menu-rename-${convId}`}
+                    >
+                      {t("rename")}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => handleDuplicate(convId)}
+                      data-testid={`menu-duplicate-${convId}`}
+                    >
+                      <Copy className="h-3 w-3 mr-2" />
+                      複製
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => handleExport(convId)}
+                      data-testid={`menu-export-${convId}`}
+                    >
+                      <Download className="h-3 w-3 mr-2" />
+                      エクスポート
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => handleArchive(convId)}
+                      data-testid={`menu-archive-${convId}`}
+                    >
+                      <Archive className="h-3 w-3 mr-2" />
+                      {t("archive")}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => handleDelete(convId)}
+                      data-testid={`menu-delete-${convId}`}
+                      className="text-destructive"
+                    >
+                      <Trash2 className="h-3 w-3 mr-2" />
+                      {t("delete")}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                    onClick={(e) => e.stopPropagation()}
-                    data-testid={`button-menu-${conversation.id}`}
-                  >
-                    <MoreVertical className="h-3 w-3" />
-                    <span className="sr-only">メニュー</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem
-                    onClick={(e) => handleRename(e as any, conversation.id)}
-                    data-testid={`menu-rename-${conversation.id}`}
-                  >
-                    {t("rename")}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={(e) => handleDuplicate(e as any, conversation.id)}
-                    data-testid={`menu-duplicate-${conversation.id}`}
-                  >
-                    <Copy className="h-3 w-3 mr-2" />
-                    複製
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={(e) => handleExport(e as any, conversation.id)}
-                    data-testid={`menu-export-${conversation.id}`}
-                  >
-                    <Download className="h-3 w-3 mr-2" />
-                    エクスポート
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={(e) => handleArchive(e as any, conversation.id)}
-                    data-testid={`menu-archive-${conversation.id}`}
-                  >
-                    {t("archive")}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={(e) => handleDelete(e as any, conversation.id)}
-                    data-testid={`menu-delete-${conversation.id}`}
-                    className="text-destructive"
-                  >
-                    {t("delete")}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          ))}
+            );
+          })}
           
           {filteredConversations.length === 0 && conversations.length === 0 && (
             <div className="text-center p-8 text-muted-foreground text-sm">
