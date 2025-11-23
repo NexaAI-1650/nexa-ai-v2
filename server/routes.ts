@@ -116,8 +116,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.write(`data: ${JSON.stringify({ conversationId: conversation.id })}\n\n`);
 
       // Build messages for OpenRouter
+      const conversationMessages = conversation.messages || [];
       const messages = [
-        ...conversation.messages.map((msg) => {
+        ...conversationMessages.map((msg) => {
           // If message has attachments, format for vision models
           if (msg.attachments && msg.attachments.length > 0) {
             const contentParts: any[] = [];
@@ -280,11 +281,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timestamp: Date.now(),
       };
 
-      await storage.updateConversation(conversation.id, [
-        ...conversation.messages,
-        userMessage,
-        assistantMessage,
-      ]);
+      await storage.updateConversation(conversation.id, {
+        ...conversation,
+        messages: [
+          ...(conversation.messages || []),
+          userMessage,
+          assistantMessage,
+        ],
+      });
 
       res.end();
     } catch (error) {
