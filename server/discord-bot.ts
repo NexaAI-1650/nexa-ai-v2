@@ -54,29 +54,70 @@ export async function initDiscordBot() {
     try {
       await message.channel.sendTyping();
 
-      // 添付ファイルがあれば処理（テキストファイルのみ）
+      // 添付ファイルがあれば処理
       let attachmentText = "";
+      const imageExtensions = [".png", ".jpg", ".jpeg", ".gif", ".webp"];
+      const videoExtensions = [".mp4", ".webm", ".mov"];
       const textExtensions = [".txt", ".csv", ".json", ".md", ".log", ".py", ".js", ".ts", ".html", ".css"];
+      const imageContents: any[] = [];
+      const videoContents: any[] = [];
+
       if (message.attachments.size > 0) {
         for (const [, attachment] of message.attachments) {
           try {
             const ext = attachment.name.substring(attachment.name.lastIndexOf(".")).toLowerCase();
-            if (!textExtensions.includes(ext)) {
-              attachmentText += `\n【${attachment.name}】テキストファイル以外は非対応です`;
+            const MAX_SIZE = 20 * 1024 * 1024; // 20MB
+
+            if (attachment.size > MAX_SIZE) {
+              attachmentText += `\n【${attachment.name}】ファイルサイズが大きすぎます（20MB以下）`;
               continue;
             }
-            
+
             const fileResponse = await fetch(attachment.url);
             const fileBuffer = await fileResponse.arrayBuffer();
-            const text = new TextDecoder("utf-8").decode(fileBuffer);
-            attachmentText += `\n【${attachment.name}】\n${text}`;
-          } catch {
+            const base64Data = Buffer.from(fileBuffer).toString("base64");
+
+            if (imageExtensions.includes(ext)) {
+              const mediaType = `image/${ext.slice(1)}`;
+              imageContents.push({
+                type: "image",
+                source: {
+                  type: "base64",
+                  media_type: mediaType,
+                  data: base64Data,
+                },
+              });
+              attachmentText += `\n【${attachment.name}】画像を解析しました`;
+            } else if (videoExtensions.includes(ext)) {
+              const mediaType = ext === ".mp4" ? "video/mp4" : ext === ".webm" ? "video/webm" : "video/quicktime";
+              videoContents.push({
+                type: "video",
+                source: {
+                  type: "base64",
+                  media_type: mediaType,
+                  data: base64Data,
+                },
+              });
+              attachmentText += `\n【${attachment.name}】動画を解析しました`;
+            } else if (textExtensions.includes(ext)) {
+              const text = new TextDecoder("utf-8").decode(fileBuffer);
+              attachmentText += `\n【${attachment.name}】\n${text}`;
+            } else {
+              attachmentText += `\n【${attachment.name}】非対応形式です`;
+            }
+          } catch (error) {
+            console.error("File processing error:", error);
             attachmentText += `\n【${attachment.name}】ファイル読み込みに失敗しました`;
           }
         }
       }
 
       const fullMessage = userMessage + attachmentText;
+      
+      // メッセージコンテンツを構築
+      const messageContent: any = [{ type: "text", text: fullMessage }];
+      messageContent.push(...imageContents);
+      messageContent.push(...videoContents);
 
       const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
@@ -88,8 +129,8 @@ export async function initDiscordBot() {
         },
         body: JSON.stringify({
           model: currentModel,
-          messages: [{ role: "user", content: fullMessage }],
-          max_tokens: 1000,
+          messages: [{ role: "user", content: messageContent }],
+          max_tokens: 2000,
         }),
       });
 
