@@ -2,8 +2,8 @@ import { z } from "zod";
 
 export const aiModels = [
   { id: "google/gemini-2.5-flash", name: "Gemini 2.5 Flash" },
-  { id: "google/gemini-3-pro-preview", name: "Gemini 3 Pro Preview" },
-  { id: "openai/gpt-5-mini", name: "GPT-5 Mini" },
+  { id: "openai/gpt-4.1-mini", name: "GPT-4.1 Mini" },
+  { id: "openai/o4-mini-high", name: "O4 Mini High" },
 ] as const;
 
 export const aiSettingsSchema = z.object({
