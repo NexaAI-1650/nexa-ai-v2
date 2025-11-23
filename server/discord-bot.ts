@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits, SlashCommandBuilder } from "discord.js";
+import { Client, GatewayIntentBits, SlashCommandBuilder, ChannelType } from "discord.js";
 
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
@@ -21,11 +21,66 @@ export async function initDiscordBot() {
       GatewayIntentBits.Guilds,
       GatewayIntentBits.DirectMessages,
       GatewayIntentBits.MessageContent,
+      GatewayIntentBits.GuildMessages,
     ],
   });
 
   client.once("ready", () => {
     console.log(`Discord Bot ログイン完了: ${client?.user?.tag}`);
+  });
+
+  // メッセージ作成イベント（メンション・返信対応）
+  client.on("messageCreate", async (message) => {
+    if (message.author.bot) return;
+    if (!client) return;
+
+    const isMentioned = message.mentions.has(client.user!.id);
+    const isReply = message.reference !== null;
+
+    if (!isMentioned && !isReply) return;
+
+    const userMessage = message.content.replace(/<@!?\d+>/g, "").trim();
+    if (!userMessage) return;
+
+    botStats.commandCount++;
+
+    try {
+      await message.channel.sendTyping();
+
+      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+          "HTTP-Referer": "https://replit.dev",
+          "X-Title": "AI Chat Discord Bot",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [{ role: "user", content: userMessage }],
+          max_tokens: 1000,
+        }),
+      });
+
+      const data = (await response.json()) as any;
+
+      if (data.error) {
+        await message.reply({
+          content: `エラー: ${data.error.message || "AIからの応答がありません"}`,
+        });
+        return;
+      }
+
+      const aiResponse = data.choices[0]?.message?.content || "応答がありません";
+      const truncated = aiResponse.length > 1900 ? aiResponse.slice(0, 1897) + "..." : aiResponse;
+
+      await message.reply({
+        content: `**AI の回答:**\n\`\`\`\n${truncated}\n\`\`\``,
+      });
+    } catch (error) {
+      console.error("Discord Bot メッセージ処理エラー:", error);
+      await message.reply("エラーが発生しました");
+    }
   });
 
   client.on("interactionCreate", async (interaction) => {

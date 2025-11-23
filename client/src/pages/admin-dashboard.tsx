@@ -35,13 +35,16 @@ export default function AdminDashboard() {
       return res.json();
     },
     onSuccess: () => {
-      toast({ description: "Botを再起動しています..." });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/bot-status"] });
+      toast({ description: "Botを再起動しています...", duration: 3000 });
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["/api/admin/bot-status"] });
+      }, 100);
     },
     onError: (error: any) => {
       toast({ 
         description: error?.message || "再起動に失敗しました",
         variant: "destructive",
+        duration: 3000,
       });
     },
   });
@@ -52,13 +55,14 @@ export default function AdminDashboard() {
       return res.json();
     },
     onSuccess: () => {
-      toast({ description: "Botをシャットダウンしています..." });
+      toast({ description: "Botをシャットダウンしています...", duration: 3000 });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/bot-status"] });
     },
     onError: (error: any) => {
       toast({
         description: error?.message || "シャットダウンに失敗しました",
         variant: "destructive",
+        duration: 3000,
       });
     },
   });
@@ -69,13 +73,14 @@ export default function AdminDashboard() {
       return res.json();
     },
     onSuccess: () => {
-      toast({ description: "Botを起動しています..." });
+      toast({ description: "Botを起動しています...", duration: 3000 });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/bot-status"] });
     },
     onError: (error: any) => {
       toast({
         description: error?.message || "起動に失敗しました",
         variant: "destructive",
+        duration: 3000,
       });
     },
   });
