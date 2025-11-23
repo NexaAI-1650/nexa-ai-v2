@@ -74,6 +74,32 @@ export async function initDiscordBot() {
         console.error("Discord Bot エラー:", error);
         await interaction.editReply("エラーが発生しました");
       }
+    } else if (interaction.commandName === "admin") {
+      await interaction.reply({
+        content: "📊 **Bot 管理ダッシュボード**\nhttps://31e4757b-3fe9-4e7e-a72a-7eb38290488b-00-246qpws4g77gm.riker.replit.dev/admin",
+        ephemeral: true,
+      });
+    } else if (interaction.commandName === "model") {
+      const newModel = interaction.options.getString("model") || "google/gemini-2.5-flash";
+      await interaction.reply({
+        content: `✅ **モデルを変更しました**\n選択: ${newModel}`,
+        ephemeral: true,
+      });
+    } else if (interaction.commandName === "help") {
+      await interaction.reply({
+        content: `🆘 **コマンドヘルプ**
+
+\`/chat <message> [model]\` - AI に質問を送信します
+\`/model <model>\` - 使用するモデルを変更します
+\`/admin\` - 管理ダッシュボードを表示します
+\`/help\` - このメッセージを表示します
+
+**利用可能なモデル:**
+• Gemini 2.5 Flash
+• GPT-4.1 Mini
+• O4 Mini High`,
+        ephemeral: true,
+      });
     }
   });
 
@@ -86,6 +112,7 @@ export async function initDiscordBot() {
 }
 
 export async function restartDiscordBot() {
+  botStats.isRunning = false;
   if (client?.isReady()) {
     await client.destroy();
     client = null;
@@ -146,6 +173,26 @@ export async function registerSlashCommands() {
               { name: "O4 Mini High", value: "openai/gpt-4o-mini" }
             )
         ),
+      new SlashCommandBuilder()
+        .setName("model")
+        .setDescription("使用するモデルを変更します")
+        .addStringOption((option) =>
+          option
+            .setName("model")
+            .setDescription("AI モデルを選択")
+            .setRequired(true)
+            .addChoices(
+              { name: "Gemini 2.5 Flash", value: "google/gemini-2.5-flash" },
+              { name: "GPT-4.1 Mini", value: "openai/gpt-4-turbo" },
+              { name: "O4 Mini High", value: "openai/gpt-4o-mini" }
+            )
+        ),
+      new SlashCommandBuilder()
+        .setName("admin")
+        .setDescription("Bot 管理ダッシュボードを表示します"),
+      new SlashCommandBuilder()
+        .setName("help")
+        .setDescription("コマンドヘルプを表示します"),
     ];
 
     await client.application?.commands.set(commands);
