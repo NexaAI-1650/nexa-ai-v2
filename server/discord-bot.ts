@@ -46,13 +46,30 @@ export async function initDiscordBot() {
 
     if (!isMentioned && !isReply) return;
 
-    const userMessage = message.content.replace(/<@!?\d+>/g, "").trim();
-    if (!userMessage) return;
+    let userMessage = message.content.replace(/<@!?\d+>/g, "").trim();
+    if (!userMessage && message.attachments.size === 0) return;
 
     botStats.commandCount++;
 
     try {
       await message.channel.sendTyping();
+
+      // 添付ファイルがあれば処理
+      let attachmentText = "";
+      if (message.attachments.size > 0) {
+        for (const [, attachment] of message.attachments) {
+          try {
+            const fileResponse = await fetch(attachment.url);
+            const fileBuffer = await fileResponse.arrayBuffer();
+            const text = new TextDecoder("utf-8").decode(fileBuffer);
+            attachmentText += `\n【${attachment.name}】\n${text}`;
+          } catch {
+            attachmentText += `\n【${attachment.name}】ファイル読み込みに失敗`;
+          }
+        }
+      }
+
+      const fullMessage = userMessage + attachmentText;
 
       const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
@@ -64,7 +81,7 @@ export async function initDiscordBot() {
         },
         body: JSON.stringify({
           model: currentModel,
-          messages: [{ role: "user", content: userMessage }],
+          messages: [{ role: "user", content: fullMessage }],
           max_tokens: 1000,
         }),
       });
@@ -94,7 +111,7 @@ export async function initDiscordBot() {
       botChatStats.totalChats = Object.keys(botChatStats.modelCounts).length;
 
       await message.reply({
-        content: `**AI の回答:**\n\`\`\`\n${truncated}\n\`\`\``,
+        content: `${truncated}`,
       });
     } catch (error) {
       console.error("Discord Bot メッセージ処理エラー:", error);
@@ -147,7 +164,7 @@ export async function initDiscordBot() {
         const truncated = aiResponse.length > 1900 ? aiResponse.slice(0, 1897) + "..." : aiResponse;
 
         await interaction.editReply({
-          content: `**AI の回答:**\n\`\`\`\n${truncated}\n\`\`\``,
+          content: `${truncated}`,
         });
       } catch (error) {
         console.error("Discord Bot エラー:", error);
