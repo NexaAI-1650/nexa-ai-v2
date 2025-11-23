@@ -78,7 +78,7 @@ export default function ChatPage() {
         content: userMessage,
         timestamp: Date.now(),
       };
-      setMessages((prev) => [...prev, userMsg]);
+      setMessages((prev) => [...(Array.isArray(prev) ? prev : []), userMsg]);
 
       // Show loading immediately
       setStreamingMessage("...");
@@ -163,7 +163,7 @@ export default function ChatPage() {
         timestamp: Date.now(),
       };
 
-      setMessages((prev) => [...prev, assistantMsg]);
+      setMessages((prev) => [...(Array.isArray(prev) ? prev : []), assistantMsg]);
       setStreamingMessage("");
       
       if (conversationId && conversationId !== currentConversationId) {
