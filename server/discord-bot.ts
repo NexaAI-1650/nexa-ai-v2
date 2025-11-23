@@ -72,8 +72,15 @@ export async function initDiscordBot() {
       const data = (await response.json()) as any;
 
       if (data.error) {
+        const errorMsg = data.error.message || "AIからの応答がありません";
+        let userMessage = "❌ エラーが発生しました。後でもう一度試してください。";
+        
+        if (errorMsg.includes("credits") || errorMsg.includes("max_tokens")) {
+          userMessage = "❌ APIの利用制限に達しました。後でもう一度試してください。";
+        }
+        
         await message.reply({
-          content: `エラー: ${data.error.message || "AIからの応答がありません"}`,
+          content: userMessage,
         });
         return;
       }
@@ -125,9 +132,14 @@ export async function initDiscordBot() {
         const data = (await response.json()) as any;
 
         if (data.error) {
-          await interaction.editReply(
-            `エラー: ${data.error.message || "AIからの応答がありません"}`
-          );
+          const errorMsg = data.error.message || "AIからの応答がありません";
+          let userMessage = "❌ エラーが発生しました。後でもう一度試してください。";
+          
+          if (errorMsg.includes("credits") || errorMsg.includes("max_tokens")) {
+            userMessage = "❌ APIの利用制限に達しました。後でもう一度試してください。";
+          }
+          
+          await interaction.editReply(userMessage);
           return;
         }
 
