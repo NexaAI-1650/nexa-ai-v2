@@ -238,19 +238,35 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
                         onChange={(e) => {
                           setFontSizeInput(e.target.value);
                         }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            const inputVal = (e.target as HTMLInputElement).value;
+                            if (inputVal === "") {
+                              setFontSizeInput(settings.fontSize.toString());
+                            } else {
+                              const parsed = parseInt(inputVal);
+                              if (!isNaN(parsed)) {
+                                if (parsed < 10 || parsed > 40) {
+                                  toast({
+                                    title: "注意",
+                                    description: "値は10～40以内に設定してください。",
+                                    variant: "destructive",
+                                  });
+                                  setFontSizeInput(settings.fontSize.toString());
+                                } else {
+                                  handleSave({ ...settings, fontSize: parsed });
+                                  setFontSizeInput(parsed.toString());
+                                }
+                              } else {
+                                setFontSizeInput(settings.fontSize.toString());
+                              }
+                            }
+                          }
+                        }}
                         onBlur={(e) => {
                           const inputVal = e.target.value;
                           if (inputVal === "") {
                             setFontSizeInput(settings.fontSize.toString());
-                          } else {
-                            const parsed = parseInt(inputVal);
-                            if (!isNaN(parsed)) {
-                              const val = Math.min(40, Math.max(10, parsed));
-                              handleSave({ ...settings, fontSize: val });
-                              setFontSizeInput(val.toString());
-                            } else {
-                              setFontSizeInput(settings.fontSize.toString());
-                            }
                           }
                         }}
                         className="w-12 h-8 text-center text-xs [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [&]:m-0"
@@ -261,7 +277,10 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleSave({ ...settings, fontSize: 16 })}
+                        onClick={() => {
+                          handleSave({ ...settings, fontSize: 16 });
+                          setFontSizeInput("16");
+                        }}
                         className="h-8"
                         data-testid="button-reset-font-size"
                       >
@@ -269,6 +288,7 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
                       </Button>
                     </div>
                   </div>
+                  <p className="text-xs text-muted-foreground mb-2">値は10～40以内</p>
                   <Slider
                     id="font-size"
                     min={10}

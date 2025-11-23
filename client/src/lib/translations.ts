@@ -65,6 +65,7 @@ export const translations = {
     tokenEstimate: "トークン数は文字数を4で割った推定値です",
     statsBasedOnLocal: "統計情報はローカルストレージのデータに基づいています",
     archivedIncluded: "アーカイブされたチャットも統計に含まれます",
+    currentModel: "現在のモデル",
   },
   en: {
     general: "General",
@@ -132,6 +133,7 @@ export const translations = {
     tokenEstimate: "Token count is an estimate (character count ÷ 4)",
     statsBasedOnLocal: "Statistics are based on local storage data",
     archivedIncluded: "Archived chats are included in statistics",
+    currentModel: "Current Model",
   },
   zh: {
     general: "常规",
@@ -199,6 +201,7 @@ export const translations = {
     tokenEstimate: "令牌数是估计值（字符数÷4）",
     statsBasedOnLocal: "统计信息基于本地存储数据",
     archivedIncluded: "归档的聊天也包括在统计中",
+    currentModel: "当前模型",
   },
   hi: {
     general: "सामान्य",

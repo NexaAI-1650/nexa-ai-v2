@@ -2,6 +2,7 @@ import { Bot, User, Copy, MoreVertical } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/lib/useLanguage";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,6 +23,7 @@ interface ChatMessageProps {
 export function ChatMessage({ message, isOwn = false, model }: ChatMessageProps) {
   const isUser = message.role === "user";
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   const handleCopy = () => {
     navigator.clipboard.writeText(message.content);
@@ -133,7 +135,7 @@ export function ChatMessage({ message, isOwn = false, model }: ChatMessageProps)
                 </Button>
                 <DropdownMenuContent align="end" side="left">
                   <DropdownMenuItem disabled className="text-xs">
-                    {modelName}
+                    {t("currentModel") || "現在のモデル"}: {modelName}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
