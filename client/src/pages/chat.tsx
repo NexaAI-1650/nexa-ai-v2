@@ -78,7 +78,10 @@ export default function ChatPage() {
         content: userMessage,
         timestamp: Date.now(),
       };
-      setMessages((prev) => [...(Array.isArray(prev) ? prev : []), userMsg]);
+      setMessages((prev) => {
+        const current = Array.isArray(prev) ? prev : [];
+        return [...current, userMsg];
+      });
 
       // Show loading immediately
       setStreamingMessage("...");
@@ -163,7 +166,10 @@ export default function ChatPage() {
         timestamp: Date.now(),
       };
 
-      setMessages((prev) => [...(Array.isArray(prev) ? prev : []), assistantMsg]);
+      setMessages((prev) => {
+        const current = Array.isArray(prev) ? prev : [];
+        return [...current, assistantMsg];
+      });
       setStreamingMessage("");
       
       if (conversationId && conversationId !== currentConversationId) {
@@ -192,7 +198,10 @@ export default function ChatPage() {
       setStreamingMessage("");
       
       // Remove the user message if there was an error
-      setMessages((prev) => (prev && Array.isArray(prev) ? prev.slice(0, -1) : []));
+      setMessages((prev) => {
+        const current = Array.isArray(prev) ? prev : [];
+        return current.slice(0, -1);
+      });
     },
   });
 
@@ -253,19 +262,9 @@ export default function ChatPage() {
   };
 
   const handleSend = (message: string) => {
-    const msgs = message.split('\n').map(m => m.trim()).filter(m => m.length > 0);
-    if (msgs.length === 0) return;
-    
-    if (msgs.length === 1) {
-      chatMutation.mutate({ userMessage: msgs[0] });
-    } else {
-      // バッチ処理：複数メッセージを順次送信（1秒間隔）
-      msgs.forEach((msg, index) => {
-        setTimeout(() => {
-          chatMutation.mutate({ userMessage: msg });
-        }, index * 1000);
-      });
-    }
+    const trimmed = message.trim();
+    if (!trimmed) return;
+    chatMutation.mutate({ userMessage: trimmed });
   };
 
   const handleNewConversation = () => {
