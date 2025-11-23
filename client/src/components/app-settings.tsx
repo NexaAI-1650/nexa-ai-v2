@@ -139,6 +139,18 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
               {t("aiSettings")}
             </button>
             <button
+              onClick={() => setActiveSection("stats")}
+              className={`w-full text-left px-3 py-2.5 text-sm rounded-md transition-colors flex items-center gap-3 font-medium ${
+                activeSection === "stats"
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+              }`}
+              data-testid="section-stats"
+            >
+              <BarChart3 className="h-4 w-4 shrink-0" />
+              統計
+            </button>
+            <button
               onClick={() => setActiveSection("data")}
               className={`w-full text-left px-3 py-2.5 text-sm rounded-md transition-colors flex items-center gap-3 font-medium ${
                 activeSection === "data"
@@ -320,6 +332,40 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
                       data-testid="textarea-ai-custom"
                     />
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* 統計 */}
+            {activeSection === "stats" && (
+              <div className="space-y-5">
+                <h3 className="text-base font-semibold text-foreground">使用統計</h3>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-card border border-border rounded-lg p-4 space-y-2">
+                    <p className="text-xs text-muted-foreground">総会話数</p>
+                    <p className="text-2xl font-bold text-foreground">{totalConversations}</p>
+                  </div>
+                  <div className="bg-card border border-border rounded-lg p-4 space-y-2">
+                    <p className="text-xs text-muted-foreground">総メッセージ数</p>
+                    <p className="text-2xl font-bold text-foreground">{totalMessages}</p>
+                  </div>
+                  <div className="bg-card border border-border rounded-lg p-4 space-y-2">
+                    <p className="text-xs text-muted-foreground">推定トークン数</p>
+                    <p className="text-2xl font-bold text-foreground">{totalTokens.toLocaleString()}</p>
+                  </div>
+                  <div className="bg-card border border-border rounded-lg p-4 space-y-2">
+                    <p className="text-xs text-muted-foreground">アーカイブ済み</p>
+                    <p className="text-2xl font-bold text-foreground">{archivedCount}</p>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-3 text-sm text-muted-foreground">
+                  <p>• トークン数は文字数を4で割った推定値です</p>
+                  <p>• 統計情報はローカルストレージのデータに基づいています</p>
+                  <p>• アーカイブされたチャットも統計に含まれます</p>
                 </div>
               </div>
             )}
