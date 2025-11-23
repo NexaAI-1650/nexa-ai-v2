@@ -144,11 +144,11 @@ export function ConversationSidebar({
       <ScrollArea className="flex-1">
         <div className="p-2 space-y-1">
           {filteredConversations.map((conversation) => (
-            <button
+            <div
               key={conversation.id}
               onClick={() => onSelectConversation(conversation.id)}
               className={cn(
-                "w-full text-left p-3 rounded-md hover-elevate active-elevate-2 group flex items-center justify-between gap-2 transition-all",
+                "w-full text-left p-3 rounded-md hover-elevate active-elevate-2 group flex items-center justify-between gap-2 transition-all cursor-pointer",
                 currentConversationId === conversation.id && "bg-sidebar-accent"
               )}
               data-testid={`conversation-${conversation.id}`}
@@ -156,18 +156,21 @@ export function ConversationSidebar({
               <div className="flex items-center gap-2 min-w-0 flex-1">
                 <MessageSquare className="h-4 w-4 shrink-0 text-muted-foreground" />
                 <p className="text-sm font-medium truncate text-sidebar-foreground">
-                  {conversation.title}
+                  {conversation.title || "無題の会話"}
                 </p>
               </div>
               <DropdownMenu>
-                <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                  <button
-                    className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 hover:bg-muted/50 rounded p-0 flex items-center justify-center"
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                    onClick={(e) => e.stopPropagation()}
                     data-testid={`button-menu-${conversation.id}`}
                   >
                     <MoreVertical className="h-3 w-3" />
                     <span className="sr-only">メニュー</span>
-                  </button>
+                  </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem
@@ -206,7 +209,7 @@ export function ConversationSidebar({
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            </button>
+            </div>
           ))}
           
           {filteredConversations.length === 0 && conversations.length === 0 && (
