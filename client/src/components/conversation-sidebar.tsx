@@ -1,5 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { MessageSquare, Plus, Search, MoreVertical, Copy, Download, Archive, Trash2 } from "lucide-react";
+import { MessageSquare, Plus, Search, MoreVertical, Copy, Download, Archive, Trash2, PencilIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
@@ -52,18 +52,12 @@ export function ConversationSidebar({
   const handleDelete = useCallback((convId: string) => {
     if (confirm(t("deleteConfirm"))) {
       deleteMutation.mutate(convId);
-      if (currentConversationId === convId) {
-        onNewConversation();
-      }
     }
-  }, [currentConversationId, deleteMutation, onNewConversation, t]);
+  }, [deleteMutation, t]);
 
   const handleArchive = useCallback((convId: string) => {
     archiveMutation.mutate(convId);
-    if (currentConversationId === convId) {
-      onNewConversation();
-    }
-  }, [currentConversationId, archiveMutation, onNewConversation]);
+  }, [archiveMutation]);
 
   const handleRename = useCallback((convId: string) => {
     const conversation = conversations.find(c => c.id === convId);
@@ -80,13 +74,18 @@ export function ConversationSidebar({
     const conversation = conversations.find(c => c.id === convId);
     if (!conversation) return;
     const newTitle = conversation.title + " (コピー)";
-    apiRequest("POST", "/api/conversations", {
-      title: newTitle,
-      messages: conversation.messages || [],
-      model: conversation.model || "google/gemini-2.5-flash",
-      archived: false,
+    fetch("/api/conversations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: newTitle,
+        messages: conversation.messages || [],
+        model: conversation.model || "google/gemini-2.5-flash",
+      }),
     }).then(() => {
       queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
+    }).catch(err => {
+      console.error("複製エラー:", err);
     });
   }, [conversations]);
 
@@ -174,6 +173,7 @@ export function ConversationSidebar({
                       onClick={() => handleRename(convId)}
                       data-testid={`menu-rename-${convId}`}
                     >
+                      <PencilIcon className="h-3 w-3 mr-2" />
                       {t("rename")}
                     </DropdownMenuItem>
                     <DropdownMenuItem

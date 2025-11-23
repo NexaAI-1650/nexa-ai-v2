@@ -1,20 +1,36 @@
-import { Bot, User, Edit2, Trash2 } from "lucide-react";
+import { Bot, User, Edit2, Trash2, Copy, MoreVertical } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Message } from "@shared/schema";
 import { cn } from "@/lib/utils";
+import { aiModels } from "@shared/schema";
 
 interface ChatMessageProps {
   message: Message;
   isOwn?: boolean;
   onEdit?: (message: Message) => void;
   onDelete?: (messageId: string) => void;
+  model?: string;
 }
 
-export function ChatMessage({ message, isOwn = false, onEdit, onDelete }: ChatMessageProps) {
+export function ChatMessage({ message, isOwn = false, onEdit, onDelete, model }: ChatMessageProps) {
   const isUser = message.role === "user";
+  const { toast } = useToast();
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(message.content);
+    toast({ description: "コピーしました" });
+  };
+
+  const modelName = model ? aiModels.find(m => m.id === model)?.name : undefined;
 
   return (
     <div
@@ -107,6 +123,40 @@ export function ChatMessage({ message, isOwn = false, onEdit, onDelete }: ChatMe
             {message.content}
           </ReactMarkdown>
         </div>
+
+        {!isUser && (
+          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity mt-2">
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-6 w-6"
+              onClick={handleCopy}
+              data-testid={`button-copy-${message.id}`}
+            >
+              <Copy className="h-3 w-3" />
+            </Button>
+            {modelName && (
+              <DropdownMenu>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-6 w-6"
+                  asChild
+                  data-testid={`button-message-menu-${message.id}`}
+                >
+                  <div>
+                    <MoreVertical className="h-3 w-3" />
+                  </div>
+                </Button>
+                <DropdownMenuContent align="end" side="left">
+                  <DropdownMenuItem disabled className="text-xs">
+                    {modelName}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

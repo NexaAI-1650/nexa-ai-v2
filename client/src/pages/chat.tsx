@@ -273,6 +273,7 @@ export default function ChatPage() {
     setMessages([]);
     setStreamingMessage("");
     setIsTemporaryChat(false);
+    setCurrentConversationTitle("AI Chat");
   };
 
   const handleTemporaryChat = () => {
