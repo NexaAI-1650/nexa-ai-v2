@@ -90,7 +90,7 @@ export function ConversationSidebar({
   }, [conversations, searchQuery]);
 
   return (
-    <div className="flex flex-col h-full bg-gradient-to-b from-purple-900/80 to-blue-900/80 dark:from-purple-950/90 dark:to-blue-950/90 border-r border-purple-500/30 dark:border-purple-800/50">
+    <div className="flex flex-col h-full bg-gradient-to-b from-purple-600 to-blue-600 dark:from-purple-900/60 dark:to-blue-900/60 border-r border-purple-400/40 dark:border-purple-700/60">
       <div className="p-4 border-b border-purple-500/20 dark:border-purple-800/30 space-y-3">
         <Button
           onClick={onNewConversation}

@@ -410,7 +410,7 @@ export default function ChatPage() {
         </header>
 
         <main
-          className="flex-1 overflow-y-auto bg-gradient-to-b from-blue-50/30 via-purple-50/20 to-pink-50/30 dark:from-blue-950/20 dark:via-purple-950/15 dark:to-pink-950/20"
+          className="flex-1 overflow-y-auto bg-gradient-to-b from-blue-50 via-purple-50/30 to-pink-50 dark:from-blue-950/10 dark:via-purple-950/8 dark:to-pink-950/10"
           style={{
             fontSize: `${appSettings.fontSize}px`,
             lineHeight: {
@@ -422,7 +422,7 @@ export default function ChatPage() {
         >
           {messages.length === 0 && !streamingMessage && (
             <div className="flex items-center justify-center h-full animate-fade-in">
-              <div className="text-center space-y-6 p-8 bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-pink-500/10 rounded-2xl shadow-lg backdrop-blur-sm border border-purple-200/50 dark:border-purple-800/50 max-w-md">
+              <div className="text-center space-y-6 p-8 bg-gradient-to-br from-blue-100/60 via-purple-100/50 to-pink-100/60 dark:from-blue-900/30 dark:via-purple-900/25 dark:to-pink-900/30 rounded-2xl shadow-lg backdrop-blur-sm border border-purple-200/70 dark:border-purple-700/50 max-w-md">
                 <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent animate-slide-in-bottom">
                   {isTemporaryChat ? t("temporaryChat") : t("welcomeMessage")}
                 </h2>

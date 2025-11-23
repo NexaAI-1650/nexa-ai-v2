@@ -20,7 +20,7 @@ export function ChatMessage({ message, isOwn = false, onEdit, onDelete }: ChatMe
     <div
       className={cn(
         "flex gap-4 p-6 group animate-slide-in-bottom transition-all duration-300",
-        isUser ? "bg-gradient-to-br from-blue-500/10 via-purple-500/5 to-transparent" : "bg-gradient-to-br from-purple-500/10 via-pink-500/5 to-transparent"
+        isUser ? "bg-gradient-to-br from-blue-100/40 via-purple-100/20 to-transparent dark:from-blue-900/15 dark:via-purple-900/8 dark:to-transparent" : "bg-gradient-to-br from-purple-100/40 via-pink-100/20 to-transparent dark:from-purple-900/15 dark:via-pink-900/8 dark:to-transparent"
       )}
       data-testid={`message-${message.id}`}
     >
