@@ -271,8 +271,8 @@ export default function ChatPage() {
     setIsTemporaryChat(!isTemporaryChat);
     toast({
       description: isTemporaryChat
-        ? "永続的な会話に切り替えました"
-        : "一時チャットを開始しました（保存されません）",
+        ? "チャットを保存するモードに切り替えました"
+        : "一時的なチャットを開始しました（保存されません）",
     });
   };
 
@@ -316,7 +316,7 @@ export default function ChatPage() {
               {isTemporaryChat && (
                 <div className="flex-1 flex flex-col items-center justify-center text-center p-4 text-muted-foreground text-sm">
                   <Clock className="h-8 w-8 mb-2 opacity-50" />
-                  <p>一時チャット中</p>
+                  <p>一時的なチャット</p>
                   <p className="text-xs mt-1">
                     このチャットは保存されません
                   </p>
@@ -390,7 +390,7 @@ export default function ChatPage() {
                 variant="ghost"
                 size="icon"
                 onClick={handleTemporaryChat}
-                title={isTemporaryChat ? "永続的な会話に切り替え" : "一時チャットに切り替え"}
+                title={isTemporaryChat ? "保存するモードに切り替え" : "一時的なチャットに切り替え"}
                 data-testid="button-toggle-temporary-chat"
                 className={isTemporaryChat ? "bg-blue-500/20 text-blue-600 dark:text-blue-400" : ""}
               >
@@ -426,11 +426,11 @@ export default function ChatPage() {
             <div className="flex items-center justify-center h-full animate-fade-in">
               <div className="text-center space-y-4 p-8">
                 <h2 className="text-2xl font-semibold text-muted-foreground animate-slide-in-bottom">
-                  {isTemporaryChat ? "一時チャット開始" : "AIアシスタントへようこそ"}
+                  {isTemporaryChat ? "一時的なチャット" : "AIアシスタントへようこそ"}
                 </h2>
                 <p className="text-muted-foreground max-w-md animate-slide-in-bottom [animation-delay:100ms]">
                   {isTemporaryChat
-                    ? "このチャットは保存されません。自由に会話できます。"
+                    ? "このチャットは保存されません。試しに会話することができます。"
                     : "メッセージを入力して会話を始めましょう。複数のAIモデルから選択でき、画像を添付することもできます。"}
                 </p>
               </div>

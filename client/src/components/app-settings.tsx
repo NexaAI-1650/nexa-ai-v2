@@ -107,7 +107,7 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
           <nav className="flex-1 overflow-y-auto p-1 space-y-1">
             <button
               onClick={() => setActiveSection("general")}
-              className={`w-full text-left px-2 py-2 text-sm rounded-md transition-colors ${
+              className={`w-full text-left px-2 py-2 text-sm rounded-lg transition-colors ${
                 activeSection === "general"
                   ? "bg-primary text-primary-foreground"
                   : "hover:bg-muted"
@@ -118,7 +118,7 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
             </button>
             <button
               onClick={() => setActiveSection("ai")}
-              className={`w-full text-left px-2 py-2 text-sm rounded-md transition-colors ${
+              className={`w-full text-left px-2 py-2 text-sm rounded-lg transition-colors ${
                 activeSection === "ai"
                   ? "bg-primary text-primary-foreground"
                   : "hover:bg-muted"
@@ -129,7 +129,7 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
             </button>
             <button
               onClick={() => setActiveSection("data")}
-              className={`w-full text-left px-2 py-2 text-sm rounded-md transition-colors ${
+              className={`w-full text-left px-2 py-2 text-sm rounded-lg transition-colors ${
                 activeSection === "data"
                   ? "bg-primary text-primary-foreground"
                   : "hover:bg-muted"
@@ -232,7 +232,7 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
                   </div>
 
                   {/* Line Height */}
-                  <div className="space-y-2">
+                  <div className="space-y-2 mb-6">
                     <Label htmlFor="line-height">メッセージの行間</Label>
                     <Select
                       value={settings.lineHeight}
@@ -256,6 +256,22 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
                         <SelectItem value="loose">
                           {LINE_HEIGHT_OPTIONS.loose}
                         </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Language */}
+                  <div className="space-y-2">
+                    <Label htmlFor="language">言語</Label>
+                    <Select defaultValue="ja">
+                      <SelectTrigger id="language" data-testid="select-language">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ja">日本語</SelectItem>
+                        <SelectItem value="en">English</SelectItem>
+                        <SelectItem value="zh">中文</SelectItem>
+                        <SelectItem value="hi">हिन्दी</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
