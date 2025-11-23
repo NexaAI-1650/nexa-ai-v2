@@ -142,7 +142,7 @@ export default {
         "fade-in": "fade-in 0.3s ease-in",
         "slide-in-left": "slide-in-left 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)",
         "slide-out-left": "slide-out-left 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)",
-        "gradient-flow": "gradient-flow 8s ease infinite",
+        "gradient-flow": "gradient-flow 15s ease infinite",
       },
       transitionDelay: {
         "150": "150ms",
