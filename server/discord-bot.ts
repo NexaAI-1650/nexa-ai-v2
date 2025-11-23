@@ -275,7 +275,7 @@ export async function registerSlashCommands() {
             .setRequired(false)
             .addChoices(
               { name: "Gemini 2.5 Flash", value: "google/gemini-2.5-flash" },
-              { name: "GPT-4.1 Mini", value: "openai/gpt-4-turbo" },
+              { name: "gpt-oss-20b", value: "openai/gpt-oss-20b:free" },
               { name: "O4 Mini High", value: "openai/gpt-4o-mini" }
             )
         ),
@@ -289,7 +289,7 @@ export async function registerSlashCommands() {
             .setRequired(true)
             .addChoices(
               { name: "Gemini 2.5 Flash", value: "google/gemini-2.5-flash" },
-              { name: "GPT-4.1 Mini", value: "openai/gpt-4-turbo" },
+              { name: "gpt-oss-20b", value: "openai/gpt-oss-20b:free" },
               { name: "O4 Mini High", value: "openai/gpt-4o-mini" }
             )
         ),
