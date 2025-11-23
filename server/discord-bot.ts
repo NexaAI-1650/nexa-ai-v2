@@ -54,17 +54,24 @@ export async function initDiscordBot() {
     try {
       await message.channel.sendTyping();
 
-      // 添付ファイルがあれば処理
+      // 添付ファイルがあれば処理（テキストファイルのみ）
       let attachmentText = "";
+      const textExtensions = [".txt", ".csv", ".json", ".md", ".log", ".py", ".js", ".ts", ".html", ".css"];
       if (message.attachments.size > 0) {
         for (const [, attachment] of message.attachments) {
           try {
+            const ext = attachment.name.substring(attachment.name.lastIndexOf(".")).toLowerCase();
+            if (!textExtensions.includes(ext)) {
+              attachmentText += `\n【${attachment.name}】テキストファイル以外は非対応です`;
+              continue;
+            }
+            
             const fileResponse = await fetch(attachment.url);
             const fileBuffer = await fileResponse.arrayBuffer();
             const text = new TextDecoder("utf-8").decode(fileBuffer);
             attachmentText += `\n【${attachment.name}】\n${text}`;
           } catch {
-            attachmentText += `\n【${attachment.name}】ファイル読み込みに失敗`;
+            attachmentText += `\n【${attachment.name}】ファイル読み込みに失敗しました`;
           }
         }
       }
