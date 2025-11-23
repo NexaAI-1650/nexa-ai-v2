@@ -357,15 +357,39 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
                           <p className="text-sm font-medium truncate text-foreground">{conv.title}</p>
                           <p className="text-xs text-muted-foreground">{conv.messages?.length || 0} メッセージ</p>
                         </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-8 ml-2 shrink-0"
-                          onClick={() => unarchiveMutation.mutate(conv.id)}
-                          disabled={unarchiveMutation.isPending}
-                        >
-                          復元
-                        </Button>
+                        <div className="flex gap-2 ml-2 shrink-0">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8"
+                            onClick={() => unarchiveMutation.mutate(conv.id)}
+                            disabled={unarchiveMutation.isPending}
+                          >
+                            復元
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            className="h-8"
+                            onClick={() => {
+                              if (confirm(`このチャット「${conv.title}」を削除しますか？この操作は取り消せません。`)) {
+                                fetch(`/api/conversations/${conv.id}`, { method: "DELETE" }).then(() => {
+                                  queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
+                                  toast({ description: "チャットを削除しました" });
+                                }).catch((err) => {
+                                  console.error("Delete error:", err);
+                                  toast({
+                                    title: "エラー",
+                                    description: "チャットの削除に失敗しました",
+                                    variant: "destructive",
+                                  });
+                                });
+                              }
+                            }}
+                          >
+                            削除
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
