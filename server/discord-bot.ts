@@ -197,9 +197,9 @@ export async function initDiscordBot() {
 \`/help\` - このメッセージを表示します
 
 **利用可能なモデル:**
-• Gemini 2.5 Flash
-• openai/gpt-oss-20b:free
-• O4 Mini High`,
+• google/gemini-2.5-flash
+• openai/o4-mini-high
+• openai/gpt-oss-20b:free`,
         ephemeral: true,
       });
     }
