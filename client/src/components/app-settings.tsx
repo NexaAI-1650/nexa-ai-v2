@@ -242,6 +242,15 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
                         data-testid="input-font-size"
                       />
                       <span className="text-xs text-muted-foreground">{t("px")}</span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleSave({ ...settings, fontSize: 16 })}
+                        className="h-8"
+                        data-testid="button-reset-font-size"
+                      >
+                        {t("reset")}
+                      </Button>
                     </div>
                   </div>
                   <Slider
@@ -363,7 +372,7 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
             {/* 統計 */}
             {activeSection === "stats" && (
               <div className="space-y-5">
-                <h3 className="text-base font-semibold text-foreground">使用統計</h3>
+                <h3 className="text-base font-semibold text-foreground">{t("statistics") || "使用統計"}</h3>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-card border border-border rounded-lg p-4 space-y-2">

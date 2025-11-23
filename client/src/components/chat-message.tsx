@@ -1,4 +1,4 @@
-import { Bot, User, Edit2, Copy, MoreVertical } from "lucide-react";
+import { Bot, User, Copy, MoreVertical } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -16,11 +16,10 @@ import { aiModels } from "@shared/schema";
 interface ChatMessageProps {
   message: Message;
   isOwn?: boolean;
-  onEdit?: (message: Message) => void;
   model?: string;
 }
 
-export function ChatMessage({ message, isOwn = false, onEdit, model }: ChatMessageProps) {
+export function ChatMessage({ message, isOwn = false, model }: ChatMessageProps) {
   const isUser = message.role === "user";
   const { toast } = useToast();
 
@@ -51,16 +50,16 @@ export function ChatMessage({ message, isOwn = false, onEdit, model }: ChatMessa
             {isUser ? "あなた" : "AI アシスタント"}
             {message.isEdited && <span className="text-xs text-muted-foreground">(編集済み)</span>}
           </span>
-          {isOwn && isUser && onEdit && (
+          {isOwn && isUser && (
             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
               <Button
                 size="icon"
                 variant="ghost"
                 className="h-6 w-6"
-                onClick={() => onEdit(message)}
-                data-testid={`button-edit-${message.id}`}
+                onClick={handleCopy}
+                data-testid={`button-copy-user-${message.id}`}
               >
-                <Edit2 className="h-3 w-3" />
+                <Copy className="h-3 w-3" />
               </Button>
             </div>
           )}
@@ -128,6 +127,7 @@ export function ChatMessage({ message, isOwn = false, onEdit, model }: ChatMessa
                   variant="ghost"
                   className="h-6 w-6"
                   data-testid={`button-message-menu-${message.id}`}
+                  onClick={(e) => e.stopPropagation()}
                 >
                   <MoreVertical className="h-3 w-3" />
                 </Button>

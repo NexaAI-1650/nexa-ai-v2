@@ -59,16 +59,24 @@ export function ConversationSidebar({
     archiveMutation.mutate(convId);
   }, [archiveMutation]);
 
+  const [editingId, setEditingId] = useState<string | undefined>();
+  const [editingTitle, setEditingTitle] = useState("");
+
   const handleRename = useCallback((convId: string) => {
     const conversation = conversations.find(c => c.id === convId);
     if (!conversation) return;
-    const newTitle = prompt(t("renameConversation"), conversation.title);
-    if (newTitle && newTitle.trim()) {
-      apiRequest("PATCH", `/api/conversations/${convId}`, { title: newTitle.trim() }).then(() => {
+    setEditingId(convId);
+    setEditingTitle(conversation.title);
+  }, [conversations]);
+
+  const handleSaveTitle = useCallback((convId: string) => {
+    if (editingTitle.trim()) {
+      apiRequest("PATCH", `/api/conversations/${convId}`, { title: editingTitle.trim() }).then(() => {
         queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
+        setEditingId(undefined);
       });
     }
-  }, [conversations, t]);
+  }, [editingTitle]);
 
   const handleDuplicate = useCallback((convId: string) => {
     const conversation = conversations.find(c => c.id === convId);
@@ -151,14 +159,29 @@ export function ConversationSidebar({
               >
                 <div className="flex items-center gap-2 min-w-0 flex-1">
                   <MessageSquare className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  <p className="text-sm font-medium text-sidebar-foreground" title={conversation.title || "無題のチャット"} style={{
-                    maxWidth: "180px",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap"
-                  }}>
-                    {conversation.title || "無題のチャット"}
-                  </p>
+                  {editingId === convId ? (
+                    <Input
+                      autoFocus
+                      value={editingTitle}
+                      onChange={(e) => setEditingTitle(e.target.value)}
+                      onBlur={() => handleSaveTitle(convId)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleSaveTitle(convId);
+                        if (e.key === "Escape") setEditingId(undefined);
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      className="h-7 text-sm py-0 flex-1"
+                    />
+                  ) : (
+                    <p className="text-sm font-medium text-sidebar-foreground" title={conversation.title || "無題のチャット"} style={{
+                      maxWidth: "180px",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap"
+                    }}>
+                      {conversation.title || "無題のチャット"}
+                    </p>
+                  )}
                 </div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>

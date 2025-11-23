@@ -407,7 +407,7 @@ export default function ChatPage() {
         </header>
 
         <main
-          className="flex-1 overflow-y-auto bg-gradient-to-b from-background via-card/30 to-background"
+          className="flex-1 overflow-y-auto bg-gradient-to-b from-background via-card/30 to-background scroll-smooth"
           style={{
             fontSize: `${appSettings.fontSize}px`,
             lineHeight: {
@@ -438,10 +438,6 @@ export default function ChatPage() {
               message={message}
               isOwn={true}
               model={selectedModel}
-              onEdit={(msg) => {
-                setEditingMessageId(msg.id);
-                setEditingContent(msg.content);
-              }}
             />
           ))}
 

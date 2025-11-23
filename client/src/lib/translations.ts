@@ -58,6 +58,7 @@ export const translations = {
     renameConversation: "チャットの名前を変更:",
     noConversations: "まだチャットがありません",
     noResults: "「",
+    statistics: "使用統計",
   },
   en: {
     general: "General",
@@ -118,6 +119,7 @@ export const translations = {
     renameConversation: "Rename chat:",
     noConversations: "No chats yet",
     noResults: "No chats matching \"",
+    statistics: "Usage Statistics",
   },
   zh: {
     general: "常规",
