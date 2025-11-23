@@ -460,11 +460,9 @@ export default function ChatPage() {
           {chatMutation.isPending && !streamingMessage && (
             <div className="flex gap-4 p-6 bg-muted/30">
               <div className="h-8 w-8 shrink-0 rounded-full bg-accent flex items-center justify-center">
-                <Bot className="h-4 w-4" />
+                <Loader2 className="h-4 w-4 animate-spin" />
               </div>
-              <div className="text-sm text-muted-foreground">
-                {t("thinking")}<span className="inline-block ml-1 animate-dots">⋯</span>
-              </div>
+              <div className="text-sm text-muted-foreground">{t("thinking")}</div>
             </div>
           )}
 
