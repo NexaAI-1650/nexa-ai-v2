@@ -363,26 +363,9 @@ export default function ChatPage() {
                   <Clock className="h-5 w-5" />
                   {t("temporaryChat")}
                 </h1>
-              ) : editingTitle && currentConversationId ? (
-                <Input
-                  value={currentConversationTitle}
-                  onChange={(e) => setCurrentConversationTitle(e.target.value)}
-                  onBlur={() => handleUpdateTitle(currentConversationTitle)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleUpdateTitle(currentConversationTitle);
-                    if (e.key === "Escape") setEditingTitle(false);
-                  }}
-                  autoFocus
-                  className="max-w-xs"
-                  data-testid="input-conversation-title"
-                />
               ) : (
-                <h1
-                  className="text-xl font-semibold cursor-pointer hover:opacity-70"
-                  onClick={() => currentConversationId && setEditingTitle(true)}
-                  data-testid="text-conversation-title"
-                >
-                  {currentConversationTitle || "AI Chat"}
+                <h1 className="text-xl font-semibold" data-testid="text-conversation-title">
+                  AI Chat
                 </h1>
               )}
               
@@ -454,6 +437,7 @@ export default function ChatPage() {
               key={message.id}
               message={message}
               isOwn={true}
+              model={selectedModel}
               onEdit={(msg) => {
                 setEditingMessageId(msg.id);
                 setEditingContent(msg.content);
@@ -470,6 +454,7 @@ export default function ChatPage() {
                 content: streamingMessage,
                 timestamp: Date.now(),
               }}
+              model={selectedModel}
             />
           )}
 
