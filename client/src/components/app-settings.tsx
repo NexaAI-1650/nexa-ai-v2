@@ -15,6 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { localStorageManager, type AppSettings } from "@/lib/localStorage";
+import { useLanguage } from "@/lib/useLanguage";
 import { aiModels } from "@shared/schema";
 import { useState, useEffect } from "react";
 import { useTheme } from "./theme-provider";
@@ -37,6 +38,7 @@ const LINE_HEIGHT_OPTIONS = {
 type SectionType = "general" | "ai" | "data";
 
 export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
+  const { t } = useLanguage();
   const [settings, setSettings] = useState<AppSettings>(
     localStorageManager.getAppSettings()
   );
@@ -103,7 +105,7 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
         {/* Left Sidebar Menu */}
         <div className="w-32 bg-muted/30 border-r border-muted/30 flex flex-col">
           <div className="p-4 border-b border-muted/30">
-            <h2 className="font-semibold text-lg">アプリ設定</h2>
+            <h2 className="font-semibold text-lg">{t("appSettings")}</h2>
           </div>
           <nav className="flex-1 overflow-y-auto p-1 space-y-1">
             <button
@@ -115,7 +117,7 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
               }`}
               data-testid="section-general"
             >
-              一般
+              {t("general")}
             </button>
             <button
               onClick={() => setActiveSection("ai")}
@@ -126,7 +128,7 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
               }`}
               data-testid="section-ai"
             >
-              AI設定
+              {t("aiSettings")}
             </button>
             <button
               onClick={() => setActiveSection("data")}
@@ -137,7 +139,7 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
               }`}
               data-testid="section-data"
             >
-              データコントロール
+              {t("dataControl")}
             </button>
           </nav>
           <div className="p-2 border-t border-muted/30">
@@ -148,7 +150,7 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
               data-testid="button-close-settings"
             >
               <X className="h-4 w-4 mr-2" />
-              閉じる
+              {t("close")}
             </Button>
           </div>
         </div>
@@ -160,11 +162,11 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
             {activeSection === "general" && (
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-lg font-semibold mb-4">一般設定</h3>
+                  <h3 className="text-lg font-semibold mb-4">{t("generalSettings")}</h3>
 
                   {/* Theme */}
                   <div className="space-y-2 mb-6">
-                    <Label>テーマ</Label>
+                    <Label>{t("theme")}</Label>
                     <div className="flex gap-2">
                       <Button
                         variant={theme === "light" ? "default" : "outline"}
@@ -174,7 +176,7 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
                         data-testid="button-theme-light"
                       >
                         <Sun className="h-3 w-3 mr-1" />
-                        ライト
+                        {t("light")}
                       </Button>
                       <Button
                         variant={theme === "dark" ? "default" : "outline"}
@@ -184,7 +186,7 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
                         data-testid="button-theme-dark"
                       >
                         <Moon className="h-3 w-3 mr-1" />
-                        ダーク
+                        {t("dark")}
                       </Button>
                     </div>
                   </div>
@@ -192,7 +194,7 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
                   {/* Font Size */}
                   <div className="space-y-2 mb-6">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="font-size">フォントサイズ</Label>
+                      <Label htmlFor="font-size">{t("fontSize")}</Label>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -200,7 +202,7 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
                         data-testid="button-font-size-reset"
                       >
                         <RotateCcw className="h-3 w-3 mr-1" />
-                        リセット
+                        {t("reset")}
                       </Button>
                     </div>
                     <Slider
@@ -228,13 +230,13 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
                         className="w-16 text-center"
                         data-testid="input-font-size"
                       />
-                      <span className="text-xs text-muted-foreground">px</span>
+                      <span className="text-xs text-muted-foreground">{t("px")}</span>
                     </div>
                   </div>
 
                   {/* Line Height */}
                   <div className="space-y-2 mb-6">
-                    <Label htmlFor="line-height">メッセージの行間</Label>
+                    <Label htmlFor="line-height">{t("messageLineHeight")}</Label>
                     <Select
                       value={settings.lineHeight}
                       onValueChange={(value) =>
@@ -249,13 +251,13 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="compact">
-                          {LINE_HEIGHT_OPTIONS.compact}
+                          {t("compact")}
                         </SelectItem>
                         <SelectItem value="normal">
-                          {LINE_HEIGHT_OPTIONS.normal}
+                          {t("normal")}
                         </SelectItem>
                         <SelectItem value="loose">
-                          {LINE_HEIGHT_OPTIONS.loose}
+                          {t("loose")}
                         </SelectItem>
                       </SelectContent>
                     </Select>
@@ -263,7 +265,7 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
 
                   {/* Language */}
                   <div className="space-y-2">
-                    <Label htmlFor="language">言語</Label>
+                    <Label htmlFor="language">{t("language")}</Label>
                     <Select
                       value={language}
                       onValueChange={(value) => {
@@ -276,10 +278,10 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="ja">日本語</SelectItem>
-                        <SelectItem value="en">English</SelectItem>
-                        <SelectItem value="zh">中文</SelectItem>
-                        <SelectItem value="hi">हिन्दी</SelectItem>
+                        <SelectItem value="ja">{t("japanese")}</SelectItem>
+                        <SelectItem value="en">{t("english")}</SelectItem>
+                        <SelectItem value="zh">{t("chinese")}</SelectItem>
+                        <SelectItem value="hi">{t("hindi")}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -291,14 +293,14 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
             {activeSection === "ai" && (
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-lg font-semibold mb-4">AI設定</h3>
+                  <h3 className="text-lg font-semibold mb-4">{t("aiSettings")}</h3>
 
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="ai-nickname">AIのニックネーム</Label>
+                      <Label htmlFor="ai-nickname">{t("aiNickname")}</Label>
                       <Input
                         id="ai-nickname"
-                        placeholder="例：アシスタント"
+                        placeholder={`${t("example")}${t("assistant")}`}
                         value={aiNickname}
                         onChange={(e) => setAiNickname(e.target.value)}
                         data-testid="input-ai-nickname"
@@ -306,10 +308,10 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="ai-role">職業・役割</Label>
+                      <Label htmlFor="ai-role">{t("role")}</Label>
                       <Input
                         id="ai-role"
-                        placeholder="例：プログラミングの専門家"
+                        placeholder={`${t("example")}${t("programmer")}`}
                         value={aiRole}
                         onChange={(e) => setAiRole(e.target.value)}
                         data-testid="input-ai-role"
@@ -317,10 +319,10 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="ai-custom">カスタム指示</Label>
+                      <Label htmlFor="ai-custom">{t("customInstructions")}</Label>
                       <Textarea
                         id="ai-custom"
-                        placeholder="AIに特別な指示を与えます"
+                        placeholder={t("specialInstructions")}
                         value={aiCustom}
                         onChange={(e) => setAiCustom(e.target.value)}
                         className="resize-none h-24"
@@ -336,7 +338,7 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
             {activeSection === "data" && (
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-lg font-semibold mb-4">データコントロール</h3>
+                  <h3 className="text-lg font-semibold mb-4">{t("dataControl")}</h3>
 
                   <div className="space-y-4">
                     {/* Archived Chats */}
@@ -344,8 +346,8 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
                       <div className="flex items-center gap-2">
                         <Archive className="h-4 w-4 text-muted-foreground" />
                         <div>
-                          <p className="text-sm font-medium">アーカイブ済みのチャット</p>
-                          <p className="text-xs text-muted-foreground">{archivedCount}件</p>
+                          <p className="text-sm font-medium">{t("archivedChats")}</p>
+                          <p className="text-xs text-muted-foreground">{archivedCount}{t("items")}</p>
                         </div>
                       </div>
                       <Button
@@ -354,7 +356,7 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
                         onClick={() => {}}
                         data-testid="button-manage-archived"
                       >
-                        管理する
+                        {t("manage")}
                       </Button>
                     </div>
 
@@ -363,38 +365,38 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
                     {/* Archive All */}
                     <div className="flex items-center justify-between p-3">
                       <Label className="text-sm">
-                        すべてのチャットをアーカイブする
+                        {t("archiveAllChats")}
                       </Label>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          if (confirm("すべての会話をアーカイブしますか？")) {
+                          if (confirm(`${t("archiveAllChats")}${language === "ja" ? "？" : "?"}`)) {
                             archiveAllMutation.mutate();
                           }
                         }}
                         data-testid="button-archive-all"
                       >
-                        すべてアーカイブする
+                        {t("archiveAll")}
                       </Button>
                     </div>
 
                     {/* Delete All */}
                     <div className="flex items-center justify-between p-3">
                       <Label className="text-sm text-destructive">
-                        すべてのチャットを削除する
+                        {t("deleteAllChats")}
                       </Label>
                       <Button
                         variant="destructive"
                         size="sm"
                         onClick={() => {
-                          if (confirm("すべての会話を削除しますか？この操作は取り消せません。")) {
+                          if (confirm(`${t("deleteAllChats")}${language === "ja" ? "？この操作は取り消せません。" : "? This action cannot be undone."}`)) {
                             deleteAllMutation.mutate();
                           }
                         }}
                         data-testid="button-delete-all"
                       >
-                        すべて削除する
+                        {t("deleteAll")}
                       </Button>
                     </div>
 
@@ -402,7 +404,7 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
 
                     {/* Persistence */}
                     <div className="flex items-center justify-between p-3">
-                      <Label className="text-sm">会話履歴の永続化</Label>
+                      <Label className="text-sm">{t("persistenceToggle")}</Label>
                       <Switch
                         checked={settings.persistenceEnabled}
                         onCheckedChange={(checked) =>
