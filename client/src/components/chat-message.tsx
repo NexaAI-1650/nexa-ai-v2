@@ -1,4 +1,4 @@
-import { Bot, User, Edit2, Trash2, Copy, MoreVertical } from "lucide-react";
+import { Bot, User, Edit2, Copy, MoreVertical } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -17,11 +17,10 @@ interface ChatMessageProps {
   message: Message;
   isOwn?: boolean;
   onEdit?: (message: Message) => void;
-  onDelete?: (messageId: string) => void;
   model?: string;
 }
 
-export function ChatMessage({ message, isOwn = false, onEdit, onDelete, model }: ChatMessageProps) {
+export function ChatMessage({ message, isOwn = false, onEdit, model }: ChatMessageProps) {
   const isUser = message.role === "user";
   const { toast } = useToast();
 
@@ -52,30 +51,17 @@ export function ChatMessage({ message, isOwn = false, onEdit, onDelete, model }:
             {isUser ? "あなた" : "AI アシスタント"}
             {message.isEdited && <span className="text-xs text-muted-foreground">(編集済み)</span>}
           </span>
-          {isOwn && (
+          {isOwn && isUser && onEdit && (
             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              {isUser && onEdit && (
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-6 w-6"
-                  onClick={() => onEdit(message)}
-                  data-testid={`button-edit-${message.id}`}
-                >
-                  <Edit2 className="h-3 w-3" />
-                </Button>
-              )}
-              {onDelete && (
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-6 w-6"
-                  onClick={() => onDelete(message.id)}
-                  data-testid={`button-delete-${message.id}`}
-                >
-                  <Trash2 className="h-3 w-3" />
-                </Button>
-              )}
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-6 w-6"
+                onClick={() => onEdit(message)}
+                data-testid={`button-edit-${message.id}`}
+              >
+                <Edit2 className="h-3 w-3" />
+              </Button>
             </div>
           )}
         </div>
@@ -141,12 +127,9 @@ export function ChatMessage({ message, isOwn = false, onEdit, onDelete, model }:
                   size="icon"
                   variant="ghost"
                   className="h-6 w-6"
-                  asChild
                   data-testid={`button-message-menu-${message.id}`}
                 >
-                  <div>
-                    <MoreVertical className="h-3 w-3" />
-                  </div>
+                  <MoreVertical className="h-3 w-3" />
                 </Button>
                 <DropdownMenuContent align="end" side="left">
                   <DropdownMenuItem disabled className="text-xs">

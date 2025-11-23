@@ -69,6 +69,12 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
 
   useEffect(() => {
     setSettings(localStorageManager.getAppSettings());
+    if (isOpen) {
+      const aiConfig = localStorageManager.getAiConfig();
+      setAiNickname(aiConfig.nickname);
+      setAiRole(aiConfig.role);
+      setAiCustom(aiConfig.custom);
+    }
   }, [isOpen]);
 
   const handleSave = (newSettings: AppSettings) => {
@@ -312,7 +318,10 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
                       id="ai-nickname"
                       placeholder={`${t("example")}${t("assistant")}`}
                       value={aiNickname}
-                      onChange={(e) => setAiNickname(e.target.value)}
+                      onChange={(e) => {
+                        setAiNickname(e.target.value);
+                        localStorageManager.saveAiConfig({ nickname: e.target.value, role: aiRole, custom: aiCustom });
+                      }}
                       className="mt-2 h-8"
                       data-testid="input-ai-nickname"
                     />
@@ -324,7 +333,10 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
                       id="ai-role"
                       placeholder={`${t("example")}${t("programmer")}`}
                       value={aiRole}
-                      onChange={(e) => setAiRole(e.target.value)}
+                      onChange={(e) => {
+                        setAiRole(e.target.value);
+                        localStorageManager.saveAiConfig({ nickname: aiNickname, role: e.target.value, custom: aiCustom });
+                      }}
                       className="mt-2 h-8"
                       data-testid="input-ai-role"
                     />
@@ -336,7 +348,10 @@ export function AppSettings({ isOpen, onClose }: AppSettingsProps) {
                       id="ai-custom"
                       placeholder={t("specialInstructions")}
                       value={aiCustom}
-                      onChange={(e) => setAiCustom(e.target.value)}
+                      onChange={(e) => {
+                        setAiCustom(e.target.value);
+                        localStorageManager.saveAiConfig({ nickname: aiNickname, role: aiRole, custom: e.target.value });
+                      }}
                       className="mt-2 min-h-24 resize-none"
                       data-testid="textarea-ai-custom"
                     />

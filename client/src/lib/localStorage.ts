@@ -3,6 +3,7 @@ import type { Conversation } from "@shared/schema";
 const CONVERSATIONS_KEY = "ai_chat_conversations";
 const APP_SETTINGS_KEY = "app_settings";
 const LANGUAGE_KEY = "app_language";
+const AI_CONFIG_KEY = "ai_config";
 
 export interface AppSettings {
   fontSize: number; // 12-20px
@@ -119,6 +120,23 @@ export const localStorageManager = {
       localStorage.setItem(APP_SETTINGS_KEY, JSON.stringify(settings));
     } catch (e) {
       console.error("Failed to save app settings:", e);
+    }
+  },
+
+  getAiConfig(): { nickname: string; role: string; custom: string } {
+    try {
+      const stored = localStorage.getItem(AI_CONFIG_KEY);
+      return stored ? JSON.parse(stored) : { nickname: "", role: "", custom: "" };
+    } catch {
+      return { nickname: "", role: "", custom: "" };
+    }
+  },
+
+  saveAiConfig(config: { nickname: string; role: string; custom: string }): void {
+    try {
+      localStorage.setItem(AI_CONFIG_KEY, JSON.stringify(config));
+    } catch (e) {
+      console.error("Failed to save AI config:", e);
     }
   },
 };
