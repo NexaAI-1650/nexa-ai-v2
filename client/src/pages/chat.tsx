@@ -329,7 +329,7 @@ export default function ChatPage() {
       )}
 
       <div className="flex flex-col flex-1 min-w-0">
-        <header className="border-b bg-card backdrop-blur-sm bg-card/80 shadow-sm transition-all duration-300">
+        <header className="border-b bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 backdrop-blur-sm shadow-lg transition-all duration-300">
           <div className="flex items-center justify-between px-6 py-4 animate-fade-in">
             <div className="flex items-center gap-4">
               <Button
@@ -337,13 +337,14 @@ export default function ChatPage() {
                 size="icon"
                 onClick={() => setSidebarOpen(!sidebarOpen)}
                 data-testid="button-toggle-sidebar"
+                className="text-white hover:bg-white/20"
               >
                 <Menu className="h-5 w-5" />
                 <span className="sr-only">{t("toggleSidebar")}</span>
               </Button>
 
               {isTemporaryChat ? (
-                <h1 className="text-xl font-semibold flex items-center gap-2">
+                <h1 className="text-xl font-semibold flex items-center gap-2 text-white">
                   <Clock className="h-5 w-5" />
                   {t("temporaryChat")}
                 </h1>
@@ -362,7 +363,7 @@ export default function ChatPage() {
                 />
               ) : (
                 <h1
-                  className="text-xl font-semibold cursor-pointer hover:opacity-70"
+                  className="text-xl font-semibold cursor-pointer hover:opacity-80 text-white transition-opacity"
                   onClick={() => currentConversationId && setEditingTitle(true)}
                   data-testid="text-conversation-title"
                 >
@@ -388,7 +389,7 @@ export default function ChatPage() {
                 onClick={handleTemporaryChat}
                 title={isTemporaryChat ? t("switchToSave") : t("switchToTemporary")}
                 data-testid="button-toggle-temporary-chat"
-                className={isTemporaryChat ? "bg-blue-500/20 text-blue-600 dark:text-blue-400" : ""}
+                className={cn("text-white hover:bg-white/20", isTemporaryChat ? "bg-white/30" : "")}
               >
                 <Clock className="h-5 w-5" />
                 <span className="sr-only">{t("temporaryChat")}</span>
@@ -398,7 +399,7 @@ export default function ChatPage() {
                 size="icon"
                 onClick={() => setShowAppSettings(true)}
                 data-testid="button-app-settings"
-                className="hover-elevate transition-transform duration-200"
+                className="text-white hover:bg-white/20 transition-transform duration-200"
               >
                 <Settings className="h-5 w-5" />
                 <span className="sr-only">{t("appSettings")}</span>
@@ -408,7 +409,7 @@ export default function ChatPage() {
         </header>
 
         <main
-          className="flex-1 overflow-y-auto bg-gradient-to-b from-background via-card/30 to-background"
+          className="flex-1 overflow-y-auto bg-gradient-to-b from-blue-50/30 via-purple-50/20 to-pink-50/30 dark:from-blue-950/20 dark:via-purple-950/15 dark:to-pink-950/20"
           style={{
             fontSize: `${appSettings.fontSize}px`,
             lineHeight: {
@@ -420,11 +421,11 @@ export default function ChatPage() {
         >
           {messages.length === 0 && !streamingMessage && (
             <div className="flex items-center justify-center h-full animate-fade-in">
-              <div className="text-center space-y-4 p-8">
-                <h2 className="text-2xl font-semibold text-muted-foreground animate-slide-in-bottom">
+              <div className="text-center space-y-6 p-8 bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-pink-500/10 rounded-2xl shadow-lg backdrop-blur-sm border border-purple-200/50 dark:border-purple-800/50 max-w-md">
+                <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent animate-slide-in-bottom">
                   {isTemporaryChat ? t("temporaryChat") : t("welcomeMessage")}
                 </h2>
-                <p className="text-muted-foreground max-w-md animate-slide-in-bottom [animation-delay:100ms]">
+                <p className="text-foreground max-w-md animate-slide-in-bottom [animation-delay:100ms] text-sm leading-relaxed">
                   {isTemporaryChat
                     ? t("temporaryDescription")
                     : t("welcomeDescription")}
