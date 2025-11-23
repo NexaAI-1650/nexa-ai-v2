@@ -36,6 +36,7 @@ export const conversationSchema = z.object({
   messages: z.array(messageSchema),
   tags: z.array(z.string()).optional(),
   aiSettings: aiSettingsSchema.optional(),
+  archived: z.boolean().optional(),
   createdAt: z.number(),
   updatedAt: z.number(),
 });

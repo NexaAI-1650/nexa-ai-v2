@@ -1,8 +1,15 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { MessageSquare, Plus, Trash2, Search } from "lucide-react";
+import { MessageSquare, Plus, Search, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Conversation } from "@shared/schema";
 import { cn } from "@/lib/utils";
@@ -33,6 +40,13 @@ export function ConversationSidebar({
     },
   });
 
+  const archiveMutation = useMutation({
+    mutationFn: (id: string) => apiRequest("PATCH", `/api/conversations/${id}`, { archived: true }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
+    },
+  });
+
   const handleDelete = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     if (confirm("この会話を削除しますか？")) {
@@ -43,10 +57,31 @@ export function ConversationSidebar({
     }
   };
 
+  const handleArchive = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    archiveMutation.mutate(id);
+    if (currentConversationId === id) {
+      onNewConversation();
+    }
+  };
+
+  const handleRename = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    const conversation = conversations.find(c => c.id === id);
+    if (!conversation) return;
+    const newTitle = prompt("会話の名前を変更:", conversation.title);
+    if (newTitle && newTitle.trim()) {
+      apiRequest("PATCH", `/api/conversations/${id}`, { title: newTitle.trim() }).then(() => {
+        queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
+      });
+    }
+  };
+
   const filteredConversations = useMemo(() => {
-    if (!searchQuery) return conversations;
+    const notArchived = conversations.filter(c => !c.archived);
+    if (!searchQuery) return notArchived;
     const query = searchQuery.toLowerCase();
-    return conversations.filter(conv => 
+    return notArchived.filter(conv => 
       conv.title.toLowerCase().includes(query) ||
       conv.messages.some(msg => msg.content.toLowerCase().includes(query))
     );
@@ -89,25 +124,45 @@ export function ConversationSidebar({
             >
               <div className="flex items-center gap-2 min-w-0 flex-1">
                 <MessageSquare className="h-4 w-4 shrink-0 text-muted-foreground" />
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium truncate text-sidebar-foreground">
-                    {conversation.title}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {conversation.messages.length} メッセージ
-                  </p>
-                </div>
+                <p className="text-sm font-medium truncate text-sidebar-foreground">
+                  {conversation.title}
+                </p>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                onClick={(e) => handleDelete(e, conversation.id)}
-                data-testid={`button-delete-${conversation.id}`}
-              >
-                <Trash2 className="h-3 w-3" />
-                <span className="sr-only">削除</span>
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                    data-testid={`button-menu-${conversation.id}`}
+                  >
+                    <MoreVertical className="h-3 w-3" />
+                    <span className="sr-only">メニュー</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={(e) => handleRename(e as any, conversation.id)}
+                    data-testid={`menu-rename-${conversation.id}`}
+                  >
+                    名前を変更する
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={(e) => handleArchive(e as any, conversation.id)}
+                    data-testid={`menu-archive-${conversation.id}`}
+                  >
+                    アーカイブする
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e) => handleDelete(e as any, conversation.id)}
+                    data-testid={`menu-delete-${conversation.id}`}
+                    className="text-destructive"
+                  >
+                    削除する
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </button>
           ))}
           
