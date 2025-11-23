@@ -4,6 +4,11 @@ const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 
 let client: Client | null = null;
+let botStats = {
+  isRunning: false,
+  commandCount: 0,
+  startTime: Date.now(),
+};
 
 export async function initDiscordBot() {
   if (!DISCORD_TOKEN || !OPENROUTER_API_KEY) {
@@ -29,6 +34,8 @@ export async function initDiscordBot() {
     if (interaction.commandName === "chat") {
       const message = interaction.options.getString("message") || "";
       const model = interaction.options.getString("model") || "google/gemini-2.5-flash";
+
+      botStats.commandCount++;
 
       await interaction.deferReply();
 
@@ -72,9 +79,35 @@ export async function initDiscordBot() {
 
   try {
     await client.login(DISCORD_TOKEN);
+    botStats.isRunning = true;
   } catch (error) {
     console.error("Discord Bot ログイン失敗:", error);
   }
+}
+
+export async function restartDiscordBot() {
+  if (client?.isReady()) {
+    await client.destroy();
+    client = null;
+  }
+  botStats = {
+    isRunning: false,
+    commandCount: 0,
+    startTime: Date.now(),
+  };
+  await initDiscordBot();
+}
+
+export async function shutdownDiscordBot() {
+  if (client?.isReady()) {
+    await client.destroy();
+    client = null;
+    botStats.isRunning = false;
+  }
+}
+
+export function getBotStatus() {
+  return botStats;
 }
 
 export async function registerSlashCommands() {

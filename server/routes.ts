@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { chatRequestSchema } from "@shared/schema";
 import { storage } from "./storage";
+import { restartDiscordBot, shutdownDiscordBot, getBotStatus } from "./discord-bot";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
@@ -301,6 +302,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
           error: error instanceof Error ? error.message : "チャットエラー",
         });
       }
+    }
+  });
+
+  // Admin endpoints
+  app.get("/api/admin/bot-status", (_req, res) => {
+    try {
+      const status = getBotStatus();
+      res.json(status);
+    } catch (error) {
+      console.error("Bot status error:", error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "ステータス取得に失敗しました",
+      });
+    }
+  });
+
+  app.post("/api/admin/bot-restart", async (_req, res) => {
+    try {
+      await restartDiscordBot();
+      res.json({ success: true, message: "Botを再起動しました" });
+    } catch (error) {
+      console.error("Bot restart error:", error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "再起動に失敗しました",
+      });
+    }
+  });
+
+  app.post("/api/admin/bot-shutdown", async (_req, res) => {
+    try {
+      await shutdownDiscordBot();
+      res.json({ success: true, message: "Botをシャットダウンしました" });
+    } catch (error) {
+      console.error("Bot shutdown error:", error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "シャットダウンに失敗しました",
+      });
     }
   });
 
