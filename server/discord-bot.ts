@@ -23,9 +23,29 @@ interface UserConversation {
   lastUpdated: number;
 }
 
+// 拡張子キャッシュ
+const EXTENSION_CACHE = {
+  images: new Set([".png", ".jpg", ".jpeg", ".gif", ".webp"]),
+  videos: new Set([".mp4", ".webm", ".mov"]),
+  texts: new Set([".txt", ".csv", ".json", ".md", ".log", ".py", ".js", ".ts", ".html", ".css"]),
+};
+
 let userConversations: Map<string, UserConversation> = new Map();
 let memoryShareEnabled = false;
 let lastModelChangeTime = 0;
+const MAX_USER_HISTORY = 10; // ユーザーごとの最大保持メッセージ数
+const HISTORY_CLEANUP_INTERVAL = 30 * 60 * 1000; // 30分ごとにクリーンアップ
+
+// 定期的に古い会話を削除
+setInterval(() => {
+  const now = Date.now();
+  const MAX_AGE = 2 * 60 * 60 * 1000; // 2時間以上古いデータは削除
+  for (const [userId, conv] of userConversations.entries()) {
+    if (now - conv.lastUpdated > MAX_AGE) {
+      userConversations.delete(userId);
+    }
+  }
+}, HISTORY_CLEANUP_INTERVAL);
 
 export async function initDiscordBot() {
   if (!DISCORD_TOKEN || !OPENROUTER_API_KEY) {
@@ -64,19 +84,16 @@ export async function initDiscordBot() {
     try {
       await message.channel.sendTyping();
 
-      // 添付ファイルがあれば処理
+      // 添付ファイル処理
       let attachmentText = "";
-      const imageExtensions = [".png", ".jpg", ".jpeg", ".gif", ".webp"];
-      const videoExtensions = [".mp4", ".webm", ".mov"];
-      const textExtensions = [".txt", ".csv", ".json", ".md", ".log", ".py", ".js", ".ts", ".html", ".css"];
       const imageContents: any[] = [];
       const videoContents: any[] = [];
+      const MAX_SIZE = 20 * 1024 * 1024;
 
       if (message.attachments.size > 0) {
         for (const [, attachment] of message.attachments) {
           try {
             const ext = attachment.name.substring(attachment.name.lastIndexOf(".")).toLowerCase();
-            const MAX_SIZE = 20 * 1024 * 1024; // 20MB
 
             if (attachment.size > MAX_SIZE) {
               attachmentText += `\n【${attachment.name}】ファイルサイズが大きすぎます（20MB以下）`;
@@ -87,18 +104,17 @@ export async function initDiscordBot() {
             const fileBuffer = await fileResponse.arrayBuffer();
             const base64Data = Buffer.from(fileBuffer).toString("base64");
 
-            if (imageExtensions.includes(ext)) {
-              const mediaType = `image/${ext.slice(1)}`;
+            if (EXTENSION_CACHE.images.has(ext)) {
               imageContents.push({
                 type: "image",
                 source: {
                   type: "base64",
-                  media_type: mediaType,
+                  media_type: `image/${ext.slice(1)}`,
                   data: base64Data,
                 },
               });
-              attachmentText += `\n【${attachment.name}】画像を解析しました`;
-            } else if (videoExtensions.includes(ext)) {
+              attachmentText += `\n【${attachment.name}】`;
+            } else if (EXTENSION_CACHE.videos.has(ext)) {
               const mediaType = ext === ".mp4" ? "video/mp4" : ext === ".webm" ? "video/webm" : "video/quicktime";
               videoContents.push({
                 type: "video",
@@ -108,16 +124,15 @@ export async function initDiscordBot() {
                   data: base64Data,
                 },
               });
-              attachmentText += `\n【${attachment.name}】動画を解析しました`;
-            } else if (textExtensions.includes(ext)) {
+              attachmentText += `\n【${attachment.name}】`;
+            } else if (EXTENSION_CACHE.texts.has(ext)) {
               const text = new TextDecoder("utf-8").decode(fileBuffer);
               attachmentText += `\n【${attachment.name}】\n${text}`;
             } else {
               attachmentText += `\n【${attachment.name}】非対応形式です`;
             }
-          } catch (error) {
-            console.error("File processing error:", error);
-            attachmentText += `\n【${attachment.name}】ファイル読み込みに失敗しました`;
+          } catch {
+            attachmentText += `\n【${attachment.name}】読み込み失敗`;
           }
         }
       }
@@ -133,23 +148,24 @@ export async function initDiscordBot() {
       }
       
       // メッセージコンテンツを構築
-      const messageContent: any = [{ type: "text", text: fullMessage }];
-      messageContent.push(...imageContents);
-      messageContent.push(...videoContents);
+      const messageContent: any = [{ type: "text", text: fullMessage }, ...imageContents, ...videoContents];
       
       // メッセージをユーザー履歴に追加
       userConv.messages.push({ role: "user", content: fullMessage });
       
+      // 履歴を最大サイズまで制限
+      if (userConv.messages.length > MAX_USER_HISTORY) {
+        userConv.messages = userConv.messages.slice(-MAX_USER_HISTORY);
+      }
+      
       // 履歴を含めるかどうか決定
       let messagesForAPI: any[] = [];
       if (memoryShareEnabled && userConv.messages.length > 1) {
-        // 過去のメッセージを含める（最大20メッセージまで）
-        messagesForAPI = userConv.messages.slice(-20).map((msg) => ({
+        messagesForAPI = userConv.messages.map((msg) => ({
           role: msg.role,
           content: msg.role === "user" ? [{ type: "text", text: msg.content }] : msg.content,
         }));
       } else {
-        // 現在のメッセージのみ
         messagesForAPI = [{ role: "user", content: messageContent }];
       }
 
@@ -187,7 +203,6 @@ export async function initDiscordBot() {
       }
 
       const aiResponse = data.choices[0]?.message?.content || "応答がありません";
-      console.log(`AI Response length: ${aiResponse.length} characters`);
 
       // ユーザー履歴に保存
       userConv.messages.push({ role: "assistant", content: aiResponse });
