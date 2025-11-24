@@ -17,6 +17,15 @@ let botChatStats = {
   modelCounts: {} as Record<string, number>,
 };
 
+// ユーザー会話履歴
+interface UserConversation {
+  messages: Array<{ role: "user" | "assistant"; content: string }>;
+  lastUpdated: number;
+}
+
+let userConversations: Map<string, UserConversation> = new Map();
+let memoryShareEnabled = false;
+
 export async function initDiscordBot() {
   if (!DISCORD_TOKEN || !OPENROUTER_API_KEY) {
     console.log("Discord Bot: DISCORD_TOKEN または OPENROUTER_API_KEY が設定されていません");
@@ -113,12 +122,37 @@ export async function initDiscordBot() {
       }
 
       const fullMessage = userMessage + attachmentText;
+      const userId = message.author.id;
+      
+      // ユーザー会話履歴を取得または作成
+      let userConv = userConversations.get(userId);
+      if (!userConv) {
+        userConv = { messages: [], lastUpdated: Date.now() };
+        userConversations.set(userId, userConv);
+      }
       
       // メッセージコンテンツを構築
       const messageContent: any = [{ type: "text", text: fullMessage }];
       messageContent.push(...imageContents);
       messageContent.push(...videoContents);
+      
+      // メッセージをユーザー履歴に追加
+      userConv.messages.push({ role: "user", content: fullMessage });
+      
+      // 履歴を含めるかどうか決定
+      let messagesForAPI: any[] = [];
+      if (memoryShareEnabled && userConv.messages.length > 1) {
+        // 過去のメッセージを含める（最大20メッセージまで）
+        messagesForAPI = userConv.messages.slice(-20).map((msg) => ({
+          role: msg.role,
+          content: msg.role === "user" ? [{ type: "text", text: msg.content }] : msg.content,
+        }));
+      } else {
+        // 現在のメッセージのみ
+        messagesForAPI = [{ role: "user", content: messageContent }];
+      }
 
+      const startTime = Date.now();
       const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -129,10 +163,11 @@ export async function initDiscordBot() {
         },
         body: JSON.stringify({
           model: currentModel,
-          messages: [{ role: "user", content: messageContent }],
+          messages: messagesForAPI,
           max_tokens: 2000,
         }),
       });
+      const responseTime = Date.now() - startTime;
 
       const data = (await response.json()) as any;
 
@@ -153,14 +188,21 @@ export async function initDiscordBot() {
       const aiResponse = data.choices[0]?.message?.content || "応答がありません";
       console.log(`AI Response length: ${aiResponse.length} characters`);
 
+      // ユーザー履歴に保存
+      userConv.messages.push({ role: "assistant", content: aiResponse });
+      userConv.lastUpdated = Date.now();
+
       botChatStats.totalMessages += 2;
       botChatStats.totalTokens += Math.ceil((userMessage.length + aiResponse.length) / 4);
       botChatStats.modelCounts[currentModel] = (botChatStats.modelCounts[currentModel] || 0) + 1;
       botChatStats.totalChats = Object.keys(botChatStats.modelCounts).length;
 
-      if (aiResponse.length > 2000) {
+      // 応答スピード付きで返信
+      const finalResponse = `⏱️ ${responseTime}ms\n\n${aiResponse}`;
+
+      if (finalResponse.length > 2000) {
         console.log("Sending response as file (>2000 chars)");
-        const attachment = new AttachmentBuilder(Buffer.from(aiResponse, "utf-8"), {
+        const attachment = new AttachmentBuilder(Buffer.from(finalResponse, "utf-8"), {
           name: "response.txt",
         });
         await message.reply({
@@ -169,7 +211,7 @@ export async function initDiscordBot() {
       } else {
         console.log("Sending response as message (<2000 chars)");
         await message.reply({
-          content: aiResponse,
+          content: finalResponse,
         });
       }
     } catch (error) {
@@ -274,12 +316,80 @@ export async function initDiscordBot() {
         content: `📊 **現在のモデル**\n${currentModel}`,
         ephemeral: true,
       });
+    } else if (interaction.commandName === "summarize") {
+      const userId = interaction.user.id;
+      const userConv = userConversations.get(userId);
+
+      if (!userConv || userConv.messages.length === 0) {
+        await interaction.reply({
+          content: "❌ 会話履歴がありません",
+          ephemeral: true,
+        });
+        return;
+      }
+
+      await interaction.deferReply();
+
+      try {
+        const conversationText = userConv.messages
+          .map((msg) => `${msg.role === "user" ? "ユーザー" : "AI"}: ${msg.content}`)
+          .join("\n\n");
+
+        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+            "HTTP-Referer": "https://replit.dev",
+            "X-Title": "AI Chat Discord Bot",
+          },
+          body: JSON.stringify({
+            model: currentModel,
+            messages: [
+              {
+                role: "user",
+                content: `以下の会話を日本語で簡潔に要約してください：\n\n${conversationText}`,
+              },
+            ],
+            max_tokens: 500,
+          }),
+        });
+
+        const data = (await response.json()) as any;
+        const summary = data.choices[0]?.message?.content || "要約に失敗しました";
+
+        if (summary.length > 2000) {
+          const attachment = new AttachmentBuilder(Buffer.from(summary, "utf-8"), {
+            name: "summary.txt",
+          });
+          await interaction.editReply({
+            files: [attachment],
+          });
+        } else {
+          await interaction.editReply({
+            content: `📝 **会話の要約:**\n\n${summary}`,
+          });
+        }
+      } catch (error) {
+        console.error("Summary error:", error);
+        await interaction.editReply("要約処理中にエラーが発生しました");
+      }
+    } else if (interaction.commandName === "memory-share") {
+      const toggle = interaction.options.getBoolean("enabled");
+      memoryShareEnabled = toggle;
+      await interaction.reply({
+        content: `✅ 全モデル記憶共有: ${toggle ? "有効" : "無効"}`,
+        ephemeral: true,
+      });
     } else if (interaction.commandName === "help") {
       await interaction.reply({
         content: `🆘 **コマンドヘルプ**
 
 \`/chat <message> [model]\` - AI に質問を送信します
 \`/model <model>\` - 使用するモデルを変更します
+\`/model-current\` - 現在のモデルを表示します
+\`/summarize\` - 会話を要約します
+\`/memory-share <enabled>\` - 全モデルで記憶共有のオン・オフ
 \`/admin\` - 管理ダッシュボードを表示します
 \`/help\` - このメッセージを表示します
 
@@ -386,6 +496,18 @@ export async function registerSlashCommands() {
       new SlashCommandBuilder()
         .setName("model-current")
         .setDescription("現在のモデルを表示します"),
+      new SlashCommandBuilder()
+        .setName("summarize")
+        .setDescription("会話を要約します"),
+      new SlashCommandBuilder()
+        .setName("memory-share")
+        .setDescription("全モデルで記憶共有のオン・オフ")
+        .addBooleanOption((option) =>
+          option
+            .setName("enabled")
+            .setDescription("有効にするか無効にするか")
+            .setRequired(true)
+        ),
       new SlashCommandBuilder()
         .setName("help")
         .setDescription("コマンドヘルプを表示します"),
