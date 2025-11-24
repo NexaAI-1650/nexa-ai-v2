@@ -35,6 +35,16 @@ export default function AdminDashboard() {
     refetchInterval: 5000,
   });
 
+  const { data: currentBotModel } = useQuery({
+    queryKey: ["/api/admin/bot-current-model"],
+    refetchInterval: 5000,
+  });
+
+  const { data: rateLimit } = useQuery({
+    queryKey: ["/api/admin/rate-limit"],
+    refetchInterval: 5000,
+  });
+
   const memoryShareMutation = useMutation({
     mutationFn: async (enabled: boolean) => {
       const res = await apiRequest("POST", "/api/admin/memory-share", { enabled });
@@ -47,6 +57,24 @@ export default function AdminDashboard() {
     onError: (error: any) => {
       toast({ 
         description: error?.message || "設定変更に失敗しました",
+        variant: "destructive",
+        duration: 3000,
+      });
+    },
+  });
+
+  const rateLimitMutation = useMutation({
+    mutationFn: async (limit: number) => {
+      const res = await apiRequest("POST", "/api/admin/rate-limit", { limit });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/rate-limit"] });
+      toast({ description: "レート制限を更新しました", duration: 3000 });
+    },
+    onError: (error: any) => {
+      toast({ 
+        description: error?.message || "レート制限変更に失敗しました",
         variant: "destructive",
         duration: 3000,
       });
@@ -278,6 +306,34 @@ export default function AdminDashboard() {
         <Card className="p-6 mb-8">
           <h2 className="text-lg font-semibold mb-4">Bot コントロール</h2>
           <div className="space-y-4">
+            <div className="p-4 bg-muted/30 rounded-lg border border-border">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-medium">現在のモデル</span>
+              </div>
+              <p className="text-xs text-muted-foreground font-mono">
+                {currentBotModel?.model || "loading..."}
+              </p>
+            </div>
+
+            <div className="p-4 bg-muted/30 rounded-lg border border-border">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-medium">レート制限 (1分間のメッセージ数)</span>
+              </div>
+              <div className="flex gap-2 items-center">
+                <input 
+                  type="number" 
+                  min="1" 
+                  max="100"
+                  value={rateLimit?.limit || 20}
+                  onChange={(e) => rateLimitMutation.mutate(parseInt(e.target.value))}
+                  disabled={rateLimitMutation.isPending}
+                  className="w-16 px-2 py-1 text-sm border rounded"
+                  data-testid="input-rate-limit"
+                />
+                <span className="text-xs text-muted-foreground">/60秒</span>
+              </div>
+            </div>
+
             <div className="p-4 bg-muted/30 rounded-lg border border-border">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-sm font-medium">全モデル記憶共有</span>

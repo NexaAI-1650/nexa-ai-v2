@@ -36,7 +36,7 @@ let lastModelChangeTime = 0;
 const MAX_USER_HISTORY = 10;
 const HISTORY_CLEANUP_INTERVAL = 30 * 60 * 1000;
 const RATE_LIMIT_WINDOW = 60 * 1000; // 1分
-const RATE_LIMIT_MAX = 20; // 1分間に20メッセージまで
+let RATE_LIMIT_MAX = 20; // 1分間に20メッセージまで
 
 // ユーザーごとのレート制限
 interface RateLimit {
@@ -520,6 +520,18 @@ export function getMemoryShareEnabled() {
 
 export function setMemoryShareEnabled(enabled: boolean) {
   memoryShareEnabled = enabled;
+}
+
+export function getCurrentModel() {
+  return currentModel;
+}
+
+export function getRateLimit() {
+  return RATE_LIMIT_MAX;
+}
+
+export function setRateLimit(limit: number) {
+  RATE_LIMIT_MAX = Math.max(1, Math.min(limit, 100)); // 1～100の間に制限
 }
 
 export async function registerSlashCommands() {

@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { chatRequestSchema } from "@shared/schema";
 import { storage } from "./storage";
-import { restartDiscordBot, shutdownDiscordBot, getBotStatus, startDiscordBot, getBotChatStats, getMemoryShareEnabled, setMemoryShareEnabled } from "./discord-bot";
+import { restartDiscordBot, shutdownDiscordBot, getBotStatus, startDiscordBot, getBotChatStats, getMemoryShareEnabled, setMemoryShareEnabled, getCurrentModel, getRateLimit, setRateLimit, registerSlashCommands } from "./discord-bot";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
@@ -403,6 +403,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Memory share set error:", error);
       res.status(500).json({
         error: error instanceof Error ? error.message : "設定変更に失敗しました",
+      });
+    }
+  });
+
+  app.get("/api/admin/bot-current-model", async (_req, res) => {
+    try {
+      res.json({ model: getCurrentModel() });
+    } catch (error) {
+      console.error("Bot current model error:", error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "モデル情報取得に失敗しました",
+      });
+    }
+  });
+
+  app.get("/api/admin/rate-limit", async (_req, res) => {
+    try {
+      res.json({ limit: getRateLimit() });
+    } catch (error) {
+      console.error("Rate limit get error:", error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "レート制限取得に失敗しました",
+      });
+    }
+  });
+
+  app.post("/api/admin/rate-limit", async (req, res) => {
+    try {
+      const { limit } = req.body;
+      setRateLimit(limit);
+      res.json({ success: true, limit: getRateLimit() });
+    } catch (error) {
+      console.error("Rate limit set error:", error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "レート制限設定に失敗しました",
       });
     }
   });
