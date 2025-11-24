@@ -468,10 +468,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  app.get("/api/auth/discord", async (_req, res) => {
+  app.get("/api/auth/discord", async (req: Request, res) => {
     try {
       const { clientId } = await getDiscordOAuthCredentials();
-      const redirectUri = `${process.env.REPL_HOME || "http://localhost:5000"}/api/auth/callback`;
+      const protocol = req.protocol || "http";
+      const host = req.get("host") || "localhost:5000";
+      const redirectUri = `${protocol}://${host}/api/auth/callback`;
       
       const authUrl = new URL("https://discord.com/oauth2/authorize");
       authUrl.searchParams.set("client_id", clientId);
@@ -494,7 +496,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { clientId, clientSecret } = await getDiscordOAuthCredentials();
-      const redirectUri = `${process.env.REPL_HOME || "http://localhost:5000"}/api/auth/callback`;
+      const protocol = req.protocol || "http";
+      const host = req.get("host") || "localhost:5000";
+      const redirectUri = `${protocol}://${host}/api/auth/callback`;
 
       const tokenResponse = await fetch("https://discord.com/api/oauth2/token", {
         method: "POST",
