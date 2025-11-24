@@ -13,7 +13,7 @@ declare global {
   }
 }
 
-async function getDiscordAccessToken() {
+async function getDiscordConnection() {
   const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
   const xReplitToken = process.env.REPL_IDENTITY 
     ? "repl " + process.env.REPL_IDENTITY 
@@ -37,6 +37,16 @@ async function getDiscordAccessToken() {
   
   const data = await response.json();
   const connection = data.items?.[0];
+  
+  if (!connection) {
+    throw new Error("Discord connection not found");
+  }
+  
+  return connection;
+}
+
+async function getDiscordAccessToken() {
+  const connection = await getDiscordConnection();
   const accessToken = connection?.settings?.access_token || connection?.settings?.oauth?.credentials?.access_token;
   
   if (!accessToken) {
@@ -44,6 +54,19 @@ async function getDiscordAccessToken() {
   }
   
   return accessToken;
+}
+
+async function getDiscordOAuthCredentials() {
+  const connection = await getDiscordConnection();
+  
+  const clientId = connection?.settings?.oauth?.client_id;
+  const clientSecret = connection?.settings?.oauth?.client_secret;
+  
+  if (!clientId || !clientSecret) {
+    throw new Error("Discord OAuth credentials not found in connection");
+  }
+  
+  return { clientId, clientSecret };
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -446,8 +469,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/auth/discord", async (_req, res) => {
     try {
-      const clientId = process.env.REPLIT_CONNECTORS_DISCORD_CLIENT_ID || "YOUR_CLIENT_ID";
-      const redirectUri = process.env.REPLIT_CONNECTORS_DISCORD_REDIRECT_URL || "http://localhost:5000/api/auth/callback";
+      const { clientId } = await getDiscordOAuthCredentials();
+      const redirectUri = `${process.env.REPL_HOME || "http://localhost:5000"}/api/auth/callback`;
       
       const authUrl = new URL("https://discord.com/oauth2/authorize");
       authUrl.searchParams.set("client_id", clientId);
@@ -458,7 +481,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ authUrl: authUrl.toString() });
     } catch (error) {
       console.error("Auth Discord error:", error);
-      res.status(500).json({ error: "認証URL生成に失敗しました" });
+      res.status(500).json({ error: error instanceof Error ? error.message : "認証URL生成に失敗しました" });
     }
   });
 
@@ -469,9 +492,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.redirect("/admin?error=no_code");
       }
 
-      const clientId = process.env.REPLIT_CONNECTORS_DISCORD_CLIENT_ID || "YOUR_CLIENT_ID";
-      const clientSecret = process.env.REPLIT_CONNECTORS_DISCORD_CLIENT_SECRET || "YOUR_CLIENT_SECRET";
-      const redirectUri = process.env.REPLIT_CONNECTORS_DISCORD_REDIRECT_URL || "http://localhost:5000/api/auth/callback";
+      const { clientId, clientSecret } = await getDiscordOAuthCredentials();
+      const redirectUri = `${process.env.REPL_HOME || "http://localhost:5000"}/api/auth/callback`;
 
       const tokenResponse = await fetch("https://discord.com/api/oauth2/token", {
         method: "POST",
@@ -486,7 +508,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       if (!tokenResponse.ok) {
-        console.error("Token exchange failed:", await tokenResponse.text());
+        const errorText = await tokenResponse.text();
+        console.error("Token exchange failed:", errorText);
         return res.redirect("/admin?error=token_failed");
       }
 
@@ -496,6 +519,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       if (!userResponse.ok) {
+        console.error("User fetch failed:", await userResponse.text());
         return res.redirect("/admin?error=user_fetch_failed");
       }
 
