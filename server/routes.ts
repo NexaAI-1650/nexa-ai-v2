@@ -57,13 +57,14 @@ async function getDiscordAccessToken() {
 }
 
 async function getDiscordOAuthCredentials() {
-  const connection = await getDiscordConnection();
-  
-  const clientId = connection?.settings?.oauth?.client_id;
-  const clientSecret = connection?.settings?.oauth?.client_secret;
+  const clientId = process.env.DISCORD_OAUTH_CLIENT_ID;
+  const clientSecret = process.env.DISCORD_OAUTH_CLIENT_SECRET;
   
   if (!clientId || !clientSecret) {
-    throw new Error("Discord OAuth credentials not found in connection");
+    throw new Error(
+      "Discord OAuth credentials not configured. Please set DISCORD_OAUTH_CLIENT_ID and DISCORD_OAUTH_CLIENT_SECRET environment variables. " +
+      "Get them from https://discord.com/developers/applications"
+    );
   }
   
   return { clientId, clientSecret };
