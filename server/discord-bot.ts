@@ -36,6 +36,26 @@ let lastModelChangeTime = 0;
 const MAX_USER_HISTORY = 10; // ユーザーごとの最大保持メッセージ数
 const HISTORY_CLEANUP_INTERVAL = 30 * 60 * 1000; // 30分ごとにクリーンアップ
 
+// テキストに改行を挿入して見やすくする
+function formatLongText(text: string, lineLength: number = 80): string {
+  const lines = text.split('\n');
+  return lines.map(line => {
+    if (line.length <= lineLength) return line;
+    let result = '';
+    let current = '';
+    for (const word of line.split(/(\s+)/)) {
+      if ((current + word).length <= lineLength) {
+        current += word;
+      } else {
+        if (current) result += current + '\n';
+        current = word;
+      }
+    }
+    if (current) result += current;
+    return result;
+  }).join('\n');
+}
+
 // 定期的に古い会話を削除
 setInterval(() => {
   const now = Date.now();
@@ -217,15 +237,14 @@ export async function initDiscordBot() {
       const finalResponse = `⏱️ ${responseTime}ms\n\n${aiResponse}`;
 
       if (finalResponse.length > 2000) {
-        console.log("Sending response as file (>2000 chars)");
-        const attachment = new AttachmentBuilder(Buffer.from(finalResponse, "utf-8"), {
+        const formattedText = formatLongText(finalResponse);
+        const attachment = new AttachmentBuilder(Buffer.from(formattedText, "utf-8"), {
           name: "response.txt",
         });
         await message.reply({
           files: [attachment],
         });
       } else {
-        console.log("Sending response as message (<2000 chars)");
         await message.reply({
           content: finalResponse,
         });
@@ -277,18 +296,16 @@ export async function initDiscordBot() {
         }
 
         const aiResponse = data.choices[0]?.message?.content || "応答がありません";
-        console.log(`AI Response length: ${aiResponse.length} characters`);
 
         if (aiResponse.length > 2000) {
-          console.log("Sending response as file (>2000 chars)");
-          const attachment = new AttachmentBuilder(Buffer.from(aiResponse, "utf-8"), {
+          const formattedText = formatLongText(aiResponse);
+          const attachment = new AttachmentBuilder(Buffer.from(formattedText, "utf-8"), {
             name: "response.txt",
           });
           await interaction.editReply({
             files: [attachment],
           });
         } else {
-          console.log("Sending response as message (<2000 chars)");
           await interaction.editReply({
             content: aiResponse,
           });
