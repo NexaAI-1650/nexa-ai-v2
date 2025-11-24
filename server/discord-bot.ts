@@ -36,7 +36,7 @@ let lastModelChangeTime = 0;
 const MAX_USER_HISTORY = 10;
 const HISTORY_CLEANUP_INTERVAL = 30 * 60 * 1000;
 const RATE_LIMIT_WINDOW = 60 * 1000; // 1分
-const RATE_LIMIT_MAX = 3; // 1分間に3メッセージまで
+const RATE_LIMIT_MAX = 20; // 1分間に20メッセージまで
 
 // ユーザーごとのレート制限
 interface RateLimit {
