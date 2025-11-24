@@ -37,23 +37,12 @@ const MAX_USER_HISTORY = 10; // ユーザーごとの最大保持メッセージ
 const HISTORY_CLEANUP_INTERVAL = 30 * 60 * 1000; // 30分ごとにクリーンアップ
 
 // テキストに改行を挿入して見やすくする
-function formatLongText(text: string, lineLength: number = 80): string {
-  const lines = text.split('\n');
-  return lines.map(line => {
-    if (line.length <= lineLength) return line;
-    let result = '';
-    let current = '';
-    for (const word of line.split(/(\s+)/)) {
-      if ((current + word).length <= lineLength) {
-        current += word;
-      } else {
-        if (current) result += current + '\n';
-        current = word;
-      }
-    }
-    if (current) result += current;
-    return result;
-  }).join('\n');
+function formatLongText(text: string, lineLength: number = 60): string {
+  let result = '';
+  for (let i = 0; i < text.length; i += lineLength) {
+    result += text.substring(i, i + lineLength) + '\n';
+  }
+  return result;
 }
 
 // 定期的に古い会話を削除
