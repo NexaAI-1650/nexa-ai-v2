@@ -444,6 +444,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  app.get("/api/auth/discord", async (_req, res) => {
+    try {
+      const clientId = process.env.REPLIT_CONNECTORS_DISCORD_CLIENT_ID || "YOUR_CLIENT_ID";
+      const redirectUri = process.env.REPLIT_CONNECTORS_DISCORD_REDIRECT_URL || "http://localhost:5000/api/auth/callback";
+      
+      const authUrl = new URL("https://discord.com/oauth2/authorize");
+      authUrl.searchParams.set("client_id", clientId);
+      authUrl.searchParams.set("response_type", "code");
+      authUrl.searchParams.set("scope", "identify email guilds");
+      authUrl.searchParams.set("redirect_uri", redirectUri);
+      
+      res.json({ authUrl: authUrl.toString() });
+    } catch (error) {
+      console.error("Auth Discord error:", error);
+      res.status(500).json({ error: "認証URL生成に失敗しました" });
+    }
+  });
+
+  app.get("/api/auth/callback", async (req: Request, res) => {
+    try {
+      const code = req.query.code as string;
+      if (!code) {
+        return res.redirect("/admin?error=no_code");
+      }
+
+      const clientId = process.env.REPLIT_CONNECTORS_DISCORD_CLIENT_ID || "YOUR_CLIENT_ID";
+      const clientSecret = process.env.REPLIT_CONNECTORS_DISCORD_CLIENT_SECRET || "YOUR_CLIENT_SECRET";
+      const redirectUri = process.env.REPLIT_CONNECTORS_DISCORD_REDIRECT_URL || "http://localhost:5000/api/auth/callback";
+
+      const tokenResponse = await fetch("https://discord.com/api/oauth2/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          client_id: clientId,
+          client_secret: clientSecret,
+          code,
+          grant_type: "authorization_code",
+          redirect_uri: redirectUri,
+        }).toString(),
+      });
+
+      if (!tokenResponse.ok) {
+        console.error("Token exchange failed:", await tokenResponse.text());
+        return res.redirect("/admin?error=token_failed");
+      }
+
+      const tokenData = await tokenResponse.json();
+      const userResponse = await fetch("https://discord.com/api/users/@me", {
+        headers: { Authorization: `Bearer ${tokenData.access_token}` },
+      });
+
+      if (!userResponse.ok) {
+        return res.redirect("/admin?error=user_fetch_failed");
+      }
+
+      const userData = await userResponse.json();
+
+      req.session!.userId = userData.id;
+      req.session!.username = userData.username;
+      req.session!.avatar = userData.avatar;
+      req.session!.accessToken = tokenData.access_token;
+
+      res.redirect("/admin");
+    } catch (error) {
+      console.error("Auth callback error:", error);
+      res.redirect("/admin?error=callback_failed");
+    }
+  });
+
   app.get("/api/admin/my-guilds", async (req: Request, res) => {
     try {
       if (!req.user) {

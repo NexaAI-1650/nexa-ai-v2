@@ -6,6 +6,7 @@ import express, {
   Response,
   NextFunction,
 } from "express";
+import session from "express-session";
 
 import { registerRoutes } from "./routes";
 import { initDiscordBot, registerSlashCommands } from "./discord-bot";
@@ -28,6 +29,40 @@ declare module 'http' {
     rawBody: unknown
   }
 }
+
+declare module 'express-session' {
+  interface SessionData {
+    userId?: string;
+    username?: string;
+    avatar?: string;
+    accessToken?: string;
+  }
+}
+
+const SESSION_SECRET = process.env.SESSION_SECRET || "dev-secret-key";
+app.use(session({
+  secret: SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: { 
+    secure: false,
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
+
+app.use((req: Request, _res, next) => {
+  if (req.session?.userId) {
+    req.user = {
+      id: req.session.userId,
+      username: req.session.username || "",
+      avatar: req.session.avatar,
+      discriminator: "0",
+    };
+  }
+  next();
+});
+
 app.use(express.json({
   verify: (req, _res, buf) => {
     req.rawBody = buf;
