@@ -1,8 +1,50 @@
-import type { Express } from "express";
+import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import { chatRequestSchema } from "@shared/schema";
 import { storage } from "./storage";
 import { restartDiscordBot, shutdownDiscordBot, getBotStatus, startDiscordBot, getBotChatStats, getMemoryShareEnabled, setMemoryShareEnabled, getCurrentModel, setCurrentModel, getRateLimit, setRateLimit, registerSlashCommands, getAllGuildSettings, getAvailableGuildsExport, isGuildAdminAllowed } from "./discord-bot";
+import { Client, GatewayIntentBits } from "discord.js";
+
+declare global {
+  namespace Express {
+    interface Request {
+      user?: { id: string; username: string; avatar?: string; discriminator: string };
+    }
+  }
+}
+
+async function getDiscordAccessToken() {
+  const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
+  const xReplitToken = process.env.REPL_IDENTITY 
+    ? "repl " + process.env.REPL_IDENTITY 
+    : process.env.WEB_REPL_RENEWAL 
+    ? "depl " + process.env.WEB_REPL_RENEWAL 
+    : null;
+
+  if (!xReplitToken || !hostname) {
+    throw new Error("Discord connection not available");
+  }
+
+  const response = await fetch(
+    "https://" + hostname + "/api/v2/connection?include_secrets=true&connector_names=discord",
+    {
+      headers: {
+        Accept: "application/json",
+        X_REPLIT_TOKEN: xReplitToken,
+      },
+    }
+  );
+  
+  const data = await response.json();
+  const connection = data.items?.[0];
+  const accessToken = connection?.settings?.access_token || connection?.settings?.oauth?.credentials?.access_token;
+  
+  if (!accessToken) {
+    throw new Error("Discord access token not found");
+  }
+  
+  return accessToken;
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
@@ -379,6 +421,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Bot models error:", error);
       res.status(500).json({
         error: error instanceof Error ? error.message : "モデル情報取得に失敗しました",
+      });
+    }
+  });
+
+  // Discord Auth endpoints
+  app.get("/api/auth/me", async (req: Request, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      res.json(req.user);
+    } catch (error) {
+      console.error("Auth me error:", error);
+      res.status(500).json({ error: "認証情報取得に失敗しました" });
+    }
+  });
+
+  app.get("/api/auth/logout", (_req, res) => {
+    _req.session?.destroy(() => {
+      res.json({ success: true });
+    });
+  });
+
+  app.get("/api/admin/my-guilds", async (req: Request, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const accessToken = await getDiscordAccessToken();
+      const client = new Client({
+        intents: [GatewayIntentBits.Guilds],
+      });
+      await client.login(accessToken);
+
+      const userGuilds = await client.rest.get("/users/@me/guilds");
+      const botGuilds = getAvailableGuildsExport();
+      
+      const adminGuilds = (userGuilds as any[])
+        .filter((ug: any) => (ug.permissions & 8) === 8) // ADMINISTRATOR permission
+        .filter((ug: any) => botGuilds.some((bg) => bg.guildId === ug.id))
+        .filter((ug: any) => isGuildAdminAllowed(ug.id));
+
+      await client.destroy();
+      res.json({ guilds: adminGuilds });
+    } catch (error) {
+      console.error("My guilds error:", error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "管理サーバー取得に失敗しました",
       });
     }
   });

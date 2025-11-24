@@ -55,3 +55,6 @@ waitForPort = 5000
 [userenv.shared]
 OPENROUTER_API_KEY = "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"
 DISCORD_TOKEN = "MTQzMTk2OTQ5ODYxNjk1OTAxNw.GmgXUt.O6LcdKWvrQ9prv35lQRXrIpx_icyVcTIjQMKa4"
+
+[agent]
+integrations = ["discord:1.0.0"]

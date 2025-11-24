@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { BarChart3, MessageSquare, Users, ArrowLeft, Power, RotateCcw, PowerOff } from "lucide-react";
+import { BarChart3, MessageSquare, Users, ArrowLeft, Power, RotateCcw, PowerOff, LogIn } from "lucide-react";
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -19,9 +19,20 @@ export default function AdminDashboard() {
   const [selectedGuildId, setSelectedGuildId] = useState<string | null>(null);
   const sliderTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  const { data: user } = useQuery({
+    queryKey: ["/api/auth/me"],
+    retry: 1,
+  });
+
   const { data: guilds = [] } = useQuery({
-    queryKey: ["/api/admin/guilds"],
+    queryKey: ["/api/admin/my-guilds"],
     refetchInterval: 30000,
+    enabled: !!user,
+    queryFn: async () => {
+      const res = await fetch("/api/admin/my-guilds");
+      if (res.status === 401) return [];
+      return res.json().then(d => d.guilds || []);
+    },
   });
   const { data: conversations = [] } = useQuery<Conversation[]>({
     queryKey: ["/api/conversations"],
