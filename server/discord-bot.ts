@@ -2,6 +2,16 @@ import { Client, GatewayIntentBits, SlashCommandBuilder, ChannelType, Attachment
 
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+const ADMIN_GUILD_IDS = process.env.ADMIN_GUILD_IDS?.split(",").map(id => id.trim()) || [];
+
+// ギルド管理権限チェック
+export function isGuildAdminAllowed(guildId: string): boolean {
+  if (ADMIN_GUILD_IDS.length === 0) {
+    console.warn("⚠️  警告: ADMIN_GUILD_IDS が設定されていません。すべてのギルドが管理可能です。");
+    return true;
+  }
+  return ADMIN_GUILD_IDS.includes(guildId);
+}
 
 let client: Client | null = null;
 
