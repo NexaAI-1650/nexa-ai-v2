@@ -100,10 +100,11 @@ function formatLongText(text: string, lineLength: number = 60): string {
 }
 
 // 長いテキストを要約する
-async function summarizeIfTooLong(text: string): Promise<string> {
+async function summarizeIfTooLong(text: string, guildId?: string): Promise<string> {
   if (text.length <= 2000) return text;
 
   try {
+    const settings = getGuildSettings(guildId);
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -113,7 +114,7 @@ async function summarizeIfTooLong(text: string): Promise<string> {
         "X-Title": "AI Chat Discord Bot",
       },
       body: JSON.stringify({
-        model: currentModel,
+        model: settings.currentModel,
         messages: [{ role: "user", content: `以下のテキストを簡潔に要約してください。2000文字以下で。\n\n${text}` }],
         max_tokens: 800,
       }),
@@ -322,7 +323,7 @@ export async function initDiscordBot() {
 
       // 2000文字以上なら要約
       if (aiResponse.length > 2000) {
-        aiResponse = await summarizeIfTooLong(aiResponse);
+        aiResponse = await summarizeIfTooLong(aiResponse, guildId);
       }
 
       // ユーザー履歴に保存
@@ -465,13 +466,16 @@ export async function initDiscordBot() {
       }
       
       const newModel = interaction.options.getString("model") || "openai/gpt-oss-20b:free";
-      currentModel = newModel;
+      const guildId = interaction.guildId || "dm";
+      setCurrentModel(newModel, guildId);
       lastModelChangeTime = now;
       await interaction.reply({
         content: `✅ **モデルを変更しました**\n選択: ${newModel}`,
         ephemeral: true,
       });
     } else if (interaction.commandName === "model-current") {
+      const guildId = interaction.guildId || "dm";
+      const currentModel = getCurrentModel(guildId);
       await interaction.reply({
         content: `📊 **現在のモデル**\n${currentModel}`,
         ephemeral: true,
@@ -487,7 +491,9 @@ export async function initDiscordBot() {
       const userId = interaction.user.id;
       const userStat = userStats.get(userId) || { totalChats: 0, totalMessages: 0 };
       const isAdmin = interaction.inGuild() && interaction.member?.permissions.has("Administrator");
-      const rateLimitText = isAdmin ? `無制限/${Math.floor(RATE_LIMIT_WINDOW / 1000)}秒` : `${RATE_LIMIT_MAX}/${Math.floor(RATE_LIMIT_WINDOW / 1000)}秒`;
+      const guildId = interaction.guildId || "dm";
+      const rateLimitMax = getRateLimit(guildId);
+      const rateLimitText = isAdmin ? `無制限/${Math.floor(RATE_LIMIT_WINDOW / 1000)}秒` : `${rateLimitMax}/${Math.floor(RATE_LIMIT_WINDOW / 1000)}秒`;
       await interaction.reply({
         content: `📊 **あなたの統計**
 • 総チャット数: ${userStat.totalChats}
