@@ -44,18 +44,30 @@ export default function AdminDashboard() {
 
   const { data: memoryShare } = useQuery({
     queryKey: ["/api/admin/memory-share", selectedGuildId],
+    queryFn: async () => {
+      const res = await fetch(`/api/admin/memory-share?guildId=${selectedGuildId}`);
+      return res.json();
+    },
     refetchInterval: 5000,
     enabled: selectedGuildId !== null,
   });
 
   const { data: currentBotModel } = useQuery({
     queryKey: ["/api/admin/bot-current-model", selectedGuildId],
+    queryFn: async () => {
+      const res = await fetch(`/api/admin/bot-current-model?guildId=${selectedGuildId}`);
+      return res.json();
+    },
     refetchInterval: 30000,
     enabled: selectedGuildId !== null,
   });
 
   const { data: rateLimit } = useQuery({
     queryKey: ["/api/admin/rate-limit", selectedGuildId],
+    queryFn: async () => {
+      const res = await fetch(`/api/admin/rate-limit?guildId=${selectedGuildId}`);
+      return res.json();
+    },
     refetchInterval: 5000,
     enabled: selectedGuildId !== null,
     onSuccess: (data) => {
