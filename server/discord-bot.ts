@@ -190,7 +190,7 @@ export async function initDiscordBot() {
         body: JSON.stringify({
           model: currentModel,
           messages: messagesForAPI,
-          max_tokens: 2000,
+          max_tokens: 1000,
         }),
       });
       const responseTime = Date.now() - startTime;
