@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { Conversation } from "@shared/schema";
 import { Switch } from "@/components/ui/switch";
+import { Progress } from "@/components/ui/progress";
 
 export default function AdminDashboard() {
   const { toast } = useToast();
@@ -319,18 +320,17 @@ export default function AdminDashboard() {
               <div className="flex items-center justify-between mb-3">
                 <span className="text-sm font-medium">レート制限 (1分間のメッセージ数)</span>
               </div>
-              <div className="flex gap-2 items-center">
-                <input 
-                  type="number" 
-                  min="1" 
-                  max="100"
-                  value={rateLimit?.limit || 20}
-                  onChange={(e) => rateLimitMutation.mutate(parseInt(e.target.value))}
-                  disabled={rateLimitMutation.isPending}
-                  className="w-16 px-2 py-1 text-sm border rounded"
-                  data-testid="input-rate-limit"
-                />
-                <span className="text-xs text-muted-foreground">/60秒</span>
+              <div className="flex gap-3 items-end">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-lg font-semibold">{rateLimit?.limit || 20}</span>
+                    <span className="text-xs text-muted-foreground">/60秒</span>
+                  </div>
+                  <Progress 
+                    value={((rateLimit?.limit || 20) / 100) * 100} 
+                    data-testid="progress-rate-limit"
+                  />
+                </div>
                 <Button
                   size="sm"
                   variant="outline"
@@ -340,6 +340,21 @@ export default function AdminDashboard() {
                 >
                   リセット
                 </Button>
+              </div>
+              <div className="mt-3 flex gap-2">
+                {[20, 50, 100].map((val) => (
+                  <Button
+                    key={val}
+                    size="sm"
+                    variant={rateLimit?.limit === val ? "default" : "ghost"}
+                    onClick={() => rateLimitMutation.mutate(val)}
+                    disabled={rateLimitMutation.isPending}
+                    className="text-xs"
+                    data-testid={`button-rate-limit-${val}`}
+                  >
+                    {val}
+                  </Button>
+                ))}
               </div>
             </div>
 
