@@ -438,11 +438,13 @@ export async function initDiscordBot() {
     } else if (interaction.commandName === "stats") {
       const userId = interaction.user.id;
       const userStat = userStats.get(userId) || { totalChats: 0, totalMessages: 0 };
+      const isAdmin = interaction.inGuild() && interaction.member?.permissions.has("Administrator");
+      const rateLimitText = isAdmin ? `無制限/${Math.floor(RATE_LIMIT_WINDOW / 1000)}秒` : `${RATE_LIMIT_MAX}/${Math.floor(RATE_LIMIT_WINDOW / 1000)}秒`;
       await interaction.reply({
         content: `📊 **あなたの統計**
 • 総チャット数: ${userStat.totalChats}
 • 総メッセージ数: ${userStat.totalMessages}
-• レート制限: ${RATE_LIMIT_MAX}/${Math.floor(RATE_LIMIT_WINDOW / 1000)}秒`,
+• レート制限: ${rateLimitText}`,
         ephemeral: true,
       });
     } else if (interaction.commandName === "help") {
