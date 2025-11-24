@@ -241,7 +241,6 @@ export async function initDiscordBot() {
 
     if (interaction.commandName === "chat") {
       const message = interaction.options.getString("message") || "";
-      const model = interaction.options.getString("model") || "google/gemini-2.5-flash";
 
       botStats.commandCount++;
 
@@ -257,7 +256,7 @@ export async function initDiscordBot() {
             "X-Title": "AI Chat Discord Bot",
           },
           body: JSON.stringify({
-            model: model,
+            model: currentModel,
             messages: [{ role: "user", content: message }],
             max_tokens: 1000,
           }),
@@ -349,7 +348,7 @@ export async function initDiscordBot() {
       await interaction.reply({
         content: `🆘 **コマンドヘルプ**
 
-\`/chat <message> [model]\` - AI に質問を送信します
+\`/chat <message>\` - AI に質問を送信します
 \`/model <model>\` - 使用するモデルを変更します (クールダウン: 5秒)
 \`/model-current\` - 現在のモデルを表示します
 \`/admin\` - 管理ダッシュボードを表示します
@@ -434,17 +433,6 @@ export async function registerSlashCommands() {
             .setName("message")
             .setDescription("質問内容")
             .setRequired(true)
-        )
-        .addStringOption((option) =>
-          option
-            .setName("model")
-            .setDescription("AI モデルを選択")
-            .setRequired(false)
-            .addChoices(
-              { name: "Gemini 2.5 Flash", value: "google/gemini-2.5-flash" },
-              { name: "gpt-oss-20b", value: "openai/gpt-oss-20b:free" },
-              { name: "O4 Mini High", value: "openai/gpt-4o-mini" }
-            )
         ),
       new SlashCommandBuilder()
         .setName("model")
