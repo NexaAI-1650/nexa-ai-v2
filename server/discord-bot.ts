@@ -45,6 +45,34 @@ function formatLongText(text: string, lineLength: number = 60): string {
   return result;
 }
 
+// 長いテキストを要約する
+async function summarizeIfTooLong(text: string): Promise<string> {
+  if (text.length <= 2000) return text;
+
+  try {
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+        "HTTP-Referer": "https://replit.dev",
+        "X-Title": "AI Chat Discord Bot",
+      },
+      body: JSON.stringify({
+        model: currentModel,
+        messages: [{ role: "user", content: `以下のテキストを簡潔に要約してください。2000文字以下で。\n\n${text}` }],
+        max_tokens: 800,
+      }),
+    });
+
+    const data = (await response.json()) as any;
+    if (data.error) return text;
+    return data.choices[0]?.message?.content || text;
+  } catch {
+    return text;
+  }
+}
+
 // 定期的に古い会話を削除
 setInterval(() => {
   const now = Date.now();
@@ -211,7 +239,12 @@ export async function initDiscordBot() {
         return;
       }
 
-      const aiResponse = data.choices[0]?.message?.content || "応答がありません";
+      let aiResponse = data.choices[0]?.message?.content || "応答がありません";
+
+      // 2000文字以上なら要約
+      if (aiResponse.length > 2000) {
+        aiResponse = await summarizeIfTooLong(aiResponse);
+      }
 
       // ユーザー履歴に保存
       userConv.messages.push({ role: "assistant", content: aiResponse });
@@ -284,7 +317,12 @@ export async function initDiscordBot() {
           return;
         }
 
-        const aiResponse = data.choices[0]?.message?.content || "応答がありません";
+        let aiResponse = data.choices[0]?.message?.content || "応答がありません";
+
+        // 2000文字以上なら要約
+        if (aiResponse.length > 2000) {
+          aiResponse = await summarizeIfTooLong(aiResponse);
+        }
 
         if (aiResponse.length > 2000) {
           const formattedText = formatLongText(aiResponse);
