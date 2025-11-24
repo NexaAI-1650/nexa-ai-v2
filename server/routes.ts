@@ -468,6 +468,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // Development test login (for testing in environments where Discord OAuth can't work)
+  app.get("/api/auth/test-login", async (req: Request, res) => {
+    try {
+      req.session!.userId = "test_user_123";
+      req.session!.username = "TestUser";
+      req.session!.avatar = "test_avatar";
+      req.session!.accessToken = "test_token_for_development";
+      res.json({ success: true, message: "Test login successful" });
+    } catch (error) {
+      console.error("Test login error:", error);
+      res.status(500).json({ error: "Test login failed" });
+    }
+  });
+
   app.get("/api/auth/discord", async (req: Request, res) => {
     try {
       const { clientId } = await getDiscordOAuthCredentials();

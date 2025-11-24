@@ -213,7 +213,7 @@ export default function AdminDashboard() {
             Discord アカウントで連携してダッシュボードにアクセスしてください。
           </p>
           <Button 
-            className="w-full" 
+            className="w-full mb-3" 
             onClick={() => {
               if (authUrl?.authUrl) {
                 window.location.href = authUrl.authUrl;
@@ -225,6 +225,26 @@ export default function AdminDashboard() {
             <LogIn className="w-4 h-4 mr-2" />
             Discord でログイン
           </Button>
+          <div className="border-t my-4 pt-4">
+            <p className="text-xs text-muted-foreground text-center mb-3">
+              （開発テスト用）
+            </p>
+            <Button 
+              className="w-full" 
+              variant="outline"
+              onClick={async () => {
+                try {
+                  await fetch("/api/auth/test-login");
+                  window.location.reload();
+                } catch (error) {
+                  console.error("Test login failed:", error);
+                }
+              }}
+              data-testid="button-test-login"
+            >
+              開発用テストログイン
+            </Button>
+          </div>
         </Card>
       </div>
     );
