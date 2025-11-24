@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -7,11 +8,12 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { Conversation } from "@shared/schema";
 import { Switch } from "@/components/ui/switch";
-import { Progress } from "@/components/ui/progress";
+import { Slider } from "@/components/ui/slider";
 
 export default function AdminDashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [sliderValue, setSliderValue] = useState<number[]>([20]);
   const { data: conversations = [] } = useQuery<Conversation[]>({
     queryKey: ["/api/conversations"],
   });
@@ -44,6 +46,11 @@ export default function AdminDashboard() {
   const { data: rateLimit } = useQuery({
     queryKey: ["/api/admin/rate-limit"],
     refetchInterval: 5000,
+    onSuccess: (data) => {
+      if (data?.limit) {
+        setSliderValue([data.limit]);
+      }
+    },
   });
 
   const memoryShareMutation = useMutation({
@@ -311,7 +318,7 @@ export default function AdminDashboard() {
               <div className="flex items-center justify-between mb-3">
                 <span className="text-sm font-medium">現在のモデル</span>
               </div>
-              <p className="text-xs text-muted-foreground font-mono">
+              <p className="text-lg font-semibold font-mono break-all">
                 {currentBotModel?.model || "loading..."}
               </p>
             </div>
@@ -320,41 +327,58 @@ export default function AdminDashboard() {
               <div className="flex items-center justify-between mb-3">
                 <span className="text-sm font-medium">レート制限 (1分間のメッセージ数)</span>
               </div>
-              <div className="flex gap-3 items-end">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-lg font-semibold">{rateLimit?.limit || 20}</span>
+              <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <div className="flex-1">
+                    <Slider
+                      value={sliderValue}
+                      onValueChange={(value) => {
+                        setSliderValue(value);
+                        rateLimitMutation.mutate(value[0]);
+                      }}
+                      min={1}
+                      max={100}
+                      step={1}
+                      disabled={rateLimitMutation.isPending}
+                      data-testid="slider-rate-limit"
+                      className="w-full"
+                    />
+                  </div>
+                  <div className="flex items-center gap-1 whitespace-nowrap">
+                    <span className="text-lg font-semibold">{sliderValue[0]}</span>
                     <span className="text-xs text-muted-foreground">/60秒</span>
                   </div>
-                  <Progress 
-                    value={((rateLimit?.limit || 20) / 100) * 100} 
-                    data-testid="progress-rate-limit"
-                  />
                 </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => rateLimitMutation.mutate(20)}
-                  disabled={rateLimitMutation.isPending || rateLimit?.limit === 20}
-                  data-testid="button-rate-limit-reset"
-                >
-                  リセット
-                </Button>
-              </div>
-              <div className="mt-3 flex gap-2">
-                {[20, 50, 100].map((val) => (
+                <div className="flex gap-2">
                   <Button
-                    key={val}
                     size="sm"
-                    variant={rateLimit?.limit === val ? "default" : "ghost"}
-                    onClick={() => rateLimitMutation.mutate(val)}
-                    disabled={rateLimitMutation.isPending}
-                    className="text-xs"
-                    data-testid={`button-rate-limit-${val}`}
+                    variant="outline"
+                    onClick={() => {
+                      setSliderValue([20]);
+                      rateLimitMutation.mutate(20);
+                    }}
+                    disabled={rateLimitMutation.isPending || sliderValue[0] === 20}
+                    data-testid="button-rate-limit-reset"
                   >
-                    {val}
+                    リセット
                   </Button>
-                ))}
+                  {[20, 50, 100].map((val) => (
+                    <Button
+                      key={val}
+                      size="sm"
+                      variant={sliderValue[0] === val ? "default" : "ghost"}
+                      onClick={() => {
+                        setSliderValue([val]);
+                        rateLimitMutation.mutate(val);
+                      }}
+                      disabled={rateLimitMutation.isPending}
+                      className="text-xs"
+                      data-testid={`button-rate-limit-${val}`}
+                    >
+                      {val}
+                    </Button>
+                  ))}
+                </div>
               </div>
             </div>
 
