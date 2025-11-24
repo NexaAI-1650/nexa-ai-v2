@@ -191,8 +191,35 @@ export default function AdminDashboard() {
         </div>
       </header>
 
+      {/* Server Selector */}
+      <div className="border-b bg-card/50 px-6 py-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="mb-2">
+            <label className="text-sm font-medium">サーバーを選択</label>
+          </div>
+          <Select value={selectedGuildId || ""} onValueChange={setSelectedGuildId}>
+            <SelectTrigger data-testid="select-guild" className="w-full max-w-xs">
+              <SelectValue placeholder="サーバーを選択してください" />
+            </SelectTrigger>
+            <SelectContent>
+              {(guilds?.guilds || []).map((guild: any) => (
+                <SelectItem key={guild.guildId} value={guild.guildId}>
+                  Server: {guild.guildId}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
       {/* Main Content */}
       <main className="p-6 max-w-6xl mx-auto">
+        {!selectedGuildId ? (
+          <Card className="p-8 text-center">
+            <p className="text-muted-foreground">サーバーを選択してください</p>
+          </Card>
+        ) : (
+          <>
         {/* Web Stats */}
         <div className="mb-8">
           <h2 className="text-lg font-semibold mb-4">Web チャット統計</h2>
@@ -466,6 +493,8 @@ export default function AdminDashboard() {
             </div>
           </div>
         </Card>
+          </>
+        )}
       </main>
     </div>
   );
