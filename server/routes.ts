@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { chatRequestSchema } from "@shared/schema";
 import { storage } from "./storage";
-import { restartDiscordBot, shutdownDiscordBot, getBotStatus, startDiscordBot, getBotChatStats, getMemoryShareEnabled, setMemoryShareEnabled, getCurrentModel, setCurrentModel, getRateLimit, setRateLimit, registerSlashCommands, getAllGuildSettings } from "./discord-bot";
+import { restartDiscordBot, shutdownDiscordBot, getBotStatus, startDiscordBot, getBotChatStats, getMemoryShareEnabled, setMemoryShareEnabled, getCurrentModel, setCurrentModel, getRateLimit, setRateLimit, registerSlashCommands, getAllGuildSettings, getAvailableGuildsExport } from "./discord-bot";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
@@ -385,11 +385,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/admin/guilds", async (_req, res) => {
     try {
-      const guildSettings = getAllGuildSettings();
-      const guilds = Array.from(guildSettings.entries()).map(([guildId, settings]) => ({
-        guildId,
-        ...settings,
-      }));
+      const guilds = getAvailableGuildsExport();
       res.json({ guilds });
     } catch (error) {
       console.error("Guilds get error:", error);

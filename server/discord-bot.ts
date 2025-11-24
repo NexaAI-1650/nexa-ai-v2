@@ -64,6 +64,24 @@ function getGuildIds(): string[] {
   return Array.from(guildSettings.keys());
 }
 
+// Bot が入っているサーバーの情報を取得
+function getAvailableGuilds(): Array<{ guildId: string; guildName: string; currentModel: string; rateLimitMax: number; memoryShareEnabled: boolean }> {
+  if (!client || !client.isReady()) {
+    return [];
+  }
+  
+  const guilds = client.guilds.cache.map((guild) => {
+    const settings = getGuildSettings(guild.id);
+    return {
+      guildId: guild.id,
+      guildName: guild.name,
+      ...settings,
+    };
+  });
+  
+  return guilds;
+}
+
 // ユーザーごとのレート制限
 interface RateLimit {
   count: number;
@@ -576,6 +594,10 @@ export function setRateLimit(limit: number, guildId?: string) {
 
 export function getAllGuildSettings() {
   return guildSettings;
+}
+
+export function getAvailableGuildsExport() {
+  return getAvailableGuilds();
 }
 
 export async function registerSlashCommands() {
