@@ -1,0 +1,103 @@
+~/workspace$ git remote set-url origin "https://NexaAI-1650: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@github.com/NexaAI-1650/nexa-ai-v2.git"
+~/workspace$ git push -u origin main                                                                                                       
+Enumerating objects: 1256, done.
+Counting objects: 100% (1256/1256), done.
+Delta compression using up to 8 threads
+Compressing objects: 100% (1238/1238), done.
+Writing objects: 100% (1256/1256), 3.71 MiB | 8.69 MiB/s, done.
+Total 1256 (delta 969), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (969/969), done.
+remote: error: GH013: Repository rule violations found for refs/heads/main.
+remote: 
+remote: - GITHUB PUSH PROTECTION
+remote:   —————————————————————————————————————————
+remote:     Resolve the following violations before pushing again
+remote: 
+remote:     - Push cannot contain secrets
+remote: 
+remote:     
+remote:      (?) Learn how to resolve a blocked push
+remote:      https://docs.github.com/code-security/secret-scanning/working-with-secret-scanning-and-push-protection/working-with-push-protection-from-the-command-line#resolving-a-blocked-push
+remote:     
+remote:     
+remote:       —— Discord Bot Token —————————————————————————————————
+remote:        locations:
+remote:          - commit: b9dc4cd68216a35050bca9bbe8acdf2eec3f7004
+remote:            path: .replit:57
+remote:          - commit: f1c62291cc24bcbb2096c8ec36a3bafc419bfb5d
+remote:            path: .replit:57
+remote:          - commit: 000a3da4178d1e3e8694276dda2d13028e718f04
+remote:            path: .replit:61
+remote:          - commit: b9703280f7050558264eb28fddbd9ed5e56a791f
+remote:            path: .replit:61
+remote:          - commit: b54fc09bdee34ea97c101da7479f2dc2196f5668
+remote:            path: .replit:65
+remote:     
+remote:        (?) To push, remove secret from commit(s) or follow this URL to allow the secret.
+remote:        https://github.com/NexaAI-1650/nexa-ai-v2/security/secret-scanning/unblock-secret/35vA6L33o83JAPqjJCqW60hdYog
+remote:     
+remote: 
+remote: 
+To https://github.com/NexaAI-1650/nexa-ai-v2.git
+ ! [remote rejected] main -> main (push declined due to repository rule violations)
+error: failed to push some refs to 'https://github.com/NexaAI-1650/nexa-ai-v2.git'
+~/workspace$ ^C
+~/workspace$ git rm --cached .replit
+echo ".replit" >> .gitignore
+git add .gitignore
+git commit -m "Remove .replit from tracking"
+git push origin main
+rm '.replit'
+[main 41ac923] Remove .replit from tracking
+ 2 files changed, 1 insertion(+), 70 deletions(-)
+ delete mode 100644 .replit
+Enumerating objects: 1268, done.
+Counting objects: 100% (1268/1268), done.
+Delta compression using up to 8 threads
+Compressing objects: 100% (1250/1250), done.
+Writing objects: 100% (1268/1268), 3.78 MiB | 8.82 MiB/s, done.
+Total 1268 (delta 980), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (980/980), done.
+remote: error: GH013: Repository rule violations found for refs/heads/main.
+remote: 
+remote: - GITHUB PUSH PROTECTION
+remote:   —————————————————————————————————————————
+remote:     Resolve the following violations before pushing again
+remote: 
+remote:     - Push cannot contain secrets
+remote: 
+remote:     
+remote:      (?) Learn how to resolve a blocked push
+remote:      https://docs.github.com/code-security/secret-scanning/working-with-secret-scanning-and-push-protection/working-with-push-protection-from-the-command-line#resolving-a-blocked-push
+remote:     
+remote:     
+remote:       —— GitHub Personal Access Token ——————————————————————
+remote:        locations:
+remote:          - commit: ec5ae4983e175ecd8a85337c9fe5a6d922ced6f9
+remote:            path: attached_assets/Pasted--workspace-git-remote-set-url-origin-https-NexaAI-1650-ghp-qMlpyFda1U1ETFCFEPfhT9Rpov0rIr0TcSgd-1763980032905_1763980032905.txt:1
+remote:     
+remote:        (?) To push, remove secret from commit(s) or follow this URL to allow the secret.
+remote:        https://github.com/NexaAI-1650/nexa-ai-v2/security/secret-scanning/unblock-secret/35vAVEeHDDbO9X0GvmJPUWd5yFa
+remote:     
+remote:     
+remote:       —— Discord Bot Token —————————————————————————————————
+remote:        locations:
+remote:          - commit: b9dc4cd68216a35050bca9bbe8acdf2eec3f7004
+remote:            path: .replit:57
+remote:          - commit: f1c62291cc24bcbb2096c8ec36a3bafc419bfb5d
+remote:            path: .replit:57
+remote:          - commit: 000a3da4178d1e3e8694276dda2d13028e718f04
+remote:            path: .replit:61
+remote:          - commit: b9703280f7050558264eb28fddbd9ed5e56a791f
+remote:            path: .replit:61
+remote:          - commit: b54fc09bdee34ea97c101da7479f2dc2196f5668
+remote:            path: .replit:65
+remote:     
+remote:        (?) To push, remove secret from commit(s) or follow this URL to allow the secret.
+remote:        https://github.com/NexaAI-1650/nexa-ai-v2/security/secret-scanning/unblock-secret/35vA6L33o83JAPqjJCqW60hdYog
+remote:     
+remote: 
+remote: 
+To https://github.com/NexaAI-1650/nexa-ai-v2.git
+ ! [remote rejected] main -> main (push declined due to repository rule violations)
+error: failed to push some refs to 'https://github.com/NexaAI-1650/nexa-ai-v2.git'
