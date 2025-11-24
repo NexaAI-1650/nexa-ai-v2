@@ -37,7 +37,7 @@ export default function AdminDashboard() {
 
   const { data: currentBotModel } = useQuery({
     queryKey: ["/api/admin/bot-current-model"],
-    refetchInterval: 5000,
+    refetchInterval: 30000,
   });
 
   const { data: rateLimit } = useQuery({
@@ -331,6 +331,15 @@ export default function AdminDashboard() {
                   data-testid="input-rate-limit"
                 />
                 <span className="text-xs text-muted-foreground">/60秒</span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => rateLimitMutation.mutate(20)}
+                  disabled={rateLimitMutation.isPending || rateLimit?.limit === 20}
+                  data-testid="button-rate-limit-reset"
+                >
+                  リセット
+                </Button>
               </div>
             </div>
 

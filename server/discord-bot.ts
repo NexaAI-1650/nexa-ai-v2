@@ -31,7 +31,7 @@ const EXTENSION_CACHE = {
 };
 
 let userConversations: Map<string, UserConversation> = new Map();
-let memoryShareEnabled = false;
+let memoryShareEnabled = true;
 let lastModelChangeTime = 0;
 const MAX_USER_HISTORY = 10;
 const HISTORY_CLEANUP_INTERVAL = 30 * 60 * 1000;
