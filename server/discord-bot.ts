@@ -154,6 +154,8 @@ export async function initDiscordBot() {
 
     // レート制限チェック（管理者は免除）
     const userId = message.author.id;
+    const guildId = message.guildId || "dm";
+    const settings = getGuildSettings(guildId);
     const isAdmin = message.member?.permissions.has("Administrator") ?? false;
     
     if (!isAdmin) {
@@ -165,7 +167,7 @@ export async function initDiscordBot() {
         userRateLimits.set(userId, rateLimit);
       }
       
-      if (rateLimit.count >= RATE_LIMIT_MAX) {
+      if (rateLimit.count >= settings.rateLimitMax) {
         const remainingSec = Math.ceil((rateLimit.resetTime - now) / 1000);
         await message.reply({
           content: `⏳ レート制限中です。${remainingSec}秒後に再度使用できます。`,
@@ -256,7 +258,7 @@ export async function initDiscordBot() {
       
       // 履歴を含めるかどうか決定
       let messagesForAPI: any[] = [];
-      if (memoryShareEnabled && userConv.messages.length > 1) {
+      if (settings.memoryShareEnabled && userConv.messages.length > 1) {
         messagesForAPI = userConv.messages.map((msg) => ({
           role: msg.role,
           content: msg.role === "user" ? [{ type: "text", text: msg.content }] : msg.content,
@@ -275,7 +277,7 @@ export async function initDiscordBot() {
           "X-Title": "AI Chat Discord Bot",
         },
         body: JSON.stringify({
-          model: currentModel,
+          model: settings.currentModel,
           messages: messagesForAPI,
           max_tokens: 1000,
         }),
@@ -311,7 +313,7 @@ export async function initDiscordBot() {
 
       botChatStats.totalMessages += 2;
       botChatStats.totalTokens += Math.ceil((userMessage.length + aiResponse.length) / 4);
-      botChatStats.modelCounts[currentModel] = (botChatStats.modelCounts[currentModel] || 0) + 1;
+      botChatStats.modelCounts[settings.currentModel] = (botChatStats.modelCounts[settings.currentModel] || 0) + 1;
       botChatStats.totalChats = Object.keys(botChatStats.modelCounts).length;
 
       // ユーザー統計を更新
@@ -348,6 +350,8 @@ export async function initDiscordBot() {
 
     if (interaction.commandName === "chat") {
       const message = interaction.options.getString("message") || "";
+      const guildId = interaction.guildId || "dm";
+      const settings = getGuildSettings(guildId);
 
       botStats.commandCount++;
 
@@ -363,7 +367,7 @@ export async function initDiscordBot() {
             "X-Title": "AI Chat Discord Bot",
           },
           body: JSON.stringify({
-            model: currentModel,
+            model: settings.currentModel,
             messages: [{ role: "user", content: message }],
             max_tokens: 1000,
           }),
@@ -540,24 +544,38 @@ export function getBotChatStats() {
   return botChatStats;
 }
 
-export function getMemoryShareEnabled() {
-  return memoryShareEnabled;
+export function getMemoryShareEnabled(guildId?: string) {
+  const settings = getGuildSettings(guildId);
+  return settings.memoryShareEnabled;
 }
 
-export function setMemoryShareEnabled(enabled: boolean) {
-  memoryShareEnabled = enabled;
+export function setMemoryShareEnabled(enabled: boolean, guildId?: string) {
+  const settings = getGuildSettings(guildId);
+  settings.memoryShareEnabled = enabled;
 }
 
-export function getCurrentModel() {
-  return currentModel;
+export function getCurrentModel(guildId?: string) {
+  const settings = getGuildSettings(guildId);
+  return settings.currentModel;
 }
 
-export function getRateLimit() {
-  return RATE_LIMIT_MAX;
+export function setCurrentModel(model: string, guildId?: string) {
+  const settings = getGuildSettings(guildId);
+  settings.currentModel = model;
 }
 
-export function setRateLimit(limit: number) {
-  RATE_LIMIT_MAX = Math.max(1, Math.min(limit, 100)); // 1～100の間に制限
+export function getRateLimit(guildId?: string) {
+  const settings = getGuildSettings(guildId);
+  return settings.rateLimitMax;
+}
+
+export function setRateLimit(limit: number, guildId?: string) {
+  const settings = getGuildSettings(guildId);
+  settings.rateLimitMax = Math.max(1, Math.min(limit, 100)); // 1～100の間に制限
+}
+
+export function getAllGuildSettings() {
+  return guildSettings;
 }
 
 export async function registerSlashCommands() {

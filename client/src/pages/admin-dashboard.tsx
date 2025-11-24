@@ -10,12 +10,19 @@ import type { Conversation } from "@shared/schema";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { useEffect } from "react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function AdminDashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [sliderValue, setSliderValue] = useState<number[]>([20]);
+  const [selectedGuildId, setSelectedGuildId] = useState<string | null>(null);
   const sliderTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const { data: guilds = [] } = useQuery({
+    queryKey: ["/api/admin/guilds"],
+    refetchInterval: 30000,
+  });
   const { data: conversations = [] } = useQuery<Conversation[]>({
     queryKey: ["/api/conversations"],
   });
@@ -36,18 +43,21 @@ export default function AdminDashboard() {
   });
 
   const { data: memoryShare } = useQuery({
-    queryKey: ["/api/admin/memory-share"],
+    queryKey: ["/api/admin/memory-share", selectedGuildId],
     refetchInterval: 5000,
+    enabled: selectedGuildId !== null,
   });
 
   const { data: currentBotModel } = useQuery({
-    queryKey: ["/api/admin/bot-current-model"],
+    queryKey: ["/api/admin/bot-current-model", selectedGuildId],
     refetchInterval: 30000,
+    enabled: selectedGuildId !== null,
   });
 
   const { data: rateLimit } = useQuery({
-    queryKey: ["/api/admin/rate-limit"],
+    queryKey: ["/api/admin/rate-limit", selectedGuildId],
     refetchInterval: 5000,
+    enabled: selectedGuildId !== null,
     onSuccess: (data) => {
       if (data?.limit) {
         setSliderValue([data.limit]);
@@ -57,11 +67,11 @@ export default function AdminDashboard() {
 
   const memoryShareMutation = useMutation({
     mutationFn: async (enabled: boolean) => {
-      const res = await apiRequest("POST", "/api/admin/memory-share", { enabled });
+      const res = await apiRequest("POST", "/api/admin/memory-share", { enabled, guildId: selectedGuildId });
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/memory-share"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/memory-share", selectedGuildId] });
       toast({ description: "設定を更新しました", duration: 3000 });
     },
     onError: (error: any) => {
@@ -75,11 +85,11 @@ export default function AdminDashboard() {
 
   const rateLimitMutation = useMutation({
     mutationFn: async (limit: number) => {
-      const res = await apiRequest("POST", "/api/admin/rate-limit", { limit });
+      const res = await apiRequest("POST", "/api/admin/rate-limit", { limit, guildId: selectedGuildId });
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/rate-limit"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/rate-limit", selectedGuildId] });
       toast({ description: "レート制限を更新しました", duration: 3000 });
     },
     onError: (error: any) => {

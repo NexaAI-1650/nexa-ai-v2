@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { chatRequestSchema } from "@shared/schema";
 import { storage } from "./storage";
-import { restartDiscordBot, shutdownDiscordBot, getBotStatus, startDiscordBot, getBotChatStats, getMemoryShareEnabled, setMemoryShareEnabled, getCurrentModel, getRateLimit, setRateLimit, registerSlashCommands } from "./discord-bot";
+import { restartDiscordBot, shutdownDiscordBot, getBotStatus, startDiscordBot, getBotChatStats, getMemoryShareEnabled, setMemoryShareEnabled, getCurrentModel, setCurrentModel, getRateLimit, setRateLimit, registerSlashCommands, getAllGuildSettings } from "./discord-bot";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
@@ -383,9 +383,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/admin/memory-share", async (_req, res) => {
+  app.get("/api/admin/guilds", async (_req, res) => {
     try {
-      res.json({ enabled: getMemoryShareEnabled() });
+      const guildSettings = getAllGuildSettings();
+      const guilds = Array.from(guildSettings.entries()).map(([guildId, settings]) => ({
+        guildId,
+        ...settings,
+      }));
+      res.json({ guilds });
+    } catch (error) {
+      console.error("Guilds get error:", error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "サーバー情報取得に失敗しました",
+      });
+    }
+  });
+
+  app.get("/api/admin/memory-share", async (req, res) => {
+    try {
+      const guildId = req.query.guildId as string | undefined;
+      res.json({ enabled: getMemoryShareEnabled(guildId) });
     } catch (error) {
       console.error("Memory share get error:", error);
       res.status(500).json({
@@ -396,8 +413,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/admin/memory-share", async (req, res) => {
     try {
-      const { enabled } = req.body;
-      setMemoryShareEnabled(enabled);
+      const { enabled, guildId } = req.body;
+      setMemoryShareEnabled(enabled, guildId);
       res.json({ success: true, enabled });
     } catch (error) {
       console.error("Memory share set error:", error);
@@ -407,9 +424,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/admin/bot-current-model", async (_req, res) => {
+  app.get("/api/admin/bot-current-model", async (req, res) => {
     try {
-      res.json({ model: getCurrentModel() });
+      const guildId = req.query.guildId as string | undefined;
+      res.json({ model: getCurrentModel(guildId) });
     } catch (error) {
       console.error("Bot current model error:", error);
       res.status(500).json({
@@ -418,9 +436,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/admin/rate-limit", async (_req, res) => {
+  app.post("/api/admin/bot-current-model", async (req, res) => {
     try {
-      res.json({ limit: getRateLimit() });
+      const { model, guildId } = req.body;
+      setCurrentModel(model, guildId);
+      res.json({ success: true, model });
+    } catch (error) {
+      console.error("Bot current model set error:", error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "モデル変更に失敗しました",
+      });
+    }
+  });
+
+  app.get("/api/admin/rate-limit", async (req, res) => {
+    try {
+      const guildId = req.query.guildId as string | undefined;
+      res.json({ limit: getRateLimit(guildId) });
     } catch (error) {
       console.error("Rate limit get error:", error);
       res.status(500).json({
@@ -431,9 +463,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/admin/rate-limit", async (req, res) => {
     try {
-      const { limit } = req.body;
-      setRateLimit(limit);
-      res.json({ success: true, limit: getRateLimit() });
+      const { limit, guildId } = req.body;
+      setRateLimit(limit, guildId);
+      res.json({ success: true, limit: getRateLimit(guildId) });
     } catch (error) {
       console.error("Rate limit set error:", error);
       res.status(500).json({
