@@ -517,30 +517,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!tokenResponse.ok) {
         const errorText = await tokenResponse.text();
         console.error("Token exchange failed:", errorText);
-        return res.redirect("/admin?error=token_failed");
+        return res.status(400).json({ error: "token_exchange_failed", details: errorText });
       }
 
       const tokenData = await tokenResponse.json();
+      console.log("Auth callback - got token:", { access_token: tokenData.access_token?.substring(0, 10) + "..." });
+      
       const userResponse = await fetch("https://discord.com/api/users/@me", {
         headers: { Authorization: `Bearer ${tokenData.access_token}` },
       });
 
       if (!userResponse.ok) {
-        console.error("User fetch failed:", await userResponse.text());
-        return res.redirect("/admin?error=user_fetch_failed");
+        const errorText = await userResponse.text();
+        console.error("User fetch failed:", errorText);
+        return res.status(400).json({ error: "user_fetch_failed", details: errorText });
       }
 
       const userData = await userResponse.json();
+      console.log("Auth callback - got user data:", userData.id, userData.username);
 
       req.session!.userId = userData.id;
       req.session!.username = userData.username;
       req.session!.avatar = userData.avatar;
       req.session!.accessToken = tokenData.access_token;
 
-      res.redirect("/admin");
+      req.session!.save((err) => {
+        if (err) {
+          console.error("Session save error:", err);
+          return res.status(500).json({ error: "session_save_failed", details: err.message });
+        }
+        console.log("Auth callback - session saved, redirecting to /admin");
+        res.redirect("/admin");
+      });
     } catch (error) {
       console.error("Auth callback error:", error);
-      res.redirect("/admin?error=callback_failed");
+      res.status(500).json({ error: "callback_error", details: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 
