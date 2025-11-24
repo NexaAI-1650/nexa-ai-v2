@@ -471,9 +471,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/auth/discord", async (req: Request, res) => {
     try {
       const { clientId } = await getDiscordOAuthCredentials();
-      const protocol = req.protocol || "http";
-      const host = req.get("host") || "localhost:5000";
-      const redirectUri = `${protocol}://${host}/api/auth/callback`;
+      const redirectUri = "http://localhost:5000/api/auth/callback";
+      
+      console.log("Auth discord - redirectUri:", redirectUri);
       
       const authUrl = new URL("https://discord.com/oauth2/authorize");
       authUrl.searchParams.set("client_id", clientId);
@@ -481,6 +481,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       authUrl.searchParams.set("scope", "identify email guilds");
       authUrl.searchParams.set("redirect_uri", redirectUri);
       
+      console.log("Auth discord - authUrl:", authUrl.toString());
       res.json({ authUrl: authUrl.toString() });
     } catch (error) {
       console.error("Auth Discord error:", error);
@@ -496,9 +497,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { clientId, clientSecret } = await getDiscordOAuthCredentials();
-      const protocol = req.protocol || "http";
-      const host = req.get("host") || "localhost:5000";
-      const redirectUri = `${protocol}://${host}/api/auth/callback`;
+      const redirectUri = "http://localhost:5000/api/auth/callback";
+      
+      console.log("Auth callback - code:", code);
+      console.log("Auth callback - redirectUri:", redirectUri);
 
       const tokenResponse = await fetch("https://discord.com/api/oauth2/token", {
         method: "POST",
