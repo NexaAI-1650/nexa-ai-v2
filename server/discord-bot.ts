@@ -126,25 +126,30 @@ export async function initDiscordBot() {
     let userMessage = message.content.replace(/<@!?\d+>/g, "").trim();
     if (!userMessage && message.attachments.size === 0) return;
 
-    // レート制限チェック
+    // レート制限チェック（管理者は免除）
     const userId = message.author.id;
-    const now = Date.now();
-    let rateLimit = userRateLimits.get(userId);
+    const isAdmin = message.member?.permissions.has("Administrator") ?? false;
     
-    if (!rateLimit || now >= rateLimit.resetTime) {
-      rateLimit = { count: 0, resetTime: now + RATE_LIMIT_WINDOW };
-      userRateLimits.set(userId, rateLimit);
+    if (!isAdmin) {
+      const now = Date.now();
+      let rateLimit = userRateLimits.get(userId);
+      
+      if (!rateLimit || now >= rateLimit.resetTime) {
+        rateLimit = { count: 0, resetTime: now + RATE_LIMIT_WINDOW };
+        userRateLimits.set(userId, rateLimit);
+      }
+      
+      if (rateLimit.count >= RATE_LIMIT_MAX) {
+        const remainingSec = Math.ceil((rateLimit.resetTime - now) / 1000);
+        await message.reply({
+          content: `⏳ レート制限中です。${remainingSec}秒後に再度使用できます。`,
+        });
+        return;
+      }
+      
+      rateLimit.count++;
     }
     
-    if (rateLimit.count >= RATE_LIMIT_MAX) {
-      const remainingSec = Math.ceil((rateLimit.resetTime - now) / 1000);
-      await message.reply({
-        content: `⏳ レート制限中です。${remainingSec}秒後に再度使用できます。`,
-      });
-      return;
-    }
-    
-    rateLimit.count++;
     botStats.commandCount++;
 
     try {
