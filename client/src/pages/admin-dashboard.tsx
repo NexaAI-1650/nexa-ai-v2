@@ -199,18 +199,61 @@ export default function AdminDashboard() {
     ...new Set(conversations.map((c) => c.model || "unknown")),
   ];
 
+  const { data: authUrl } = useQuery({
+    queryKey: ["/api/auth/discord"],
+    enabled: !user,
+  });
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
+        <Card className="p-8 max-w-md">
+          <h1 className="text-2xl font-bold mb-4">管理ダッシュボード</h1>
+          <p className="text-muted-foreground mb-6">
+            Discord アカウントで連携してダッシュボードにアクセスしてください。
+          </p>
+          <Button 
+            className="w-full" 
+            onClick={() => {
+              if (authUrl?.authUrl) {
+                window.location.href = authUrl.authUrl;
+              }
+            }}
+            disabled={!authUrl?.authUrl}
+            data-testid="button-discord-login"
+          >
+            <LogIn className="w-4 h-4 mr-2" />
+            Discord でログイン
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-card/30 to-background">
       {/* Header */}
       <header className="border-b bg-card backdrop-blur-sm bg-card/80 shadow-sm">
         <div className="flex items-center justify-between px-6 py-4">
           <h1 className="text-2xl font-bold">Bot管理ダッシュボード</h1>
-          <Link href="/">
-            <Button variant="outline" size="sm">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              チャットに戻る
+          <div className="flex items-center gap-3">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => {
+                fetch("/api/auth/logout").then(() => window.location.reload());
+              }}
+              data-testid="button-logout"
+            >
+              ログアウト
             </Button>
-          </Link>
+            <Link href="/">
+              <Button variant="outline" size="sm">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                チャットに戻る
+              </Button>
+            </Link>
+          </div>
         </div>
       </header>
 
