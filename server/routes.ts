@@ -70,6 +70,12 @@ async function getDiscordOAuthCredentials() {
   return { clientId, clientSecret };
 }
 
+function getRedirectUri(req: Request): string {
+  const protocol = req.protocol || "http";
+  const host = req.get("host") || "localhost:5000";
+  return `${protocol}://${host}/api/auth/callback`;
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 
@@ -485,7 +491,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/auth/discord", async (req: Request, res) => {
     try {
       const { clientId } = await getDiscordOAuthCredentials();
-      const redirectUri = "http://localhost:5000/api/auth/callback";
+      const redirectUri = getRedirectUri(req);
       
       console.log("Auth discord - redirectUri:", redirectUri);
       
@@ -511,7 +517,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { clientId, clientSecret } = await getDiscordOAuthCredentials();
-      const redirectUri = "http://localhost:5000/api/auth/callback";
+      const redirectUri = getRedirectUri(req);
       
       console.log("Auth callback - code:", code);
       console.log("Auth callback - redirectUri:", redirectUri);
