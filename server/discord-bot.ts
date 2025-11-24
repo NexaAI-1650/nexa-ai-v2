@@ -4,7 +4,22 @@ const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 
 let client: Client | null = null;
-let currentModel = "openai/gpt-oss-20b:free";
+
+// サーバー設定インターフェース
+interface GuildSettings {
+  currentModel: string;
+  rateLimitMax: number;
+  memoryShareEnabled: boolean;
+}
+
+// サーバーごとの設定
+const guildSettings = new Map<string, GuildSettings>();
+const DEFAULT_SETTINGS: GuildSettings = {
+  currentModel: "openai/gpt-oss-20b:free",
+  rateLimitMax: 20,
+  memoryShareEnabled: true,
+};
+
 let botStats = {
   isRunning: false,
   commandCount: 0,
@@ -31,12 +46,23 @@ const EXTENSION_CACHE = {
 };
 
 let userConversations: Map<string, UserConversation> = new Map();
-let memoryShareEnabled = true;
 let lastModelChangeTime = 0;
 const MAX_USER_HISTORY = 10;
 const HISTORY_CLEANUP_INTERVAL = 30 * 60 * 1000;
 const RATE_LIMIT_WINDOW = 60 * 1000; // 1分
-let RATE_LIMIT_MAX = 20; // 1分間に20メッセージまで
+
+// ヘルパー関数
+function getGuildSettings(guildId?: string): GuildSettings {
+  if (!guildId) return { ...DEFAULT_SETTINGS };
+  if (!guildSettings.has(guildId)) {
+    guildSettings.set(guildId, { ...DEFAULT_SETTINGS });
+  }
+  return guildSettings.get(guildId)!;
+}
+
+function getGuildIds(): string[] {
+  return Array.from(guildSettings.keys());
+}
 
 // ユーザーごとのレート制限
 interface RateLimit {
