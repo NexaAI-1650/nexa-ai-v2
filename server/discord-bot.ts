@@ -33,8 +33,18 @@ const EXTENSION_CACHE = {
 let userConversations: Map<string, UserConversation> = new Map();
 let memoryShareEnabled = false;
 let lastModelChangeTime = 0;
-const MAX_USER_HISTORY = 10; // ユーザーごとの最大保持メッセージ数
-const HISTORY_CLEANUP_INTERVAL = 30 * 60 * 1000; // 30分ごとにクリーンアップ
+const MAX_USER_HISTORY = 10;
+const HISTORY_CLEANUP_INTERVAL = 30 * 60 * 1000;
+const RATE_LIMIT_WINDOW = 60 * 1000; // 1分
+const RATE_LIMIT_MAX = 3; // 1分間に3メッセージまで
+
+// ユーザーごとのレート制限
+interface RateLimit {
+  count: number;
+  resetTime: number;
+}
+let userRateLimits: Map<string, RateLimit> = new Map();
+let userStats: Map<string, { totalChats: number; totalMessages: number }> = new Map();
 
 // テキストに改行を挿入して見やすくする
 function formatLongText(text: string, lineLength: number = 60): string {
@@ -116,6 +126,25 @@ export async function initDiscordBot() {
     let userMessage = message.content.replace(/<@!?\d+>/g, "").trim();
     if (!userMessage && message.attachments.size === 0) return;
 
+    // レート制限チェック
+    const userId = message.author.id;
+    const now = Date.now();
+    let rateLimit = userRateLimits.get(userId);
+    
+    if (!rateLimit || now >= rateLimit.resetTime) {
+      rateLimit = { count: 0, resetTime: now + RATE_LIMIT_WINDOW };
+      userRateLimits.set(userId, rateLimit);
+    }
+    
+    if (rateLimit.count >= RATE_LIMIT_MAX) {
+      const remainingSec = Math.ceil((rateLimit.resetTime - now) / 1000);
+      await message.reply({
+        content: `⏳ レート制限中です。${remainingSec}秒後に再度使用できます。`,
+      });
+      return;
+    }
+    
+    rateLimit.count++;
     botStats.commandCount++;
 
     try {
@@ -175,7 +204,6 @@ export async function initDiscordBot() {
       }
 
       const fullMessage = userMessage + attachmentText;
-      const userId = message.author.id;
       
       // ユーザー会話履歴を取得または作成
       let userConv = userConversations.get(userId);
@@ -254,6 +282,13 @@ export async function initDiscordBot() {
       botChatStats.totalTokens += Math.ceil((userMessage.length + aiResponse.length) / 4);
       botChatStats.modelCounts[currentModel] = (botChatStats.modelCounts[currentModel] || 0) + 1;
       botChatStats.totalChats = Object.keys(botChatStats.modelCounts).length;
+
+      // ユーザー統計を更新
+      let userStat = userStats.get(userId);
+      if (!userStat) userStat = { totalChats: 0, totalMessages: 0 };
+      userStat.totalMessages += 2;
+      if (!userConversations.get(userId)?.messages.length) userStat.totalChats += 1;
+      userStats.set(userId, userStat);
 
       // 応答スピード付きで返信
       const finalResponse = `⏱️ ${responseTime}ms\n\n${aiResponse}`;
@@ -388,11 +423,30 @@ export async function initDiscordBot() {
         content: `📊 **現在のモデル**\n${currentModel}`,
         ephemeral: true,
       });
+    } else if (interaction.commandName === "clear") {
+      const userId = interaction.user.id;
+      userConversations.delete(userId);
+      await interaction.reply({
+        content: "✅ 会話履歴をクリアしました。新しい話題を始められます。",
+        ephemeral: true,
+      });
+    } else if (interaction.commandName === "stats") {
+      const userId = interaction.user.id;
+      const userStat = userStats.get(userId) || { totalChats: 0, totalMessages: 0 };
+      await interaction.reply({
+        content: `📊 **あなたの統計**
+• 総チャット数: ${userStat.totalChats}
+• 総メッセージ数: ${userStat.totalMessages}
+• レート制限: ${RATE_LIMIT_MAX}/${Math.floor(RATE_LIMIT_WINDOW / 1000)}秒`,
+        ephemeral: true,
+      });
     } else if (interaction.commandName === "help") {
       await interaction.reply({
         content: `🆘 **コマンドヘルプ**
 
 \`/chat <message>\` - AI に質問を送信します
+\`/clear\` - 会話履歴をクリアします
+\`/stats\` - あなたの使用統計を表示します
 \`/model <model>\` - 使用するモデルを変更します (クールダウン: 5秒)
 \`/model-current\` - 現在のモデルを表示します
 \`/admin\` - 管理ダッシュボードを表示します
@@ -498,6 +552,12 @@ export async function registerSlashCommands() {
       new SlashCommandBuilder()
         .setName("model-current")
         .setDescription("現在のモデルを表示します"),
+      new SlashCommandBuilder()
+        .setName("clear")
+        .setDescription("会話履歴をクリアします"),
+      new SlashCommandBuilder()
+        .setName("stats")
+        .setDescription("あなたの使用統計を表示します"),
       new SlashCommandBuilder()
         .setName("help")
         .setDescription("コマンドヘルプを表示します"),
