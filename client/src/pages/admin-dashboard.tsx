@@ -6,6 +6,7 @@ import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { Conversation } from "@shared/schema";
+import { Switch } from "@/components/ui/switch";
 
 export default function AdminDashboard() {
   const { toast } = useToast();
@@ -27,6 +28,29 @@ export default function AdminDashboard() {
   const { data: botModels } = useQuery({
     queryKey: ["/api/admin/bot-models"],
     refetchInterval: 300000,
+  });
+
+  const { data: memoryShare } = useQuery({
+    queryKey: ["/api/admin/memory-share"],
+    refetchInterval: 5000,
+  });
+
+  const memoryShareMutation = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      const res = await apiRequest("POST", "/api/admin/memory-share", { enabled });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/memory-share"] });
+      toast({ description: "設定を更新しました", duration: 3000 });
+    },
+    onError: (error: any) => {
+      toast({ 
+        description: error?.message || "設定変更に失敗しました",
+        variant: "destructive",
+        duration: 3000,
+      });
+    },
   });
 
   const restartMutation = useMutation({
@@ -251,9 +275,24 @@ export default function AdminDashboard() {
         </Card>
 
         {/* Bot Control */}
-        <Card className="p-6">
+        <Card className="p-6 mb-8">
           <h2 className="text-lg font-semibold mb-4">Bot コントロール</h2>
           <div className="space-y-4">
+            <div className="p-4 bg-muted/30 rounded-lg border border-border">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-medium">全モデル記憶共有</span>
+                <Switch 
+                  checked={memoryShare?.enabled || false}
+                  onCheckedChange={(checked) => memoryShareMutation.mutate(checked)}
+                  disabled={memoryShareMutation.isPending}
+                  data-testid="toggle-memory-share"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {memoryShare?.enabled ? "有効：過去の会話を含めて AI が応答します" : "無効：現在のメッセージのみで応答します"}
+              </p>
+            </div>
+
             <div className="p-4 bg-muted/30 rounded-lg border border-border">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-sm font-medium">Bot ステータス</span>

@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { chatRequestSchema } from "@shared/schema";
 import { storage } from "./storage";
-import { restartDiscordBot, shutdownDiscordBot, getBotStatus, startDiscordBot, getBotChatStats } from "./discord-bot";
+import { restartDiscordBot, shutdownDiscordBot, getBotStatus, startDiscordBot, getBotChatStats, getMemoryShareEnabled, setMemoryShareEnabled } from "./discord-bot";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
@@ -379,6 +379,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Bot models error:", error);
       res.status(500).json({
         error: error instanceof Error ? error.message : "モデル情報取得に失敗しました",
+      });
+    }
+  });
+
+  app.get("/api/admin/memory-share", async (_req, res) => {
+    try {
+      res.json({ enabled: getMemoryShareEnabled() });
+    } catch (error) {
+      console.error("Memory share get error:", error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "設定取得に失敗しました",
+      });
+    }
+  });
+
+  app.post("/api/admin/memory-share", async (req, res) => {
+    try {
+      const { enabled } = req.body;
+      setMemoryShareEnabled(enabled);
+      res.json({ success: true, enabled });
+    } catch (error) {
+      console.error("Memory share set error:", error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "設定変更に失敗しました",
       });
     }
   });

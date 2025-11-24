@@ -25,6 +25,7 @@ interface UserConversation {
 
 let userConversations: Map<string, UserConversation> = new Map();
 let memoryShareEnabled = false;
+let lastModelChangeTime = 0;
 
 export async function initDiscordBot() {
   if (!DISCORD_TOKEN || !OPENROUTER_API_KEY) {
@@ -305,8 +306,21 @@ export async function initDiscordBot() {
         ephemeral: true,
       });
     } else if (interaction.commandName === "model") {
+      const now = Date.now();
+      const cooldownMs = 5000;
+      
+      if (now - lastModelChangeTime < cooldownMs) {
+        const remainingMs = cooldownMs - (now - lastModelChangeTime);
+        await interaction.reply({
+          content: `⏳ モデル変更はあと ${Math.ceil(remainingMs / 1000)} 秒後に可能です`,
+          ephemeral: true,
+        });
+        return;
+      }
+      
       const newModel = interaction.options.getString("model") || "openai/gpt-oss-20b:free";
       currentModel = newModel;
+      lastModelChangeTime = now;
       await interaction.reply({
         content: `✅ **モデルを変更しました**\n選択: ${newModel}`,
         ephemeral: true,
@@ -316,80 +330,13 @@ export async function initDiscordBot() {
         content: `📊 **現在のモデル**\n${currentModel}`,
         ephemeral: true,
       });
-    } else if (interaction.commandName === "summarize") {
-      const userId = interaction.user.id;
-      const userConv = userConversations.get(userId);
-
-      if (!userConv || userConv.messages.length === 0) {
-        await interaction.reply({
-          content: "❌ 会話履歴がありません",
-          ephemeral: true,
-        });
-        return;
-      }
-
-      await interaction.deferReply();
-
-      try {
-        const conversationText = userConv.messages
-          .map((msg) => `${msg.role === "user" ? "ユーザー" : "AI"}: ${msg.content}`)
-          .join("\n\n");
-
-        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-            "HTTP-Referer": "https://replit.dev",
-            "X-Title": "AI Chat Discord Bot",
-          },
-          body: JSON.stringify({
-            model: currentModel,
-            messages: [
-              {
-                role: "user",
-                content: `以下の会話を日本語で簡潔に要約してください：\n\n${conversationText}`,
-              },
-            ],
-            max_tokens: 500,
-          }),
-        });
-
-        const data = (await response.json()) as any;
-        const summary = data.choices[0]?.message?.content || "要約に失敗しました";
-
-        if (summary.length > 2000) {
-          const attachment = new AttachmentBuilder(Buffer.from(summary, "utf-8"), {
-            name: "summary.txt",
-          });
-          await interaction.editReply({
-            files: [attachment],
-          });
-        } else {
-          await interaction.editReply({
-            content: `📝 **会話の要約:**\n\n${summary}`,
-          });
-        }
-      } catch (error) {
-        console.error("Summary error:", error);
-        await interaction.editReply("要約処理中にエラーが発生しました");
-      }
-    } else if (interaction.commandName === "memory-share") {
-      const toggle = interaction.options.getBoolean("enabled");
-      memoryShareEnabled = toggle;
-      await interaction.reply({
-        content: `✅ 全モデル記憶共有: ${toggle ? "有効" : "無効"}`,
-        ephemeral: true,
-      });
     } else if (interaction.commandName === "help") {
       await interaction.reply({
         content: `🆘 **コマンドヘルプ**
 
 \`/chat <message> [model]\` - AI に質問を送信します
-\`/model <model>\` - 使用するモデルを変更します
+\`/model <model>\` - 使用するモデルを変更します (クールダウン: 5秒)
 \`/model-current\` - 現在のモデルを表示します
-\`/summarize\` - 会話を要約します
-\`/memory-share <enabled>\` - 全モデルで記憶共有のオン・オフ
 \`/admin\` - 管理ダッシュボードを表示します
 \`/help\` - このメッセージを表示します
 
@@ -448,6 +395,14 @@ export function getBotChatStats() {
   return botChatStats;
 }
 
+export function getMemoryShareEnabled() {
+  return memoryShareEnabled;
+}
+
+export function setMemoryShareEnabled(enabled: boolean) {
+  memoryShareEnabled = enabled;
+}
+
 export async function registerSlashCommands() {
   if (!client || !client.isReady()) {
     console.log("Discord Bot がまだ準備完了していません");
@@ -496,18 +451,6 @@ export async function registerSlashCommands() {
       new SlashCommandBuilder()
         .setName("model-current")
         .setDescription("現在のモデルを表示します"),
-      new SlashCommandBuilder()
-        .setName("summarize")
-        .setDescription("会話を要約します"),
-      new SlashCommandBuilder()
-        .setName("memory-share")
-        .setDescription("全モデルで記憶共有のオン・オフ")
-        .addBooleanOption((option) =>
-          option
-            .setName("enabled")
-            .setDescription("有効にするか無効にするか")
-            .setRequired(true)
-        ),
       new SlashCommandBuilder()
         .setName("help")
         .setDescription("コマンドヘルプを表示します"),
