@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -14,6 +14,7 @@ export default function AdminDashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [sliderValue, setSliderValue] = useState<number[]>([20]);
+  const sliderTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { data: conversations = [] } = useQuery<Conversation[]>({
     queryKey: ["/api/conversations"],
   });
@@ -334,7 +335,14 @@ export default function AdminDashboard() {
                       value={sliderValue}
                       onValueChange={(value) => {
                         setSliderValue(value);
-                        rateLimitMutation.mutate(value[0]);
+                        
+                        if (sliderTimeoutRef.current) {
+                          clearTimeout(sliderTimeoutRef.current);
+                        }
+                        
+                        sliderTimeoutRef.current = setTimeout(() => {
+                          rateLimitMutation.mutate(value[0]);
+                        }, 400);
                       }}
                       min={1}
                       max={100}
