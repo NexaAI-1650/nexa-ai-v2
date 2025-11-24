@@ -541,14 +541,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       req.session!.avatar = userData.avatar;
       req.session!.accessToken = tokenData.access_token;
 
-      req.session!.save((err) => {
-        if (err) {
-          console.error("Session save error:", err);
-          return res.status(500).json({ error: "session_save_failed", details: err.message });
-        }
-        console.log("Auth callback - session saved, redirecting to /admin");
-        res.redirect("/admin");
-      });
+      console.log("Auth callback - session data set, redirecting to /admin");
+      res.redirect("/admin");
     } catch (error) {
       console.error("Auth callback error:", error);
       res.status(500).json({ error: "callback_error", details: error instanceof Error ? error.message : "Unknown error" });
