@@ -9,6 +9,7 @@ import { apiRequest } from "@/lib/queryClient";
 import type { Conversation } from "@shared/schema";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
+import { useEffect } from "react";
 
 export default function AdminDashboard() {
   const { toast } = useToast();

@@ -1,8 +1,9 @@
 import { z } from "zod";
 
 export const aiModels = [
+  { id: "openai/gpt-oss-20b:free", name: "gpt-oss-20b" },
   { id: "google/gemini-2.5-flash", name: "Gemini 2.5 Flash" },
-  { id: "openai/gpt-4.1-mini", name: "GPT-4.1 Mini" },
+  { id: "openai/gpt-4o-mini", name: "GPT-4.1 Mini" },
   { id: "openai/o4-mini-high", name: "O4 Mini High" },
 ] as const;
 
@@ -43,7 +44,7 @@ export const conversationSchema = z.object({
 
 export const chatRequestSchema = z.object({
   message: z.string(),
-  model: z.string().optional().default("google/gemini-2.5-flash"),
+  model: z.string().optional().default("openai/gpt-oss-20b:free"),
   conversationId: z.string().optional(),
   attachments: z.array(z.object({
     type: z.enum(["image", "file"]),
