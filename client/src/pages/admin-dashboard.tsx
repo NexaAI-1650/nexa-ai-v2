@@ -2,15 +2,16 @@ import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { BarChart3, MessageSquare, Users, ArrowLeft, Power, RotateCcw, PowerOff, LogIn, LogOut, Globe } from "lucide-react";
+import { BarChart3, MessageSquare, Users, ArrowLeft, Power, RotateCcw, PowerOff, LogIn, LogOut, Globe, AlertCircle, AlertTriangle, Info } from "lucide-react";
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import type { Conversation } from "@shared/schema";
+import type { Conversation, BotEventLog, BotMetrics } from "@shared/schema";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { useEffect } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 const i18n = {
   ja: {
@@ -48,6 +49,15 @@ const i18n = {
     discordLogin: "Discord でログイン",
     notAuthenticated: "認証が必要です",
     selectServerMsg: "サーバーを選択してください",
+    eventLogs: "イベントログ",
+    errorLogs: "エラーログ",
+    warningLogs: "警告ログ",
+    infoLogs: "情報ログ",
+    performance: "パフォーマンス",
+    responseTime: "応答時間",
+    errorRate: "エラー率",
+    successRate: "成功率",
+    ms: "ms",
   },
   en: {
     title: "Nexa AI Dashboard",
@@ -84,6 +94,15 @@ const i18n = {
     discordLogin: "Login with Discord",
     notAuthenticated: "Authentication required",
     selectServerMsg: "Please select a server",
+    eventLogs: "Event Logs",
+    errorLogs: "Error Logs",
+    warningLogs: "Warning Logs",
+    infoLogs: "Info Logs",
+    performance: "Performance",
+    responseTime: "Response Time",
+    errorRate: "Error Rate",
+    successRate: "Success Rate",
+    ms: "ms",
   },
   zh: {
     title: "Nexa AI 仪表板",
@@ -120,6 +139,15 @@ const i18n = {
     discordLogin: "使用 Discord 登录",
     notAuthenticated: "需要身份验证",
     selectServerMsg: "请选择服务器",
+    eventLogs: "事件日志",
+    errorLogs: "错误日志",
+    warningLogs: "警告日志",
+    infoLogs: "信息日志",
+    performance: "性能",
+    responseTime: "响应时间",
+    errorRate: "错误率",
+    successRate: "成功率",
+    ms: "毫秒",
   },
 };
 
@@ -196,6 +224,24 @@ export default function AdminDashboard() {
     refetchInterval: 5000,
     enabled: selectedGuildId !== null,
   });
+
+  const { data: eventLogs = { logs: [] } } = useQuery({
+    queryKey: ["/api/admin/event-logs"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/event-logs?limit=50");
+      return res.json();
+    },
+    refetchInterval: 10000,
+  }) as any;
+
+  const { data: metricsData = { metrics: [] } } = useQuery({
+    queryKey: ["/api/admin/bot-metrics"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/bot-metrics?limit=50");
+      return res.json();
+    },
+    refetchInterval: 30000,
+  }) as any;
 
   useEffect(() => {
     if (rateLimit?.limit) {
@@ -717,6 +763,110 @@ export default function AdminDashboard() {
               </div>
             </div>
           </div>
+        </Card>
+
+        {/* Event Logs */}
+        <Card className="p-6 mb-8">
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <span className="inline-block w-1.5 h-6 bg-gradient-to-b from-primary to-primary/50 rounded-full"></span>
+            {t.eventLogs}
+          </h2>
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {eventLogs?.logs && eventLogs.logs.length > 0 ? (
+              eventLogs.logs.map((log: BotEventLog) => {
+                const iconMap = {
+                  error: <AlertCircle className="h-4 w-4 text-red-500" />,
+                  warning: <AlertTriangle className="h-4 w-4 text-yellow-500" />,
+                  info: <Info className="h-4 w-4 text-blue-500" />,
+                };
+                return (
+                  <div
+                    key={log.id}
+                    className={`p-3 rounded-lg border flex gap-3 ${
+                      log.type === "error"
+                        ? "bg-red-500/10 border-red-500/30"
+                        : log.type === "warning"
+                        ? "bg-yellow-500/10 border-yellow-500/30"
+                        : "bg-blue-500/10 border-blue-500/30"
+                    }`}
+                    data-testid={`log-entry-${log.id}`}
+                  >
+                    <div className="flex-shrink-0 mt-0.5">
+                      {iconMap[log.type]}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground break-words">
+                        {log.message}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {new Date(log.timestamp).toLocaleTimeString(language === "ja" ? "ja-JP" : language === "en" ? "en-US" : "zh-CN")}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="p-4 text-center">
+                <p className="text-xs text-muted-foreground">{t.noData}</p>
+              </div>
+            )}
+          </div>
+        </Card>
+
+        {/* Performance Metrics */}
+        <Card className="p-6">
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <span className="inline-block w-1.5 h-6 bg-gradient-to-b from-primary to-primary/50 rounded-full"></span>
+            {t.performance}
+          </h2>
+          {metricsData?.metrics && metricsData.metrics.length > 0 ? (
+            <div className="w-full h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={metricsData.metrics.map((m: BotMetrics) => ({
+                  time: new Date(m.timestamp).toLocaleTimeString(language === "ja" ? "ja-JP" : language === "en" ? "en-US" : "zh-CN", { hour: "2-digit", minute: "2-digit" }),
+                  responseTime: m.responseTime,
+                  errorRate: m.totalRequests > 0 ? Math.round((m.errorCount / m.totalRequests) * 100) : 0,
+                  successRate: m.totalRequests > 0 ? Math.round((m.successCount / m.totalRequests) * 100) : 0,
+                }))}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis dataKey="time" stroke="var(--muted-foreground)" style={{ fontSize: "12px" }} />
+                  <YAxis stroke="var(--muted-foreground)" style={{ fontSize: "12px" }} yAxisId="left" />
+                  <YAxis yAxisId="right" orientation="right" stroke="var(--muted-foreground)" style={{ fontSize: "12px" }} />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: "var(--background)",
+                      border: "1px solid var(--border)",
+                      borderRadius: "8px"
+                    }}
+                    labelStyle={{ color: "var(--foreground)" }}
+                  />
+                  <Legend wrapperStyle={{ paddingTop: "20px" }} />
+                  <Line
+                    yAxisId="left"
+                    type="monotone"
+                    dataKey="responseTime"
+                    stroke="hsl(var(--primary))"
+                    dot={false}
+                    name={t.responseTime}
+                    strokeWidth={2}
+                  />
+                  <Line
+                    yAxisId="right"
+                    type="monotone"
+                    dataKey="successRate"
+                    stroke="hsl(var(--primary) / 0.5)"
+                    dot={false}
+                    name={t.successRate}
+                    strokeWidth={2}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="p-12 text-center">
+              <p className="text-sm text-muted-foreground">{t.noData}</p>
+            </div>
+          )}
         </Card>
           </>
         )}
