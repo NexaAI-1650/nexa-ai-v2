@@ -444,7 +444,7 @@ export async function initDiscordBot() {
       if (!interaction.inGuild() || !interaction.member) {
         await interaction.reply({
           content: "❌ このコマンドはサーバー内でのみ使用できます",
-          ephemeral: true,
+          flags: 64
         });
         return;
       }
@@ -460,7 +460,7 @@ export async function initDiscordBot() {
 
       await interaction.reply({
         content: "📊 **Bot 管理ダッシュボード**\nhttps://31e4757b-3fe9-4e7e-a72a-7eb38290488b-00-246qpws4g77gm.riker.replit.dev/admin",
-        ephemeral: true,
+        flags: 64
       });
     } else if (interaction.commandName === "model") {
       const now = Date.now();
@@ -470,7 +470,7 @@ export async function initDiscordBot() {
         const remainingMs = cooldownMs - (now - lastModelChangeTime);
         await interaction.reply({
           content: `⏳ モデル変更はあと ${Math.ceil(remainingMs / 1000)} 秒後に可能です`,
-          ephemeral: true,
+          flags: 64
         });
         return;
       }
@@ -481,21 +481,21 @@ export async function initDiscordBot() {
       lastModelChangeTime = now;
       await interaction.reply({
         content: `✅ **モデルを変更しました**\n選択: ${newModel}`,
-        ephemeral: true,
+        flags: 64
       });
     } else if (interaction.commandName === "model-current") {
       const guildId = interaction.guildId || "dm";
       const currentModel = getCurrentModel(guildId);
       await interaction.reply({
         content: `📊 **現在のモデル**\n${currentModel}`,
-        ephemeral: true,
+        flags: 64
       });
     } else if (interaction.commandName === "clear") {
       const userId = interaction.user.id;
       userConversations.delete(userId);
       await interaction.reply({
         content: "✅ 会話履歴をクリアしました。新しい話題を始められます。",
-        ephemeral: true,
+        flags: 64
       });
     } else if (interaction.commandName === "stats") {
       const userId = interaction.user.id;
@@ -509,7 +509,7 @@ export async function initDiscordBot() {
 • 総チャット数: ${userStat.totalChats}
 • 総メッセージ数: ${userStat.totalMessages}
 • レート制限: ${rateLimitText}`,
-        ephemeral: true,
+        flags: 64
       });
     } else if (interaction.commandName === "help") {
       await interaction.reply({
@@ -527,7 +527,7 @@ export async function initDiscordBot() {
 • google/gemini-2.5-flash
 • openai/o4-mini-high
 • openai/gpt-oss-20b:free`,
-        ephemeral: true,
+        flags: 64
       });
     }
   });
