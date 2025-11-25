@@ -1,4 +1,5 @@
 import { Client, GatewayIntentBits, SlashCommandBuilder, ChannelType, AttachmentBuilder } from "discord.js";
+import { storage } from "./storage";
 
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
@@ -143,6 +144,223 @@ async function summarizeIfTooLong(text: string, guildId?: string): Promise<strin
   }
 }
 
+// サーバー管理コマンドを処理
+async function handleManagementCommand(message: any): Promise<boolean> {
+  if (!message.member?.permissions.has("Administrator")) {
+    await message.reply("このコマンドは管理者のみ実行できます。");
+    return true;
+  }
+
+  const content = message.content;
+  const mentions = message.mentions;
+  
+  // ロール付与: "@Nexa AI @user に @role を付与して"
+  if (content.includes("に") && content.includes("を付与")) {
+    const userMentions = Array.from(mentions.values()).filter((u: any) => !u.bot);
+    if (userMentions.length >= 2) {
+      const targetUser = userMentions[0];
+      const member = message.guild?.members.cache.get(targetUser.id);
+      
+      // ロール名を抽出（"に"と"を付与"の間）
+      const roleMatch = content.match(/に\s*<@&?(\d+)>\s*を付与/);
+      if (roleMatch) {
+        const roleId = roleMatch[1];
+        const role = message.guild?.roles.cache.get(roleId);
+        if (role && member) {
+          try {
+            await member.roles.add(role);
+            await message.reply(`✅ ${targetUser.username} に ${role.name} を付与しました。`);
+            return true;
+          } catch (e) {
+            await message.reply(`❌ ロール付与に失敗しました。`);
+            return true;
+          }
+        }
+      }
+    }
+  }
+
+  // キック: "@Nexa AI @user をキックして"
+  if (content.includes("をキック")) {
+    const userMentions = Array.from(mentions.values()).filter((u: any) => !u.bot);
+    if (userMentions.length >= 1) {
+      const targetUser = userMentions[0];
+      const member = message.guild?.members.cache.get(targetUser.id);
+      if (member) {
+        try {
+          await member.kick("管理コマンドで削除されました");
+          await message.reply(`✅ ${targetUser.username} をキックしました。`);
+          return true;
+        } catch (e) {
+          await message.reply(`❌ キックに失敗しました。`);
+          return true;
+        }
+      }
+    }
+  }
+
+  // バン: "@Nexa AI @user をバンして"
+  if (content.includes("をバン")) {
+    const userMentions = Array.from(mentions.values()).filter((u: any) => !u.bot);
+    if (userMentions.length >= 1) {
+      const targetUser = userMentions[0];
+      try {
+        await message.guild?.members.ban(targetUser, { reason: "管理コマンドでバンされました" });
+        await message.reply(`✅ ${targetUser.username} をバンしました。`);
+        return true;
+      } catch (e) {
+        await message.reply(`❌ バンに失敗しました。`);
+        return true;
+      }
+    }
+  }
+
+  // ロール削除: "@Nexa AI @user から @role を削除して"
+  if (content.includes("から") && content.includes("を削除")) {
+    const userMentions = Array.from(mentions.values()).filter((u: any) => !u.bot);
+    if (userMentions.length >= 1) {
+      const targetUser = userMentions[0];
+      const member = message.guild?.members.cache.get(targetUser.id);
+      
+      const roleMatch = content.match(/から\s*<@&?(\d+)>\s*を削除/);
+      if (roleMatch) {
+        const roleId = roleMatch[1];
+        const role = message.guild?.roles.cache.get(roleId);
+        if (role && member) {
+          try {
+            await member.roles.remove(role);
+            await message.reply(`✅ ${targetUser.username} から ${role.name} を削除しました。`);
+            return true;
+          } catch (e) {
+            await message.reply(`❌ ロール削除に失敗しました。`);
+            return true;
+          }
+        }
+      }
+    }
+  }
+
+  // タイムアウト: "@Nexa AI @user をXX分タイムアウトして" (XX は数字)
+  if (content.includes("をタイムアウト") || content.includes("を") && content.includes("分タイムアウト")) {
+    const userMentions = Array.from(mentions.values()).filter((u: any) => !u.bot);
+    if (userMentions.length >= 1) {
+      const targetUser = userMentions[0];
+      const member = message.guild?.members.cache.get(targetUser.id);
+      
+      // 時間を抽出（例：30分、1時間）
+      const timeMatch = content.match(/(\d+)\s*(分|時間|秒)/);
+      let durationMs = 10 * 60 * 1000; // デフォルト10分
+      if (timeMatch) {
+        const num = parseInt(timeMatch[1]);
+        const unit = timeMatch[2];
+        if (unit === "秒") durationMs = num * 1000;
+        else if (unit === "分") durationMs = num * 60 * 1000;
+        else if (unit === "時間") durationMs = num * 60 * 60 * 1000;
+      }
+
+      if (member) {
+        try {
+          await member.timeout(durationMs, "タイムアウトコマンドで実行されました");
+          const durationText = timeMatch ? `${timeMatch[1]}${timeMatch[2]}` : "10分";
+          await message.reply(`✅ ${targetUser.username} を ${durationText} タイムアウトさせました。`);
+          return true;
+        } catch (e) {
+          await message.reply(`❌ タイムアウトに失敗しました。`);
+          return true;
+        }
+      }
+    }
+  }
+
+  return false;
+}
+
+// 不適切メッセージを検出してアクションを実行
+async function checkInappropriateMessage(message: any): Promise<void> {
+  try {
+    // ボット、管理者、DM は対象外
+    if (message.author.bot || message.member?.permissions.has("Administrator") || !message.guild) return;
+    
+    const guildId = message.guild.id;
+    const settings = await storage.getModerationSettings(guildId);
+    
+    if (!settings.enabled) return;
+    
+    const messageText = message.content.toLowerCase();
+    const hasKeyword = settings.keywords.some(keyword => messageText.includes(keyword.toLowerCase()));
+    
+    if (!hasKeyword) return;
+
+    // AI に詳細な判定を依頼
+    try {
+      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+          "HTTP-Referer": "https://replit.dev",
+          "X-Title": "AI Chat Discord Bot",
+        },
+        body: JSON.stringify({
+          model: "openai/gpt-3.5-turbo",
+          messages: [{
+            role: "user",
+            content: `このDiscordメッセージは不適切ですか？返答は JSON 形式で {"inappropriate": true/false, "severity": "low/medium/high"} で返してください。\n\nメッセージ: "${messageText}"`
+          }],
+          max_tokens: 50,
+        }),
+      });
+
+      const data = (await response.json()) as any;
+      const responseText = data.choices?.[0]?.message?.content || "{}";
+      
+      try {
+        const judgment = JSON.parse(responseText);
+        
+        if (judgment.inappropriate) {
+          const member = message.member;
+          let action = "timeout";
+
+          // severity に応じてアクションを決定
+          if (judgment.severity === "high") {
+            action = settings.highAction;
+          } else if (judgment.severity === "medium") {
+            action = settings.mediumAction;
+          }
+
+          // アクション実行
+          if (action === "timeout") {
+            const timeoutMs = settings.lowTimeoutMinutes * 60 * 1000;
+            await member.timeout(timeoutMs, "不適切なメッセージ");
+            await message.reply(`⚠️ 不適切なメッセージが検出されました。${member.user.username} を ${settings.lowTimeoutMinutes} 分タイムアウトさせました。`);
+            try {
+              await message.delete();
+            } catch {}
+          } else if (action === "kick") {
+            await member.kick("不適切なメッセージ");
+            await message.channel.send(`⚠️ 不適切なメッセージが検出されました。${member.user.username} をキックしました。`);
+            try {
+              await message.delete();
+            } catch {}
+          } else if (action === "ban") {
+            await message.guild?.members.ban(member, { reason: "不適切なメッセージ" });
+            await message.channel.send(`⚠️ 不適切なメッセージが検出されました。${member.user.username} をバンしました。`);
+            try {
+              await message.delete();
+            } catch {}
+          }
+        }
+      } catch (parseError) {
+        // JSON パースエラーは無視
+      }
+    } catch (aiError) {
+      // AI API エラーは無視（スパム防止）
+    }
+  } catch (error) {
+    console.error("メッセージ監視エラー:", error);
+  }
+}
+
 // 定期的に古い会話を削除
 setInterval(() => {
   const now = Date.now();
@@ -178,10 +396,17 @@ export async function initDiscordBot() {
     if (message.author.bot) return;
     if (!client) return;
 
+    // 全メッセージの不適切性をチェック（バックグラウンド実行）
+    checkInappropriateMessage(message).catch(console.error);
+
     const isMentioned = message.mentions.has(client.user!.id);
     const isReply = message.reference !== null;
 
     if (!isMentioned && !isReply) return;
+
+    // サーバー管理コマンドの処理
+    const isManagementCommand = await handleManagementCommand(message);
+    if (isManagementCommand) return;
 
     let userMessage = message.content.replace(/<@!?\d+>/g, "").trim();
     if (!userMessage && message.attachments.size === 0) return;
