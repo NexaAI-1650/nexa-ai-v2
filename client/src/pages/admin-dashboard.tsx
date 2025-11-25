@@ -310,54 +310,66 @@ export default function AdminDashboard() {
     0
   );
 
-  const models = [
-    ...new Set(conversations.map((c) => c.model || "unknown")),
-  ];
+  const models = Array.from(
+    new Set(conversations.map((c) => c.model || "unknown"))
+  );
 
   const { data: authUrl } = useQuery({
     queryKey: ["/api/auth/discord"],
     enabled: !user,
-  });
+  }) as any;
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
-        <Card className="p-8 max-w-md">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-2xl font-bold">{t.title}</h1>
-            <Select value={language} onValueChange={(value) => setLanguage(value as "ja" | "en" | "zh")}>
-              <SelectTrigger className="w-auto" data-testid="select-language-login">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ja">日本語</SelectItem>
-                <SelectItem value="en">English</SelectItem>
-                <SelectItem value="zh">中文</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <p className="text-muted-foreground mb-6">
-            {language === "ja" ? "Discord アカウントで連携してダッシュボードにアクセスしてください。" : "Access the dashboard by linking your Discord account."}
-          </p>
-          <Button 
-            className="w-full mb-3" 
-            onClick={() => {
-              if (authUrl?.authUrl) {
-                window.location.href = authUrl.authUrl;
-              }
-            }}
-            disabled={!authUrl?.authUrl}
-            data-testid="button-discord-login"
-          >
-            <LogIn className="w-4 h-4 mr-2" />
-            {t.discordLogin}
-          </Button>
-          <div className="border-t my-4 pt-4">
-            <p className="text-xs text-muted-foreground text-center mb-3">
-              {t.testLoginDesc}
+      <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-background text-foreground flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <Card className="p-8 shadow-2xl border border-border/50 hover-elevate">
+            <div className="flex items-center justify-between mb-8">
+              <div className="space-y-1">
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">{t.title}</h1>
+                <p className="text-xs text-muted-foreground">{language === "ja" ? "管理ツール" : language === "en" ? "Admin Tool" : "管理工具"}</p>
+              </div>
+              <Select value={language} onValueChange={(value) => setLanguage(value as "ja" | "en" | "zh")}>
+                <SelectTrigger className="w-auto border-primary/30 hover:border-primary/60" data-testid="select-language-login">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ja">日本語</SelectItem>
+                  <SelectItem value="en">English</SelectItem>
+                  <SelectItem value="zh">中文</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <p className="text-sm text-muted-foreground mb-8 leading-relaxed">
+              {language === "ja" ? "Discord アカウントで連携してダッシュボードにアクセスしてください。" : language === "en" ? "Access the dashboard by linking your Discord account." : "使用 Discord 帐户链接以访问仪表板。"}
             </p>
+            
             <Button 
-              className="w-full" 
+              className="w-full mb-4 h-11 text-base font-semibold shadow-lg hover-elevate" 
+              onClick={() => {
+                if (authUrl?.authUrl) {
+                  window.location.href = authUrl.authUrl;
+                }
+              }}
+              disabled={!authUrl?.authUrl}
+              data-testid="button-discord-login"
+            >
+              <LogIn className="w-5 h-5 mr-2" />
+              {t.discordLogin}
+            </Button>
+            
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-border/30"></div>
+              </div>
+              <div className="relative flex justify-center text-xs">
+                <span className="px-2 bg-card text-muted-foreground">{t.testLoginDesc}</span>
+              </div>
+            </div>
+            
+            <Button 
+              className="w-full h-11 text-base shadow-md" 
               variant="outline"
               onClick={async () => {
                 try {
@@ -371,8 +383,12 @@ export default function AdminDashboard() {
             >
               {t.testLogin}
             </Button>
-          </div>
-        </Card>
+            
+            <p className="text-xs text-muted-foreground text-center mt-6">
+              {language === "ja" ? "© 2024 Bot 管理ダッシュボード" : language === "en" ? "© 2024 Bot Admin Dashboard" : "© 2024 机器人管理仪表板"}
+            </p>
+          </Card>
+        </div>
       </div>
     );
   }
@@ -380,24 +396,31 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-card/30 to-background">
       {/* Header */}
-      <header className="border-b bg-card backdrop-blur-sm bg-card/80 shadow-sm">
-        <div className="flex items-center justify-between px-6 py-4">
-          <h1 className="text-2xl font-bold">{t.title}</h1>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-3">
+      <header className="border-b bg-gradient-to-r from-card to-card/60 backdrop-blur-md bg-card/90 shadow-lg">
+        <div className="flex items-center justify-between px-8 py-5">
+          <div>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">{t.title}</h1>
+            <p className="text-xs text-muted-foreground mt-1">{language === "ja" ? "サーバー管理画面" : language === "en" ? "Server Management" : "服务器管理"}</p>
+          </div>
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-4 px-4 py-2 bg-muted/30 rounded-lg border border-border/30 hover-elevate">
               {user?.avatar ? (
                 <img 
-                  src={`https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=32`}
+                  src={`https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=40`}
                   alt={user.username}
-                  className="w-8 h-8 rounded-full"
+                  className="w-9 h-9 rounded-full ring-2 ring-primary/30"
                   data-testid="img-user-avatar"
                 />
               ) : (
-                <div className="w-8 h-8 rounded-full bg-muted" data-testid="div-user-avatar-fallback" />
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-primary/50 ring-2 ring-primary/30" data-testid="div-user-avatar-fallback" />
               )}
-              <span className="text-sm text-muted-foreground" data-testid="text-username">{user?.username}</span>
+              <div className="flex flex-col">
+                <span className="text-sm font-semibold" data-testid="text-username">{user?.username}</span>
+                <span className="text-xs text-muted-foreground">{language === "ja" ? "管理者" : language === "en" ? "Admin" : "管理员"}</span>
+              </div>
+              <div className="w-px h-6 bg-border/50"></div>
               <Select value={language} onValueChange={(value) => setLanguage(value as "ja" | "en" | "zh")}>
-                <SelectTrigger className="w-auto" data-testid="select-language">
+                <SelectTrigger className="w-24 border-border/20 text-xs" data-testid="select-language">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -408,8 +431,9 @@ export default function AdminDashboard() {
               </Select>
             </div>
             <Button 
-              variant="ghost" 
+              variant="outline" 
               size="sm" 
+              className="shadow-md hover-elevate"
               onClick={() => {
                 fetch("/api/auth/logout").then(() => window.location.reload());
               }}
@@ -423,13 +447,16 @@ export default function AdminDashboard() {
       </header>
 
       {/* Server Selector */}
-      <div className="border-b bg-card/50 px-6 py-4">
+      <div className="border-b bg-gradient-to-r from-card/50 to-card/30 px-8 py-5 shadow-sm">
         <div className="max-w-6xl mx-auto">
-          <div className="mb-2">
-            <label className="text-sm font-medium">{t.selectServer}</label>
+          <div className="mb-3">
+            <label className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <span className="inline-block w-1 h-4 bg-primary rounded-full"></span>
+              {t.selectServer}
+            </label>
           </div>
           <Select value={selectedGuildId || ""} onValueChange={setSelectedGuildId}>
-            <SelectTrigger data-testid="select-guild" className="w-full max-w-xs">
+            <SelectTrigger data-testid="select-guild" className="w-full max-w-sm border-primary/30 shadow-md hover:border-primary/60">
               <SelectValue placeholder={t.selectPlaceholder} />
             </SelectTrigger>
             <SelectContent>
@@ -461,49 +488,61 @@ export default function AdminDashboard() {
       </div>
 
       {/* Main Content */}
-      <main className="p-6 max-w-6xl mx-auto">
+      <main className="p-8 max-w-6xl mx-auto">
         {!selectedGuildId ? (
-          <Card className="p-8 text-center">
-            <p className="text-muted-foreground">{t.selectServerMsg}</p>
+          <Card className="p-12 text-center shadow-xl border border-border/30 hover-elevate">
+            <div className="text-4xl mb-4">📋</div>
+            <p className="text-lg text-muted-foreground font-medium">{t.selectServerMsg}</p>
           </Card>
         ) : (
           <>
         {/* Bot Stats */}
-        <div className="mb-8">
-          <h2 className="text-lg font-semibold mb-4">{t.botStats}</h2>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card className="p-6 space-y-2">
+        <div className="mb-10">
+          <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+            <span className="inline-block w-1.5 h-6 bg-gradient-to-b from-primary to-primary/50 rounded-full"></span>
+            {t.botStats}
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+            <Card className="p-7 space-y-3 shadow-lg border border-border/30 hover-elevate bg-gradient-to-br from-card to-card/50">
               <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">{t.totalChats}</p>
-                <MessageSquare className="h-4 w-4 text-primary" />
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t.totalChats}</p>
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <MessageSquare className="h-5 w-5 text-primary" />
+                </div>
               </div>
-              <p className="text-3xl font-bold">{botStats?.totalChats || 0}</p>
+              <p className="text-4xl font-bold">{botStats?.totalChats || 0}</p>
             </Card>
 
-            <Card className="p-6 space-y-2">
+            <Card className="p-7 space-y-3 shadow-lg border border-border/30 hover-elevate bg-gradient-to-br from-card to-card/50">
               <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">{t.totalMessages}</p>
-                <Users className="h-4 w-4 text-primary" />
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t.totalMessages}</p>
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Users className="h-5 w-5 text-primary" />
+                </div>
               </div>
-              <p className="text-3xl font-bold">{botStats?.totalMessages || 0}</p>
+              <p className="text-4xl font-bold">{botStats?.totalMessages || 0}</p>
             </Card>
 
-            <Card className="p-6 space-y-2">
+            <Card className="p-7 space-y-3 shadow-lg border border-border/30 hover-elevate bg-gradient-to-br from-card to-card/50">
               <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">{t.totalTokens}</p>
-                <BarChart3 className="h-4 w-4 text-primary" />
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t.totalTokens}</p>
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <BarChart3 className="h-5 w-5 text-primary" />
+                </div>
               </div>
-              <p className="text-3xl font-bold">
+              <p className="text-4xl font-bold">
                 {Math.floor((botStats?.totalTokens || 0) / 1000)}K
               </p>
             </Card>
 
-            <Card className="p-6 space-y-2">
+            <Card className="p-7 space-y-3 shadow-lg border border-border/30 hover-elevate bg-gradient-to-br from-card to-card/50">
               <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">{t.modelCount}</p>
-                <BarChart3 className="h-4 w-4 text-primary" />
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t.modelCount}</p>
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <BarChart3 className="h-5 w-5 text-primary" />
+                </div>
               </div>
-              <p className="text-3xl font-bold">{botStats?.modelCount || 0}</p>
+              <p className="text-4xl font-bold">{botStats?.modelCount || 0}</p>
             </Card>
           </div>
         </div>
