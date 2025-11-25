@@ -1,22 +1,40 @@
-import { type Conversation, type Message, type BotEventLog, type BotMetrics, type ModerationSettings, moderationSettingsSchema } from "@shared/schema";
+import {
+  type Conversation,
+  type Message,
+  type BotEventLog,
+  type BotMetrics,
+  type ModerationSettings,
+  moderationSettingsSchema,
+} from "@shared/schema";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
   getConversation(id: string): Promise<Conversation | undefined>;
   getAllConversations(): Promise<Conversation[]>;
   createConversation(title: string, model: string): Promise<Conversation>;
-  updateConversation(id: string, conversation: Conversation): Promise<Conversation>;
-  updateConversationMessages(id: string, messages: Message[]): Promise<Conversation>;
+  updateConversation(
+    id: string,
+    conversation: Conversation,
+  ): Promise<Conversation>;
+  updateConversationMessages(
+    id: string,
+    messages: Message[],
+  ): Promise<Conversation>;
   updateConversationTags(id: string, tags: string[]): Promise<Conversation>;
   updateConversationTitle(id: string, title: string): Promise<Conversation>;
   updateConversationSettings(id: string, settings: any): Promise<Conversation>;
   deleteConversation(id: string): Promise<void>;
   addEventLog(log: Omit<BotEventLog, "id">): Promise<BotEventLog>;
   getEventLogs(limit?: number): Promise<BotEventLog[]>;
-  addMetrics(metrics: Omit<BotMetrics, "timestamp"> & { timestamp?: number }): Promise<BotMetrics>;
+  addMetrics(
+    metrics: Omit<BotMetrics, "timestamp"> & { timestamp?: number },
+  ): Promise<BotMetrics>;
   getMetrics(limit?: number): Promise<BotMetrics[]>;
   getModerationSettings(guildId: string): Promise<ModerationSettings>;
-  updateModerationSettings(guildId: string, settings: Partial<ModerationSettings>): Promise<ModerationSettings>;
+  updateModerationSettings(
+    guildId: string,
+    settings: Partial<ModerationSettings>,
+  ): Promise<ModerationSettings>;
 }
 
 export class MemStorage implements IStorage {
@@ -35,11 +53,14 @@ export class MemStorage implements IStorage {
 
   async getAllConversations(): Promise<Conversation[]> {
     return Array.from(this.conversations.values()).sort(
-      (a, b) => b.updatedAt - a.updatedAt
+      (a, b) => b.updatedAt - a.updatedAt,
     );
   }
 
-  async createConversation(title: string, model: string): Promise<Conversation> {
+  async createConversation(
+    title: string,
+    model: string,
+  ): Promise<Conversation> {
     const id = randomUUID();
     const now = Date.now();
     const conversation: Conversation = {
@@ -54,7 +75,10 @@ export class MemStorage implements IStorage {
     return conversation;
   }
 
-  async updateConversation(id: string, conversation: Conversation): Promise<Conversation> {
+  async updateConversation(
+    id: string,
+    conversation: Conversation,
+  ): Promise<Conversation> {
     const existing = this.conversations.get(id);
     if (!existing) {
       throw new Error("Conversation not found");
@@ -64,7 +88,10 @@ export class MemStorage implements IStorage {
     return conversation;
   }
 
-  async updateConversationTags(id: string, tags: string[]): Promise<Conversation> {
+  async updateConversationTags(
+    id: string,
+    tags: string[],
+  ): Promise<Conversation> {
     const conversation = this.conversations.get(id);
     if (!conversation) {
       throw new Error("Conversation not found");
@@ -75,7 +102,10 @@ export class MemStorage implements IStorage {
     return conversation;
   }
 
-  async updateConversationMessages(id: string, messages: Message[]): Promise<Conversation> {
+  async updateConversationMessages(
+    id: string,
+    messages: Message[],
+  ): Promise<Conversation> {
     const conversation = this.conversations.get(id);
     if (!conversation) {
       throw new Error("Conversation not found");
@@ -86,7 +116,10 @@ export class MemStorage implements IStorage {
     return conversation;
   }
 
-  async updateConversationTitle(id: string, title: string): Promise<Conversation> {
+  async updateConversationTitle(
+    id: string,
+    title: string,
+  ): Promise<Conversation> {
     const conversation = this.conversations.get(id);
     if (!conversation) {
       throw new Error("Conversation not found");
@@ -97,7 +130,10 @@ export class MemStorage implements IStorage {
     return conversation;
   }
 
-  async updateConversationSettings(id: string, settings: any): Promise<Conversation> {
+  async updateConversationSettings(
+    id: string,
+    settings: any,
+  ): Promise<Conversation> {
     const conversation = this.conversations.get(id);
     if (!conversation) {
       throw new Error("Conversation not found");
@@ -129,7 +165,9 @@ export class MemStorage implements IStorage {
     return this.eventLogs.slice(-limit).reverse();
   }
 
-  async addMetrics(metrics: Omit<BotMetrics, "timestamp"> & { timestamp?: number }): Promise<BotMetrics> {
+  async addMetrics(
+    metrics: Omit<BotMetrics, "timestamp"> & { timestamp?: number },
+  ): Promise<BotMetrics> {
     const metricsData: BotMetrics = {
       ...metrics,
       timestamp: metrics.timestamp || Date.now(),
@@ -156,8 +194,19 @@ export class MemStorage implements IStorage {
         mediumTimeoutMinutes: 60,
         highAction: "ban",
         keywords: [
-          "スパム", "詐欺", "売買", "エロ", "ポルノ", "違法", "薬物",
-          "spam", "scam", "porn", "xxx", "illegal", "drugs"
+          "スパム",
+          "詐欺",
+          "売買",
+          "エロ",
+          "ポルノ",
+          "違法",
+          "薬物",
+          "spam",
+          "scam",
+          "porn",
+          "xxx",
+          "illegal",
+          "drugs",
         ],
       });
       this.moderationSettings.set(guildId, defaultSettings);
@@ -165,9 +214,16 @@ export class MemStorage implements IStorage {
     return this.moderationSettings.get(guildId)!;
   }
 
-  async updateModerationSettings(guildId: string, settings: Partial<ModerationSettings>): Promise<ModerationSettings> {
+  async updateModerationSettings(
+    guildId: string,
+    settings: Partial<ModerationSettings>,
+  ): Promise<ModerationSettings> {
     const existing = await this.getModerationSettings(guildId);
-    const updated = moderationSettingsSchema.parse({ ...existing, ...settings, guildId });
+    const updated = moderationSettingsSchema.parse({
+      ...existing,
+      ...settings,
+      guildId,
+    });
     this.moderationSettings.set(guildId, updated);
     return updated;
   }
