@@ -1,18 +1,30 @@
-import { Client, GatewayIntentBits, SlashCommandBuilder, ChannelType, AttachmentBuilder } from "discord.js";
+import {
+  Client,
+  GatewayIntentBits,
+  SlashCommandBuilder,
+  ChannelType,
+  AttachmentBuilder,
+} from "discord.js";
 import { storage } from "./storage";
 
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
-const ADMIN_GUILD_IDS = process.env.ADMIN_GUILD_IDS?.split(",").map(id => id.trim()) || [];
+const ADMIN_GUILD_IDS =
+  process.env.ADMIN_GUILD_IDS?.split(",").map((id) => id.trim()) || [];
 
 // ダッシュボードURL（環境に応じて動的に設定）
-const DASHBOARD_URL = process.env.DASHBOARD_URL || 
-  (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}/admin` : "https://nexa-ai-fgdx.onrender.com/admin");
+const DASHBOARD_URL =
+  process.env.DASHBOARD_URL ||
+  (process.env.REPLIT_DEV_DOMAIN
+    ? `https://${process.env.REPLIT_DEV_DOMAIN}/admin`
+    : "https://nexa-ai-fgdx.onrender.com/admin");
 
 // ギルド管理権限チェック
 export function isGuildAdminAllowed(guildId: string): boolean {
   if (ADMIN_GUILD_IDS.length === 0) {
-    console.warn("⚠️  警告: ADMIN_GUILD_IDS が設定されていません。すべてのギルドが管理可能です。");
+    console.warn(
+      "⚠️  警告: ADMIN_GUILD_IDS が設定されていません。すべてのギルドが管理可能です。",
+    );
     return true;
   }
   return ADMIN_GUILD_IDS.includes(guildId);
@@ -57,7 +69,18 @@ interface UserConversation {
 const EXTENSION_CACHE = {
   images: new Set([".png", ".jpg", ".jpeg", ".gif", ".webp"]),
   videos: new Set([".mp4", ".webm", ".mov"]),
-  texts: new Set([".txt", ".csv", ".json", ".md", ".log", ".py", ".js", ".ts", ".html", ".css"]),
+  texts: new Set([
+    ".txt",
+    ".csv",
+    ".json",
+    ".md",
+    ".log",
+    ".py",
+    ".js",
+    ".ts",
+    ".html",
+    ".css",
+  ]),
 };
 
 let userConversations: Map<string, UserConversation> = new Map();
@@ -80,11 +103,17 @@ function getGuildIds(): string[] {
 }
 
 // Bot が入っているサーバーの情報を取得
-function getAvailableGuilds(): Array<{ guildId: string; guildName: string; currentModel: string; rateLimitMax: number; memoryShareEnabled: boolean }> {
+function getAvailableGuilds(): Array<{
+  guildId: string;
+  guildName: string;
+  currentModel: string;
+  rateLimitMax: number;
+  memoryShareEnabled: boolean;
+}> {
   if (!client || !client.isReady()) {
     return [];
   }
-  
+
   const guilds = client.guilds.cache.map((guild) => {
     const settings = getGuildSettings(guild.id);
     return {
@@ -93,7 +122,7 @@ function getAvailableGuilds(): Array<{ guildId: string; guildName: string; curre
       ...settings,
     };
   });
-  
+
   return guilds;
 }
 
@@ -103,38 +132,49 @@ interface RateLimit {
   resetTime: number;
 }
 let userRateLimits: Map<string, RateLimit> = new Map();
-let userStats: Map<string, { totalChats: number; totalMessages: number }> = new Map();
+let userStats: Map<string, { totalChats: number; totalMessages: number }> =
+  new Map();
 
 // テキストに改行を挿入して見やすくする
 function formatLongText(text: string, lineLength: number = 60): string {
-  let result = '';
+  let result = "";
   for (let i = 0; i < text.length; i += lineLength) {
-    result += text.substring(i, i + lineLength) + '\n';
+    result += text.substring(i, i + lineLength) + "\n";
   }
   return result;
 }
 
-
 // 長いテキストを要約する
-async function summarizeIfTooLong(text: string, guildId?: string): Promise<string> {
+async function summarizeIfTooLong(
+  text: string,
+  guildId?: string,
+): Promise<string> {
   if (text.length <= 2000) return text;
 
   try {
     const settings = getGuildSettings(guildId);
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-        "HTTP-Referer": "https://replit.dev",
-        "X-Title": "AI Chat Discord Bot",
+    const response = await fetch(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+          "HTTP-Referer": "https://replit.dev",
+          "X-Title": "AI Chat Discord Bot",
+        },
+        body: JSON.stringify({
+          model: settings.currentModel,
+          messages: [
+            {
+              role: "user",
+              content: `以下のテキストを簡潔に要約してください。2000文字以下で。\n\n${text}`,
+            },
+          ],
+          max_tokens: 800,
+        }),
       },
-      body: JSON.stringify({
-        model: settings.currentModel,
-        messages: [{ role: "user", content: `以下のテキストを簡潔に要約してください。2000文字以下で。\n\n${text}` }],
-        max_tokens: 800,
-      }),
-    });
+    );
 
     const data = (await response.json()) as any;
     if (data.error) return text;
@@ -153,22 +193,33 @@ async function handleManagementCommand(message: any): Promise<boolean> {
 async function checkInappropriateMessage(message: any): Promise<void> {
   try {
     // ボット、管理者、DM は対象外
-    if (!message?.author || message.author.bot || message.member?.permissions.has("Administrator") || !message.guild) return;
-    
+    if (
+      !message?.author ||
+      message.author.bot ||
+      message.member?.permissions.has("Administrator") ||
+      !message.guild
+    )
+      return;
+
     const guildId = message.guild.id;
     let settings: any = null;
-    
+
     try {
       settings = await storage.getModerationSettings(guildId);
     } catch (e) {
       return;
     }
-    
-    if (!settings?.enabled || !settings?.keywords || settings.keywords.length === 0) return;
-    
+
+    if (
+      !settings?.enabled ||
+      !settings?.keywords ||
+      settings.keywords.length === 0
+    )
+      return;
+
     const messageText = (message.content || "").toLowerCase();
     if (!messageText) return;
-    
+
     const hasKeyword = settings.keywords.some((keyword: string) => {
       try {
         return messageText.includes((keyword || "").toLowerCase());
@@ -176,37 +227,42 @@ async function checkInappropriateMessage(message: any): Promise<void> {
         return false;
       }
     });
-    
+
     if (!hasKeyword) return;
     if (!OPENROUTER_API_KEY) return;
-    
+
     try {
-      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-          "HTTP-Referer": "https://replit.dev",
-          "X-Title": "AI Chat Discord Bot",
+      const response = await fetch(
+        "https://openrouter.ai/api/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+            "HTTP-Referer": "https://replit.dev",
+            "X-Title": "AI Chat Discord Bot",
+          },
+          body: JSON.stringify({
+            model: "openai/gpt-3.5-turbo",
+            messages: [
+              {
+                role: "user",
+                content: `このDiscordメッセージは不適切ですか？返答は JSON 形式で {"inappropriate": true/false, "severity": "low/medium/high"} で返してください。\n\nメッセージ: "${messageText}"`,
+              },
+            ],
+            max_tokens: 50,
+          }),
         },
-        body: JSON.stringify({
-          model: "openai/gpt-3.5-turbo",
-          messages: [{
-            role: "user",
-            content: `このDiscordメッセージは不適切ですか？返答は JSON 形式で {"inappropriate": true/false, "severity": "low/medium/high"} で返してください。\n\nメッセージ: "${messageText}"`
-          }],
-          max_tokens: 50,
-        }),
-      });
+      );
 
       if (!response.ok) return;
 
       const data = (await response.json()) as any;
       const responseText = data.choices?.[0]?.message?.content || "{}";
       const judgment = JSON.parse(responseText);
-      
+
       if (!judgment.inappropriate || !message.member) return;
-      
+
       const member = message.member;
       let action = "timeout";
 
@@ -220,13 +276,23 @@ async function checkInappropriateMessage(message: any): Promise<void> {
         if (action === "timeout") {
           const timeoutMs = (settings.lowTimeoutMinutes || 10) * 60 * 1000;
           await member.timeout(timeoutMs, "不適切なメッセージ");
+          console.log(
+            `[MODERATION] ${member.user?.username} をタイムアウト（${settings.lowTimeoutMinutes}分）`,
+          );
         } else if (action === "kick") {
           await member.kick("不適切なメッセージ");
+          console.log(`[MODERATION] ${member.user?.username} をキック`);
         } else if (action === "ban") {
-          await message.guild?.members.ban(member, { reason: "不適切なメッセージ" });
+          await message.guild?.members.ban(member, {
+            reason: "不適切なメッセージ",
+          });
+          console.log(`[MODERATION] ${member.user?.username} をバン`);
         }
       } catch (actionError) {
-        // アクション実行失敗は無視
+        console.error(
+          `[MODERATION ERROR] アクション実行失敗:`,
+          actionError instanceof Error ? actionError.message : "Unknown error",
+        );
       }
     } catch (e) {
       // API エラーは無視
@@ -249,7 +315,9 @@ setInterval(() => {
 
 export async function initDiscordBot() {
   if (!DISCORD_TOKEN || !OPENROUTER_API_KEY) {
-    console.log("Discord Bot: DISCORD_TOKEN または OPENROUTER_API_KEY が設定されていません");
+    console.log(
+      "Discord Bot: DISCORD_TOKEN または OPENROUTER_API_KEY が設定されていません",
+    );
     return;
   }
 
@@ -300,16 +368,16 @@ export async function initDiscordBot() {
     const guildId = message.guildId || "dm";
     const settings = getGuildSettings(guildId);
     const isAdmin = message.member?.permissions.has("Administrator") ?? false;
-    
+
     if (!isAdmin) {
       const now = Date.now();
       let rateLimit = userRateLimits.get(userId);
-      
+
       if (!rateLimit || now >= rateLimit.resetTime) {
         rateLimit = { count: 0, resetTime: now + RATE_LIMIT_WINDOW };
         userRateLimits.set(userId, rateLimit);
       }
-      
+
       if (rateLimit.count >= settings.rateLimitMax) {
         const remainingSec = Math.ceil((rateLimit.resetTime - now) / 1000);
         await message.reply({
@@ -317,10 +385,10 @@ export async function initDiscordBot() {
         });
         return;
       }
-      
+
       rateLimit.count++;
     }
-    
+
     botStats.commandCount++;
 
     try {
@@ -344,7 +412,9 @@ export async function initDiscordBot() {
       if (message.attachments.size > 0) {
         for (const [, attachment] of message.attachments) {
           try {
-            const ext = attachment.name.substring(attachment.name.lastIndexOf(".")).toLowerCase();
+            const ext = attachment.name
+              .substring(attachment.name.lastIndexOf("."))
+              .toLowerCase();
 
             if (attachment.size > MAX_SIZE) {
               attachmentText += `\n【${attachment.name}】ファイルサイズが大きすぎます（20MB以下）`;
@@ -366,7 +436,12 @@ export async function initDiscordBot() {
               });
               attachmentText += `\n【${attachment.name}】`;
             } else if (EXTENSION_CACHE.videos.has(ext)) {
-              const mediaType = ext === ".mp4" ? "video/mp4" : ext === ".webm" ? "video/webm" : "video/quicktime";
+              const mediaType =
+                ext === ".mp4"
+                  ? "video/mp4"
+                  : ext === ".webm"
+                    ? "video/webm"
+                    : "video/quicktime";
               videoContents.push({
                 type: "video",
                 source: {
@@ -389,63 +464,83 @@ export async function initDiscordBot() {
       }
 
       const fullMessage = userMessage + attachmentText;
-      
+
       // ユーザー会話履歴を取得または作成
       let userConv = userConversations.get(userId);
       if (!userConv) {
         userConv = { messages: [], lastUpdated: Date.now() };
         userConversations.set(userId, userConv);
       }
-      
+
       // メッセージコンテンツを構築
-      const messageContent: any = [{ type: "text", text: `簡潔に答えてください。2000文字以下で。${fullMessage}` }, ...imageContents, ...videoContents];
-      
+      const messageContent: any = [
+        {
+          type: "text",
+          text: `簡潔に答えてください。2000文字以下で。${fullMessage}`,
+        },
+        ...imageContents,
+        ...videoContents,
+      ];
+
       // メッセージをユーザー履歴に追加
       userConv.messages.push({ role: "user", content: fullMessage });
-      
+
       // 履歴を最大サイズまで制限
       if (userConv.messages.length > MAX_USER_HISTORY) {
         userConv.messages = userConv.messages.slice(-MAX_USER_HISTORY);
       }
-      
+
       // 履歴を含めるかどうか決定
       let messagesForAPI: any[] = [];
       if (settings.memoryShareEnabled && userConv.messages.length > 1) {
         messagesForAPI = userConv.messages.map((msg) => ({
           role: msg.role,
-          content: msg.role === "user" ? [{ type: "text", text: `簡潔に答えてください。2000文字以下で。${msg.content}` }] : msg.content,
+          content:
+            msg.role === "user"
+              ? [
+                  {
+                    type: "text",
+                    text: `簡潔に答えてください。2000文字以下で。${msg.content}`,
+                  },
+                ]
+              : msg.content,
         }));
       } else {
         messagesForAPI = [{ role: "user", content: messageContent }];
       }
 
       const startTime = Date.now();
-      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-          "HTTP-Referer": "https://replit.dev",
-          "X-Title": "AI Chat Discord Bot",
+      const response = await fetch(
+        "https://openrouter.ai/api/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+            "HTTP-Referer": "https://replit.dev",
+            "X-Title": "AI Chat Discord Bot",
+          },
+          body: JSON.stringify({
+            model: settings.currentModel,
+            messages: messagesForAPI,
+            max_tokens: 800,
+          }),
         },
-        body: JSON.stringify({
-          model: settings.currentModel,
-          messages: messagesForAPI,
-          max_tokens: 800,
-        }),
-      });
+      );
       const responseTime = Date.now() - startTime;
 
       const data = (await response.json()) as any;
 
       if (data.error) {
         const errorMsg = data.error.message || "AIからの応答がありません";
-        let errorMessage = "❌ エラーが発生しました。後でもう一度試してください。";
-        
+        let errorMessage =
+          "❌ エラーが発生しました。後でもう一度試してください。";
+
         if (errorMsg.includes("credits") || errorMsg.includes("max_tokens")) {
-          errorMessage = "❌ APIの利用制限に達しました。後でもう一度試してください。";
+          errorMessage =
+            "❌ APIの利用制限に達しました。後でもう一度試してください。";
         }
-        
+
         await message.reply({
           content: errorMessage,
         });
@@ -465,15 +560,19 @@ export async function initDiscordBot() {
       userConv.lastUpdated = Date.now();
 
       botChatStats.totalMessages += 2;
-      botChatStats.totalTokens += Math.ceil((userMessage.length + aiResponse.length) / 4);
-      botChatStats.modelCounts[settings.currentModel] = (botChatStats.modelCounts[settings.currentModel] || 0) + 1;
+      botChatStats.totalTokens += Math.ceil(
+        (userMessage.length + aiResponse.length) / 4,
+      );
+      botChatStats.modelCounts[settings.currentModel] =
+        (botChatStats.modelCounts[settings.currentModel] || 0) + 1;
       botChatStats.totalChats = Object.keys(botChatStats.modelCounts).length;
 
       // ユーザー統計を更新
       let userStat = userStats.get(userId);
       if (!userStat) userStat = { totalChats: 0, totalMessages: 0 };
       userStat.totalMessages += 2;
-      if (!userConversations.get(userId)?.messages.length) userStat.totalChats += 1;
+      if (!userConversations.get(userId)?.messages.length)
+        userStat.totalChats += 1;
       userStats.set(userId, userStat);
 
       // 応答スピード付きで返信
@@ -481,9 +580,12 @@ export async function initDiscordBot() {
 
       if (finalResponse.length > 2000) {
         const formattedText = formatLongText(finalResponse);
-        const attachment = new AttachmentBuilder(Buffer.from(formattedText, "utf-8"), {
-          name: "response.txt",
-        });
+        const attachment = new AttachmentBuilder(
+          Buffer.from(formattedText, "utf-8"),
+          {
+            name: "response.txt",
+          },
+        );
         await message.reply({
           files: [attachment],
         });
@@ -513,36 +615,42 @@ export async function initDiscordBot() {
       await interaction.deferReply();
 
       try {
-        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-            "HTTP-Referer": "https://replit.dev",
-            "X-Title": "AI Chat Discord Bot",
+        const response = await fetch(
+          "https://openrouter.ai/api/v1/chat/completions",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+              "HTTP-Referer": "https://replit.dev",
+              "X-Title": "AI Chat Discord Bot",
+            },
+            body: JSON.stringify({
+              model: settings.currentModel,
+              messages: [{ role: "user", content: message }],
+              max_tokens: 1000,
+            }),
           },
-          body: JSON.stringify({
-            model: settings.currentModel,
-            messages: [{ role: "user", content: message }],
-            max_tokens: 1000,
-          }),
-        });
+        );
 
         const data = (await response.json()) as any;
 
         if (data.error) {
           const errorMsg = data.error.message || "AIからの応答がありません";
-          let userMessage = "❌ エラーが発生しました。後でもう一度試してください。";
-          
+          let userMessage =
+            "❌ エラーが発生しました。後でもう一度試してください。";
+
           if (errorMsg.includes("credits") || errorMsg.includes("max_tokens")) {
-            userMessage = "❌ APIの利用制限に達しました。後でもう一度試してください。";
+            userMessage =
+              "❌ APIの利用制限に達しました。後でもう一度試してください。";
           }
-          
+
           await interaction.editReply(userMessage);
           return;
         }
 
-        let aiResponse = data.choices[0]?.message?.content || "応答がありません";
+        let aiResponse =
+          data.choices[0]?.message?.content || "応答がありません";
 
         // 2000文字以上なら要約
         if (aiResponse.length > 2000) {
@@ -551,9 +659,12 @@ export async function initDiscordBot() {
 
         if (aiResponse.length > 2000) {
           const formattedText = formatLongText(aiResponse);
-          const attachment = new AttachmentBuilder(Buffer.from(formattedText, "utf-8"), {
-            name: "response.txt",
-          });
+          const attachment = new AttachmentBuilder(
+            Buffer.from(formattedText, "utf-8"),
+            {
+              name: "response.txt",
+            },
+          );
           await interaction.editReply({
             files: [attachment],
           });
@@ -577,7 +688,10 @@ export async function initDiscordBot() {
         }
 
         const memberPermissions = interaction.member.permissions;
-        if (typeof memberPermissions === "string" || !memberPermissions.has("Administrator")) {
+        if (
+          typeof memberPermissions === "string" ||
+          !memberPermissions.has("Administrator")
+        ) {
           await interaction.reply({
             content: "❌ このコマンドは管理者のみ使用できます",
             flags: 64,
@@ -604,7 +718,7 @@ export async function initDiscordBot() {
       try {
         const now = Date.now();
         const cooldownMs = 5000;
-        
+
         if (now - lastModelChangeTime < cooldownMs) {
           const remainingMs = cooldownMs - (now - lastModelChangeTime);
           await interaction.reply({
@@ -613,8 +727,9 @@ export async function initDiscordBot() {
           });
           return;
         }
-        
-        const newModel = interaction.options.getString("model") || "openai/gpt-oss-20b:free";
+
+        const newModel =
+          interaction.options.getString("model") || "openai/gpt-oss-20b:free";
         const guildId = interaction.guildId || "dm";
         setCurrentModel(newModel, guildId);
         lastModelChangeTime = now;
@@ -650,11 +765,18 @@ export async function initDiscordBot() {
     } else if (interaction.commandName === "stats") {
       try {
         const userId = interaction.user.id;
-        const userStat = userStats.get(userId) || { totalChats: 0, totalMessages: 0 };
-        const isAdmin = interaction.inGuild() && interaction.member?.permissions.has("Administrator");
+        const userStat = userStats.get(userId) || {
+          totalChats: 0,
+          totalMessages: 0,
+        };
+        const isAdmin =
+          interaction.inGuild() &&
+          interaction.member?.permissions.has("Administrator");
         const guildId = interaction.guildId || "dm";
         const rateLimitMax = getRateLimit(guildId);
-        const rateLimitText = isAdmin ? `無制限/${Math.floor(RATE_LIMIT_WINDOW / 1000)}秒` : `${rateLimitMax}/${Math.floor(RATE_LIMIT_WINDOW / 1000)}秒`;
+        const rateLimitText = isAdmin
+          ? `無制限/${Math.floor(RATE_LIMIT_WINDOW / 1000)}秒`
+          : `${rateLimitMax}/${Math.floor(RATE_LIMIT_WINDOW / 1000)}秒`;
         await interaction.reply({
           content: `📊 **あなたの統計**
 • 総チャット数: ${userStat.totalChats}
@@ -789,7 +911,7 @@ export async function registerSlashCommands() {
           option
             .setName("message")
             .setDescription("質問内容")
-            .setRequired(true)
+            .setRequired(true),
         ),
       new SlashCommandBuilder()
         .setName("model")
@@ -802,8 +924,8 @@ export async function registerSlashCommands() {
             .addChoices(
               { name: "Gemini 2.5 Flash", value: "google/gemini-2.5-flash" },
               { name: "gpt-oss-20b", value: "openai/gpt-oss-20b:free" },
-              { name: "O4 Mini High", value: "openai/gpt-4o-mini" }
-            )
+              { name: "O4 Mini High", value: "openai/gpt-4o-mini" },
+            ),
         ),
       new SlashCommandBuilder()
         .setName("admin")
