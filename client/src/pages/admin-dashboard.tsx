@@ -285,6 +285,8 @@ export default function AdminDashboard() {
     }
   }, [rateLimit?.limit]);
 
+  const [pendingModeration, setPendingModeration] = useState<any>(null);
+
   const moderationMutation = useMutation({
     mutationFn: async (settings: any) => {
       if (!selectedGuildId) {
@@ -296,18 +298,19 @@ export default function AdminDashboard() {
         body: JSON.stringify({ ...settings, guildId: selectedGuildId }),
       });
       if (!res.ok) {
-        const errData = await res.text();
-        throw new Error(errData || "エラーが発生しました");
+        const errData = await res.json().catch(() => ({ error: "エラーが発生しました" }));
+        throw new Error(errData.error || "設定更新に失敗しました");
       }
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/moderation-settings", selectedGuildId] });
-      toast({ description: "モデレーション設定を更新しました", duration: 3000 });
+      setPendingModeration(null);
+      toast({ description: "モデレーション設定を保存しました", duration: 3000 });
     },
     onError: (error: any) => {
       toast({ 
-        description: error instanceof Error ? error.message : "設定変更に失敗しました",
+        description: error instanceof Error ? error.message : "設定保存に失敗しました",
         variant: "destructive",
         duration: 3000,
       });
@@ -861,97 +864,74 @@ export default function AdminDashboard() {
                   <textarea
                     className="w-full p-2 border border-border rounded-md text-sm focus:ring-2 focus:ring-primary outline-none resize-none bg-background text-foreground"
                     placeholder="1行1キーワード"
-                    value={(moderationSettings?.keywords || []).join('\n')}
+                    value={(pendingModeration?.keywords || moderationSettings?.keywords || []).join('\n')}
                     onChange={(e) => {
-                      moderationMutation.mutate({
-                        ...moderationSettings,
+                      setPendingModeration({
+                        ...pendingModeration,
                         keywords: e.target.value.split('\n').filter((k: string) => k.trim())
                       });
                     }}
                     disabled={moderationMutation.isPending}
-                    rows={4}
+                    rows={5}
                     data-testid="textarea-keywords"
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-foreground block mb-2">{t.lowTimeoutMinutes}</label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={moderationSettings?.lowTimeoutMinutes || 10}
-                      onChange={(e) => {
-                        moderationMutation.mutate({
-                          ...moderationSettings,
-                          lowTimeoutMinutes: parseInt(e.target.value)
-                        });
-                      }}
-                      disabled={moderationMutation.isPending}
-                      className="w-full px-3 py-2 border border-border rounded-md text-sm focus:ring-2 focus:ring-primary outline-none bg-background text-foreground"
-                      data-testid="input-low-timeout"
-                    />
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-foreground block mb-2">{t.lowTimeoutMinutes}</label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="1440"
+                        value={pendingModeration?.lowTimeoutMinutes ?? moderationSettings?.lowTimeoutMinutes ?? 10}
+                        onChange={(e) => {
+                          setPendingModeration({
+                            ...pendingModeration,
+                            lowTimeoutMinutes: parseInt(e.target.value)
+                          });
+                        }}
+                        disabled={moderationMutation.isPending}
+                        className="w-full px-3 py-2 border border-border rounded-md text-sm focus:ring-2 focus:ring-primary outline-none bg-background text-foreground"
+                        data-testid="input-low-timeout"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">低：キーワードマッチ時のタイムアウト</p>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-foreground block mb-2">{t.mediumTimeoutMinutes}</label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="1440"
+                        value={pendingModeration?.mediumTimeoutMinutes ?? moderationSettings?.mediumTimeoutMinutes ?? 30}
+                        onChange={(e) => {
+                          setPendingModeration({
+                            ...pendingModeration,
+                            mediumTimeoutMinutes: parseInt(e.target.value)
+                          });
+                        }}
+                        disabled={moderationMutation.isPending}
+                        className="w-full px-3 py-2 border border-border rounded-md text-sm focus:ring-2 focus:ring-primary outline-none bg-background text-foreground"
+                        data-testid="input-medium-timeout"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">中度：中程度の違反時のタイムアウト</p>
+                    </div>
                   </div>
 
-                  <div>
-                    <label className="text-sm font-medium text-foreground block mb-2">{t.mediumAction}</label>
-                    <Select 
-                      value={moderationSettings?.mediumAction || "timeout"}
-                      onValueChange={(value) => {
-                        moderationMutation.mutate({
-                          ...moderationSettings,
-                          mediumAction: value
-                        });
-                      }}
-                      disabled={moderationMutation.isPending}
-                    >
-                      <SelectTrigger data-testid="select-medium-action">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="timeout">{t.timeout}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium text-foreground block mb-2">{t.mediumTimeoutMinutes}</label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={moderationSettings?.mediumTimeoutMinutes || 30}
-                      onChange={(e) => {
-                        moderationMutation.mutate({
-                          ...moderationSettings,
-                          mediumTimeoutMinutes: parseInt(e.target.value)
-                        });
-                      }}
-                      disabled={moderationMutation.isPending}
-                      className="w-full px-3 py-2 border border-border rounded-md text-sm focus:ring-2 focus:ring-primary outline-none bg-background text-foreground"
-                      data-testid="input-medium-timeout"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium text-foreground block mb-2">{t.highAction}</label>
-                    <Select 
-                      value={moderationSettings?.highAction || "timeout"}
-                      onValueChange={(value) => {
-                        moderationMutation.mutate({
-                          ...moderationSettings,
-                          highAction: value
-                        });
-                      }}
-                      disabled={moderationMutation.isPending}
-                    >
-                      <SelectTrigger data-testid="select-high-action">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="timeout">{t.timeout}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <Button
+                    onClick={() => {
+                      moderationMutation.mutate({
+                        ...moderationSettings,
+                        ...pendingModeration
+                      });
+                    }}
+                    disabled={moderationMutation.isPending || !pendingModeration}
+                    data-testid="button-save-moderation"
+                  >
+                    {moderationMutation.isPending ? "保存中..." : "設定を保存"}
+                  </Button>
                 </div>
               </>
             )}
