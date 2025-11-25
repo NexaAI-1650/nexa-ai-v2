@@ -146,14 +146,46 @@ async function summarizeIfTooLong(text: string, guildId?: string): Promise<strin
 
 // サーバー管理コマンドを処理
 async function handleManagementCommand(message: any): Promise<boolean> {
-  if (!message.member?.permissions.has("Administrator")) {
-    await message.reply("このコマンドは管理者のみ実行できます。");
-    return true;
-  }
-
   const content = message.content;
   const mentions = message.mentions;
   
+  // タイムアウト: "@Nexa AI @user をXX分タイムアウトして"
+  if (content.includes("をタイムアウト")) {
+    const userMentions = Array.from(mentions.values()).filter((u: any) => !u.bot);
+    if (userMentions.length >= 1) {
+      const targetUser = userMentions[0];
+      const member = message.guild?.members.cache.get(targetUser.id);
+      
+      const timeMatch = content.match(/(\d+)\s*(分|時間|秒)/);
+      let durationMs = 10 * 60 * 1000;
+      if (timeMatch) {
+        const num = parseInt(timeMatch[1]);
+        const unit = timeMatch[2];
+        if (unit === "秒") durationMs = num * 1000;
+        else if (unit === "分") durationMs = num * 60 * 1000;
+        else if (unit === "時間") durationMs = num * 60 * 60 * 1000;
+      }
+
+      if (member) {
+        try {
+          await member.timeout(durationMs, "タイムアウトコマンド");
+          const durationText = timeMatch ? `${timeMatch[1]}${timeMatch[2]}` : "10分";
+          await message.reply(`✅ ${targetUser.username} を ${durationText} タイムアウトさせました。`);
+          return true;
+        } catch (e) {
+          console.error("Timeout error:", e);
+          await message.reply(`❌ タイムアウトに失敗しました：${e instanceof Error ? e.message : "エラー"}`);
+          return true;
+        }
+      }
+    }
+  }
+
+  // 管理者のみのコマンド
+  if (!message.member?.permissions.has("Administrator")) {
+    return false;
+  }
+
   // ロール付与: "@Nexa AI @user に @role を付与して"
   if (content.includes("に") && content.includes("を付与")) {
     const userMentions = Array.from(mentions.values()).filter((u: any) => !u.bot);
@@ -188,11 +220,12 @@ async function handleManagementCommand(message: any): Promise<boolean> {
       const member = message.guild?.members.cache.get(targetUser.id);
       if (member) {
         try {
-          await member.kick("管理コマンドで削除されました");
+          await member.kick("管理コマンド");
           await message.reply(`✅ ${targetUser.username} をキックしました。`);
           return true;
         } catch (e) {
-          await message.reply(`❌ キックに失敗しました。`);
+          console.error("Kick error:", e);
+          await message.reply(`❌ キックに失敗しました：${e instanceof Error ? e.message : "エラー"}`);
           return true;
         }
       }
@@ -205,11 +238,12 @@ async function handleManagementCommand(message: any): Promise<boolean> {
     if (userMentions.length >= 1) {
       const targetUser = userMentions[0];
       try {
-        await message.guild?.members.ban(targetUser, { reason: "管理コマンドでバンされました" });
+        await message.guild?.members.ban(targetUser, { reason: "管理コマンド" });
         await message.reply(`✅ ${targetUser.username} をバンしました。`);
         return true;
       } catch (e) {
-        await message.reply(`❌ バンに失敗しました。`);
+        console.error("Ban error:", e);
+        await message.reply(`❌ バンに失敗しました：${e instanceof Error ? e.message : "エラー"}`);
         return true;
       }
     }
@@ -240,38 +274,6 @@ async function handleManagementCommand(message: any): Promise<boolean> {
     }
   }
 
-  // タイムアウト: "@Nexa AI @user をXX分タイムアウトして" (XX は数字)
-  if (content.includes("をタイムアウト") || content.includes("を") && content.includes("分タイムアウト")) {
-    const userMentions = Array.from(mentions.values()).filter((u: any) => !u.bot);
-    if (userMentions.length >= 1) {
-      const targetUser = userMentions[0];
-      const member = message.guild?.members.cache.get(targetUser.id);
-      
-      // 時間を抽出（例：30分、1時間）
-      const timeMatch = content.match(/(\d+)\s*(分|時間|秒)/);
-      let durationMs = 10 * 60 * 1000; // デフォルト10分
-      if (timeMatch) {
-        const num = parseInt(timeMatch[1]);
-        const unit = timeMatch[2];
-        if (unit === "秒") durationMs = num * 1000;
-        else if (unit === "分") durationMs = num * 60 * 1000;
-        else if (unit === "時間") durationMs = num * 60 * 60 * 1000;
-      }
-
-      if (member) {
-        try {
-          await member.timeout(durationMs, "タイムアウトコマンドで実行されました");
-          const durationText = timeMatch ? `${timeMatch[1]}${timeMatch[2]}` : "10分";
-          await message.reply(`✅ ${targetUser.username} を ${durationText} タイムアウトさせました。`);
-          return true;
-        } catch (e) {
-          await message.reply(`❌ タイムアウトに失敗しました。`);
-          return true;
-        }
-      }
-    }
-  }
-
   return false;
 }
 
@@ -279,20 +281,24 @@ async function handleManagementCommand(message: any): Promise<boolean> {
 async function checkInappropriateMessage(message: any): Promise<void> {
   try {
     // ボット、管理者、DM は対象外
-    if (message.author.bot || message.member?.permissions.has("Administrator") || !message.guild) return;
+    if (!message?.author || message.author.bot || message.member?.permissions.has("Administrator") || !message.guild) return;
     
-    const guildId = message.guild.id;
-    const settings = await storage.getModerationSettings(guildId);
-    
-    if (!settings.enabled) return;
-    
-    const messageText = message.content.toLowerCase();
-    const hasKeyword = settings.keywords.some(keyword => messageText.includes(keyword.toLowerCase()));
-    
-    if (!hasKeyword) return;
-
-    // AI に詳細な判定を依頼
     try {
+      const guildId = message.guild.id;
+      const settings = await storage.getModerationSettings(guildId);
+      
+      if (!settings?.enabled) return;
+      
+      const messageText = (message.content || "").toLowerCase();
+      if (!messageText) return;
+      
+      const hasKeyword = settings.keywords?.some((keyword: string) => messageText.includes(keyword.toLowerCase()));
+      
+      if (!hasKeyword) return;
+
+      // AI に詳細な判定を依頼
+      if (!OPENROUTER_API_KEY) return;
+      
       const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -311,24 +317,26 @@ async function checkInappropriateMessage(message: any): Promise<void> {
         }),
       });
 
+      if (!response.ok) return;
+
       const data = (await response.json()) as any;
       const responseText = data.choices?.[0]?.message?.content || "{}";
       
-      try {
-        const judgment = JSON.parse(responseText);
-        
-        if (judgment.inappropriate) {
-          const member = message.member;
-          let action = "timeout";
+      const judgment = JSON.parse(responseText);
+      
+      if (judgment.inappropriate && message.member) {
+        const member = message.member;
+        let action = "timeout";
 
-          // severity に応じてアクションを決定
-          if (judgment.severity === "high") {
-            action = settings.highAction;
-          } else if (judgment.severity === "medium") {
-            action = settings.mediumAction;
-          }
+        // severity に応じてアクションを決定
+        if (judgment.severity === "high") {
+          action = settings.highAction;
+        } else if (judgment.severity === "medium") {
+          action = settings.mediumAction;
+        }
 
-          // アクション実行
+        // アクション実行
+        try {
           if (action === "timeout") {
             const timeoutMs = settings.lowTimeoutMinutes * 60 * 1000;
             await member.timeout(timeoutMs, "不適切なメッセージ");
@@ -349,12 +357,12 @@ async function checkInappropriateMessage(message: any): Promise<void> {
               await message.delete();
             } catch {}
           }
+        } catch (actionError) {
+          console.error("モデレーションアクション実行エラー:", actionError);
         }
-      } catch (parseError) {
-        // JSON パースエラーは無視
       }
-    } catch (aiError) {
-      // AI API エラーは無視（スパム防止）
+    } catch (processingError) {
+      console.error("メッセージ監視処理エラー:", processingError);
     }
   } catch (error) {
     console.error("メッセージ監視エラー:", error);
@@ -389,6 +397,15 @@ export async function initDiscordBot() {
 
   client.once("ready", () => {
     console.log(`Discord Bot ログイン完了: ${client?.user?.tag}`);
+  });
+
+  // エラーハンドラ
+  client.on("error", (error) => {
+    console.error("Discord.js エラー:", error);
+  });
+
+  client.on("warn", (warn) => {
+    console.warn("Discord.js 警告:", warn);
   });
 
   // メッセージ作成イベント（メンション・返信対応）
