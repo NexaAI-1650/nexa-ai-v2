@@ -113,6 +113,14 @@ function formatLongText(text: string, lineLength: number = 60): string {
   return result;
 }
 
+// 複数質問を分割する
+function splitQuestions(text: string): string[] {
+  // 「？」と「。」で分割
+  const questions = text.split(/(?<=[？。])\s*/).filter(q => q.trim().length > 0);
+  // 分割されなかった場合は元のテキストを返す
+  return questions.length > 1 ? questions : [text];
+}
+
 // 長いテキストを要約する
 async function summarizeIfTooLong(text: string, guildId?: string): Promise<string> {
   if (text.length <= 2000) return text;
@@ -214,6 +222,15 @@ export async function initDiscordBot() {
     botStats.commandCount++;
 
     try {
+      // 定期的に typing を送信（3秒ごと）
+      let typingInterval: NodeJS.Timeout | null = setInterval(async () => {
+        try {
+          await message.channel.sendTyping();
+        } catch (e) {
+          clearInterval(typingInterval!);
+        }
+      }, 3000);
+
       await message.channel.sendTyping();
 
       // 添付ファイル処理
@@ -288,90 +305,110 @@ export async function initDiscordBot() {
       if (userConv.messages.length > MAX_USER_HISTORY) {
         userConv.messages = userConv.messages.slice(-MAX_USER_HISTORY);
       }
+
+      // 複数質問を分割して処理
+      const questions = splitQuestions(fullMessage);
       
-      // 履歴を含めるかどうか決定
-      let messagesForAPI: any[] = [];
-      if (settings.memoryShareEnabled && userConv.messages.length > 1) {
-        messagesForAPI = userConv.messages.map((msg) => ({
-          role: msg.role,
-          content: msg.role === "user" ? [{ type: "text", text: msg.content }] : msg.content,
-        }));
-      } else {
-        messagesForAPI = [{ role: "user", content: messageContent }];
-      }
+      for (let qIndex = 0; qIndex < questions.length; qIndex++) {
+        const question = questions[qIndex].trim();
+        if (!question) continue;
 
-      const startTime = Date.now();
-      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-          "HTTP-Referer": "https://replit.dev",
-          "X-Title": "AI Chat Discord Bot",
-        },
-        body: JSON.stringify({
-          model: settings.currentModel,
-          messages: messagesForAPI,
-          max_tokens: 1000,
-        }),
-      });
-      const responseTime = Date.now() - startTime;
-
-      const data = (await response.json()) as any;
-
-      if (data.error) {
-        const errorMsg = data.error.message || "AIからの応答がありません";
-        let userMessage = "❌ エラーが発生しました。後でもう一度試してください。";
-        
-        if (errorMsg.includes("credits") || errorMsg.includes("max_tokens")) {
-          userMessage = "❌ APIの利用制限に達しました。後でもう一度試してください。";
+        // 履歴を含めるかどうか決定
+        let messagesForAPI: any[] = [];
+        if (settings.memoryShareEnabled && userConv.messages.length > 1) {
+          messagesForAPI = userConv.messages.map((msg) => ({
+            role: msg.role,
+            content: msg.role === "user" ? [{ type: "text", text: msg.content }] : msg.content,
+          }));
+        } else {
+          messagesForAPI = [{ role: "user", content: [{ type: "text", text: question }, ...imageContents, ...videoContents] }];
         }
-        
-        await message.reply({
-          content: userMessage,
+
+        // 簡潔な回答を促すプロンプト
+        const briefPrompt = `簡潔に答えてください。2000文字以下で。難しい説明が必要な場合は要点だけをまとめてください。\n\n${question}`;
+        const finalMessagesForAPI = messagesForAPI.map((msg, idx) => {
+          if (idx === messagesForAPI.length - 1 && msg.role === "user") {
+            return { ...msg, content: [{ type: "text", text: briefPrompt }, ...imageContents, ...videoContents] };
+          }
+          return msg;
         });
-        return;
+
+        const startTime = Date.now();
+        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+            "HTTP-Referer": "https://replit.dev",
+            "X-Title": "AI Chat Discord Bot",
+          },
+          body: JSON.stringify({
+            model: settings.currentModel,
+            messages: finalMessagesForAPI,
+            max_tokens: 800,
+          }),
+        });
+        const responseTime = Date.now() - startTime;
+
+        const data = (await response.json()) as any;
+
+        if (data.error) {
+          const errorMsg = data.error.message || "AIからの応答がありません";
+          let errorMessage = "❌ エラーが発生しました。後でもう一度試してください。";
+          
+          if (errorMsg.includes("credits") || errorMsg.includes("max_tokens")) {
+            errorMessage = "❌ APIの利用制限に達しました。後でもう一度試してください。";
+          }
+          
+          await message.reply({
+            content: errorMessage,
+          });
+          if (typingInterval) clearInterval(typingInterval);
+          return;
+        }
+
+        let aiResponse = data.choices[0]?.message?.content || "応答がありません";
+
+        // 2000文字以上なら要約
+        if (aiResponse.length > 2000) {
+          aiResponse = await summarizeIfTooLong(aiResponse, guildId);
+        }
+
+        // ユーザー履歴に保存
+        userConv.messages.push({ role: "assistant", content: aiResponse });
+        userConv.lastUpdated = Date.now();
+
+        botChatStats.totalMessages += 2;
+        botChatStats.totalTokens += Math.ceil((question.length + aiResponse.length) / 4);
+        botChatStats.modelCounts[settings.currentModel] = (botChatStats.modelCounts[settings.currentModel] || 0) + 1;
+        botChatStats.totalChats = Object.keys(botChatStats.modelCounts).length;
+
+        // ユーザー統計を更新
+        let userStat = userStats.get(userId);
+        if (!userStat) userStat = { totalChats: 0, totalMessages: 0 };
+        userStat.totalMessages += 2;
+        if (!userConversations.get(userId)?.messages.length) userStat.totalChats += 1;
+        userStats.set(userId, userStat);
+
+        // 応答スピード付きで返信
+        const finalResponse = `⏱️ ${responseTime}ms\n\n${aiResponse}`;
+
+        if (finalResponse.length > 2000) {
+          const formattedText = formatLongText(finalResponse);
+          const attachment = new AttachmentBuilder(Buffer.from(formattedText, "utf-8"), {
+            name: "response.txt",
+          });
+          await message.reply({
+            files: [attachment],
+          });
+        } else {
+          await message.reply({
+            content: finalResponse,
+          });
+        }
       }
 
-      let aiResponse = data.choices[0]?.message?.content || "応答がありません";
-
-      // 2000文字以上なら要約
-      if (aiResponse.length > 2000) {
-        aiResponse = await summarizeIfTooLong(aiResponse, guildId);
-      }
-
-      // ユーザー履歴に保存
-      userConv.messages.push({ role: "assistant", content: aiResponse });
-      userConv.lastUpdated = Date.now();
-
-      botChatStats.totalMessages += 2;
-      botChatStats.totalTokens += Math.ceil((userMessage.length + aiResponse.length) / 4);
-      botChatStats.modelCounts[settings.currentModel] = (botChatStats.modelCounts[settings.currentModel] || 0) + 1;
-      botChatStats.totalChats = Object.keys(botChatStats.modelCounts).length;
-
-      // ユーザー統計を更新
-      let userStat = userStats.get(userId);
-      if (!userStat) userStat = { totalChats: 0, totalMessages: 0 };
-      userStat.totalMessages += 2;
-      if (!userConversations.get(userId)?.messages.length) userStat.totalChats += 1;
-      userStats.set(userId, userStat);
-
-      // 応答スピード付きで返信
-      const finalResponse = `⏱️ ${responseTime}ms\n\n${aiResponse}`;
-
-      if (finalResponse.length > 2000) {
-        const formattedText = formatLongText(finalResponse);
-        const attachment = new AttachmentBuilder(Buffer.from(formattedText, "utf-8"), {
-          name: "response.txt",
-        });
-        await message.reply({
-          files: [attachment],
-        });
-      } else {
-        await message.reply({
-          content: finalResponse,
-        });
-      }
+      if (typingInterval) clearInterval(typingInterval);
     } catch (error) {
       console.error("Discord Bot メッセージ処理エラー:", error);
       await message.reply("エラーが発生しました");
