@@ -288,12 +288,12 @@ export default function AdminDashboard() {
               <SelectValue placeholder="サーバーを選択してください" />
             </SelectTrigger>
             <SelectContent>
-              {(guilds?.guilds || []).length === 0 ? (
+              {(guilds || []).length === 0 ? (
                 <SelectItem value="_none" disabled>
                   Bot が入っているサーバーがありません
                 </SelectItem>
               ) : (
-                (guilds?.guilds || []).map((guild: any) => (
+                (guilds || []).map((guild: any) => (
                   <SelectItem key={guild.guildId} value={guild.guildId}>
                     {guild.guildName || `Server: ${guild.guildId}`}
                   </SelectItem>
