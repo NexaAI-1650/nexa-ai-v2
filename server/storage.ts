@@ -1,4 +1,4 @@
-import { type Conversation, type Message } from "@shared/schema";
+import { type Conversation, type Message, type BotEventLog, type BotMetrics } from "@shared/schema";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
@@ -11,10 +11,16 @@ export interface IStorage {
   updateConversationTitle(id: string, title: string): Promise<Conversation>;
   updateConversationSettings(id: string, settings: any): Promise<Conversation>;
   deleteConversation(id: string): Promise<void>;
+  addEventLog(log: Omit<BotEventLog, "id">): Promise<BotEventLog>;
+  getEventLogs(limit?: number): Promise<BotEventLog[]>;
+  addMetrics(metrics: Omit<BotMetrics, "timestamp"> & { timestamp?: number }): Promise<BotMetrics>;
+  getMetrics(limit?: number): Promise<BotMetrics[]>;
 }
 
 export class MemStorage implements IStorage {
   private conversations: Map<string, Conversation>;
+  private eventLogs: BotEventLog[] = [];
+  private metrics: BotMetrics[] = [];
 
   constructor() {
     this.conversations = new Map();
@@ -101,6 +107,40 @@ export class MemStorage implements IStorage {
 
   async deleteConversation(id: string): Promise<void> {
     this.conversations.delete(id);
+  }
+
+  async addEventLog(log: Omit<BotEventLog, "id">): Promise<BotEventLog> {
+    const eventLog: BotEventLog = {
+      ...log,
+      id: randomUUID(),
+    };
+    this.eventLogs.push(eventLog);
+    // Keep only last 1000 logs
+    if (this.eventLogs.length > 1000) {
+      this.eventLogs = this.eventLogs.slice(-1000);
+    }
+    return eventLog;
+  }
+
+  async getEventLogs(limit: number = 50): Promise<BotEventLog[]> {
+    return this.eventLogs.slice(-limit).reverse();
+  }
+
+  async addMetrics(metrics: Omit<BotMetrics, "timestamp"> & { timestamp?: number }): Promise<BotMetrics> {
+    const metricsData: BotMetrics = {
+      ...metrics,
+      timestamp: metrics.timestamp || Date.now(),
+    };
+    this.metrics.push(metricsData);
+    // Keep only last 500 data points
+    if (this.metrics.length > 500) {
+      this.metrics = this.metrics.slice(-500);
+    }
+    return metricsData;
+  }
+
+  async getMetrics(limit: number = 100): Promise<BotMetrics[]> {
+    return this.metrics.slice(-limit);
   }
 }
 
