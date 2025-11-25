@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { BarChart3, MessageSquare, Users, ArrowLeft, Power, RotateCcw, PowerOff, LogIn } from "lucide-react";
+import { BarChart3, MessageSquare, Users, ArrowLeft, Power, RotateCcw, PowerOff, LogIn, LogOut, Globe } from "lucide-react";
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -17,6 +17,7 @@ export default function AdminDashboard() {
   const queryClient = useQueryClient();
   const [sliderValue, setSliderValue] = useState<number[]>([20]);
   const [selectedGuildId, setSelectedGuildId] = useState<string | null>(null);
+  const [language, setLanguage] = useState<"ja" | "en">("ja");
   const sliderTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const { data: user } = useQuery({
@@ -256,7 +257,18 @@ export default function AdminDashboard() {
       <header className="border-b bg-card backdrop-blur-sm bg-card/80 shadow-sm">
         <div className="flex items-center justify-between px-6 py-4">
           <h1 className="text-2xl font-bold">Bot管理ダッシュボード</h1>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">{user?.username}</span>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => setLanguage(language === "ja" ? "en" : "ja")}
+                data-testid="button-language"
+              >
+                <Globe className="h-4 w-4" />
+              </Button>
+            </div>
             <Button 
               variant="ghost" 
               size="sm" 
@@ -265,14 +277,9 @@ export default function AdminDashboard() {
               }}
               data-testid="button-logout"
             >
+              <LogOut className="h-4 w-4 mr-2" />
               ログアウト
             </Button>
-            <Link href="/">
-              <Button variant="outline" size="sm">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                チャットに戻る
-              </Button>
-            </Link>
           </div>
         </div>
       </header>
@@ -288,14 +295,25 @@ export default function AdminDashboard() {
               <SelectValue placeholder="サーバーを選択してください" />
             </SelectTrigger>
             <SelectContent>
-              {(guilds || []).length === 0 ? (
+              {(guilds?.guilds || []).length === 0 ? (
                 <SelectItem value="_none" disabled>
                   Bot が入っているサーバーがありません
                 </SelectItem>
               ) : (
-                (guilds || []).map((guild: any) => (
+                (guilds?.guilds || []).map((guild: any) => (
                   <SelectItem key={guild.guildId} value={guild.guildId}>
-                    {guild.guildName || `Server: ${guild.guildId}`}
+                    <div className="flex items-center gap-2">
+                      {guild.icon ? (
+                        <img 
+                          src={`https://cdn.discordapp.com/icons/${guild.guildId}/${guild.icon}.png?size=32`}
+                          alt={guild.guildName}
+                          className="w-5 h-5 rounded-full"
+                        />
+                      ) : (
+                        <div className="w-5 h-5 rounded-full bg-muted" />
+                      )}
+                      <span>{guild.guildName || `Server: ${guild.guildId}`}</span>
+                    </div>
                   </SelectItem>
                 ))
               )}
@@ -312,46 +330,6 @@ export default function AdminDashboard() {
           </Card>
         ) : (
           <>
-        {/* Web Stats */}
-        <div className="mb-8">
-          <h2 className="text-lg font-semibold mb-4">Web チャット統計</h2>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card className="p-6 space-y-2">
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">総チャット数</p>
-                <MessageSquare className="h-4 w-4 text-primary" />
-              </div>
-              <p className="text-3xl font-bold">{totalChats}</p>
-            </Card>
-
-            <Card className="p-6 space-y-2">
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">総メッセージ数</p>
-                <Users className="h-4 w-4 text-primary" />
-              </div>
-              <p className="text-3xl font-bold">{totalMessages}</p>
-            </Card>
-
-            <Card className="p-6 space-y-2">
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">推定トークン数</p>
-                <BarChart3 className="h-4 w-4 text-primary" />
-              </div>
-              <p className="text-3xl font-bold">
-                {Math.floor(totalTokens / 1000)}K
-              </p>
-            </Card>
-
-            <Card className="p-6 space-y-2">
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">利用モデル数</p>
-                <BarChart3 className="h-4 w-4 text-primary" />
-              </div>
-              <p className="text-3xl font-bold">{models.length}</p>
-            </Card>
-          </div>
-        </div>
-
         {/* Bot Stats */}
         <div className="mb-8">
           <h2 className="text-lg font-semibold mb-4">Bot 統計 (30秒ごと更新)</h2>
@@ -391,30 +369,6 @@ export default function AdminDashboard() {
             </Card>
           </div>
         </div>
-
-        {/* Models Section - Web */}
-        <Card className="p-6 mb-8">
-          <h2 className="text-lg font-semibold mb-4">利用中のAIモデル (Web)</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {models.map((model) => {
-              const count = conversations.filter((c) => c.model === model)
-                .length;
-              return (
-                <div
-                  key={model}
-                  className="p-4 bg-muted/30 rounded-lg border border-border"
-                >
-                  <p className="font-mono text-sm text-foreground break-all">
-                    {model}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    使用チャット: {count}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-        </Card>
 
         {/* Models Section - Bot (5分ごと更新) */}
         <Card className="p-6 mb-8">
