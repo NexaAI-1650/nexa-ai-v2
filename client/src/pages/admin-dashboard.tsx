@@ -287,7 +287,18 @@ export default function AdminDashboard() {
 
   const moderationMutation = useMutation({
     mutationFn: async (settings: any) => {
-      const res = await apiRequest("POST", "/api/admin/moderation-settings", { ...settings, guildId: selectedGuildId });
+      if (!selectedGuildId) {
+        throw new Error("サーバーを選択してください");
+      }
+      const res = await fetch("/api/admin/moderation-settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...settings, guildId: selectedGuildId }),
+      });
+      if (!res.ok) {
+        const errData = await res.text();
+        throw new Error(errData || "エラーが発生しました");
+      }
       return res.json();
     },
     onSuccess: () => {
@@ -296,7 +307,7 @@ export default function AdminDashboard() {
     },
     onError: (error: any) => {
       toast({ 
-        description: error?.message || "設定変更に失敗しました",
+        description: error instanceof Error ? error.message : "設定変更に失敗しました",
         variant: "destructive",
         duration: 3000,
       });
