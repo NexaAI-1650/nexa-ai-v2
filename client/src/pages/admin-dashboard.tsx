@@ -85,6 +85,42 @@ const i18n = {
     notAuthenticated: "Authentication required",
     selectServerMsg: "Please select a server",
   },
+  zh: {
+    title: "机器人管理仪表板",
+    logout: "登出",
+    selectServer: "选择服务器",
+    selectPlaceholder: "请选择服务器",
+    noServers: "未找到机器人所在的服务器",
+    botStats: "机器人统计 (每30秒更新)",
+    totalChats: "总聊天数",
+    totalMessages: "总消息数",
+    totalTokens: "估计代币数",
+    modelCount: "已用模型数",
+    models: "正在使用的人工智能模型 (机器人) (每5分钟更新)",
+    usage: "使用",
+    noData: "无数据",
+    botControl: "机器人控制",
+    currentModel: "当前模型",
+    rateLimit: "速率限制 (每分钟消息数)",
+    perMin: "/60秒",
+    memoryShare: "记忆共享",
+    memoryDesc: "共享对话历史",
+    enabled: "启用",
+    disabled: "禁用",
+    preset10: "预设: 10",
+    preset20: "预设: 20",
+    preset50: "预设: 50",
+    botRunning: "机器人运行中",
+    botStopped: "机器人已停止",
+    uptime: "正常运行时间",
+    commandCount: "执行的命令数",
+    help: "帮助",
+    testLogin: "测试登录 (开发)",
+    testLoginDesc: "(用于开发测试)",
+    discordLogin: "使用 Discord 登录",
+    notAuthenticated: "需要身份验证",
+    selectServerMsg: "请选择服务器",
+  },
 };
 
 export default function AdminDashboard() {
@@ -92,7 +128,7 @@ export default function AdminDashboard() {
   const queryClient = useQueryClient();
   const [sliderValue, setSliderValue] = useState<number[]>([20]);
   const [selectedGuildId, setSelectedGuildId] = useState<string | null>(null);
-  const [language, setLanguage] = useState<"ja" | "en">("ja");
+  const [language, setLanguage] = useState<"ja" | "en" | "zh">("ja");
   const sliderTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const t = i18n[language];
 
@@ -289,14 +325,16 @@ export default function AdminDashboard() {
         <Card className="p-8 max-w-md">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-2xl font-bold">{t.title}</h1>
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={() => setLanguage(language === "ja" ? "en" : "ja")}
-              data-testid="button-language-login"
-            >
-              <Globe className="h-4 w-4" />
-            </Button>
+            <Select value={language} onValueChange={(value) => setLanguage(value as "ja" | "en" | "zh")}>
+              <SelectTrigger className="w-auto" data-testid="select-language-login">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ja">日本語</SelectItem>
+                <SelectItem value="en">English</SelectItem>
+                <SelectItem value="zh">中文</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <p className="text-muted-foreground mb-6">
             {language === "ja" ? "Discord アカウントで連携してダッシュボードにアクセスしてください。" : "Access the dashboard by linking your Discord account."}
@@ -346,16 +384,28 @@ export default function AdminDashboard() {
         <div className="flex items-center justify-between px-6 py-4">
           <h1 className="text-2xl font-bold">{t.title}</h1>
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">{user?.username}</span>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => setLanguage(language === "ja" ? "en" : "ja")}
-                data-testid="button-language"
-              >
-                <Globe className="h-4 w-4" />
-              </Button>
+            <div className="flex items-center gap-3">
+              {user?.avatar ? (
+                <img 
+                  src={`https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=32`}
+                  alt={user.username}
+                  className="w-8 h-8 rounded-full"
+                  data-testid="img-user-avatar"
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-muted" data-testid="div-user-avatar-fallback" />
+              )}
+              <span className="text-sm text-muted-foreground" data-testid="text-username">{user?.username}</span>
+              <Select value={language} onValueChange={(value) => setLanguage(value as "ja" | "en" | "zh")}>
+                <SelectTrigger className="w-auto" data-testid="select-language">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ja">日本語</SelectItem>
+                  <SelectItem value="en">English</SelectItem>
+                  <SelectItem value="zh">中文</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <Button 
               variant="ghost" 
