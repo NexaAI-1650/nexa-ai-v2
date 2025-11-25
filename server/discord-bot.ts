@@ -146,63 +146,6 @@ async function summarizeIfTooLong(text: string, guildId?: string): Promise<strin
 
 // サーバー管理コマンドを処理
 async function handleManagementCommand(message: any): Promise<boolean> {
-  if (!message.member?.permissions.has("Administrator")) {
-    return false;
-  }
-
-  const content = message.content;
-  const mentions = message.mentions;
-  
-  // ロール付与: "@Nexa AI @user に @role を付与して"
-  if (content.includes("に") && content.includes("を付与")) {
-    const userMentions = Array.from(mentions.values()).filter((u: any) => !u.bot);
-    if (userMentions.length >= 2) {
-      const targetUser = userMentions[0];
-      const member = message.guild?.members.cache.get(targetUser.id);
-      
-      const roleMatch = content.match(/に\s*<@&?(\d+)>\s*を付与/);
-      if (roleMatch) {
-        const roleId = roleMatch[1];
-        const role = message.guild?.roles.cache.get(roleId);
-        if (role && member) {
-          try {
-            await member.roles.add(role);
-            await message.reply(`✅ ${targetUser.username} に ${role.name} を付与しました。`);
-            return true;
-          } catch (e) {
-            await message.reply(`❌ ロール付与に失敗しました。`);
-            return true;
-          }
-        }
-      }
-    }
-  }
-
-  // ロール削除: "@Nexa AI @user から @role を削除して"
-  if (content.includes("から") && content.includes("を削除")) {
-    const userMentions = Array.from(mentions.values()).filter((u: any) => !u.bot);
-    if (userMentions.length >= 1) {
-      const targetUser = userMentions[0];
-      const member = message.guild?.members.cache.get(targetUser.id);
-      
-      const roleMatch = content.match(/から\s*<@&?(\d+)>\s*を削除/);
-      if (roleMatch) {
-        const roleId = roleMatch[1];
-        const role = message.guild?.roles.cache.get(roleId);
-        if (role && member) {
-          try {
-            await member.roles.remove(role);
-            await message.reply(`✅ ${targetUser.username} から ${role.name} を削除しました。`);
-            return true;
-          } catch (e) {
-            await message.reply(`❌ ロール削除に失敗しました。`);
-            return true;
-          }
-        }
-      }
-    }
-  }
-
   return false;
 }
 
