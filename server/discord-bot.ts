@@ -453,7 +453,7 @@ export async function initDiscordBot() {
       if (typeof memberPermissions === "string" || !memberPermissions.has("Administrator")) {
         await interaction.reply({
           content: "❌ このコマンドは管理者のみ使用できます",
-          ephemeral: true,
+          flags: 64,
         });
         return;
       }
