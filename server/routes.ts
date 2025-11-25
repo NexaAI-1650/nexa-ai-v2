@@ -569,35 +569,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/admin/my-guilds", async (req: Request, res) => {
-    try {
-      if (!req.user) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
-
-      const accessToken = await getDiscordAccessToken();
-      const client = new Client({
-        intents: [GatewayIntentBits.Guilds],
-      });
-      await client.login(accessToken);
-
-      const userGuilds = await client.rest.get("/users/@me/guilds");
-      const botGuilds = getAvailableGuildsExport();
-      
-      const adminGuilds = (userGuilds as any[])
-        .filter((ug: any) => (ug.permissions & 8) === 8) // ADMINISTRATOR permission
-        .filter((ug: any) => botGuilds.some((bg) => bg.guildId === ug.id))
-        .filter((ug: any) => isGuildAdminAllowed(ug.id));
-
-      await client.destroy();
-      res.json({ guilds: adminGuilds });
-    } catch (error) {
-      console.error("My guilds error:", error);
-      res.status(500).json({
-        error: error instanceof Error ? error.message : "管理サーバー取得に失敗しました",
-      });
+app.get("/api/admin/my-guilds", async (req: Request, res) => {
+  try {
+    if (!req.user || !req.session?.accessToken) {
+      return res.status(401).json({ error: "Not authenticated" });
     }
-  });
+
+    const userAccessToken = req.session.accessToken;
+    const guildsResponse = await fetch("https://discord.com/api/users/@me/guilds", {
+      headers: { Authorization: `Bearer ${userAccessToken}` },
+    });
+
+    if (!guildsResponse.ok) {
+      throw new Error("Failed to fetch user guilds from Discord API");
+    }
+
+    const userGuilds = await guildsResponse.json() as any[];
+    const botGuilds = getAvailableGuildsExport();
+    
+    const adminGuilds = userGuilds
+      .filter((ug: any) => (ug.permissions & 8) === 8)
+      .filter((ug: any) => botGuilds.some((bg) => bg.guildId === ug.id))
+      .filter((ug: any) => isGuildAdminAllowed(ug.id));
+
+    res.json({ guilds: adminGuilds });
+  } catch (error) {
+    console.error("My guilds error:", error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : "管理サーバー取得に失敗しました",
+    });
+  }
+});
 
   app.get("/api/admin/guilds", async (_req, res) => {
     try {
