@@ -58,6 +58,15 @@ const i18n = {
     errorRate: "エラー率",
     successRate: "成功率",
     ms: "ms",
+    moderation: "モデレーション設定",
+    lowTimeoutMinutes: "低度のタイムアウト (分)",
+    mediumAction: "中度のアクション",
+    mediumTimeoutMinutes: "中度のタイムアウト (分)",
+    highAction: "高度のアクション",
+    keywords: "NG ワード一覧",
+    timeout: "タイムアウト",
+    kick: "キック",
+    ban: "バン",
   },
   en: {
     title: "Nexa AI Dashboard",
@@ -103,6 +112,15 @@ const i18n = {
     errorRate: "Error Rate",
     successRate: "Success Rate",
     ms: "ms",
+    moderation: "Moderation Settings",
+    lowTimeoutMinutes: "Low Timeout (minutes)",
+    mediumAction: "Medium Action",
+    mediumTimeoutMinutes: "Medium Timeout (minutes)",
+    highAction: "High Action",
+    keywords: "Keywords List",
+    timeout: "Timeout",
+    kick: "Kick",
+    ban: "Ban",
   },
   zh: {
     title: "Nexa AI 仪表板",
@@ -148,6 +166,15 @@ const i18n = {
     errorRate: "错误率",
     successRate: "成功率",
     ms: "毫秒",
+    moderation: "审核设置",
+    lowTimeoutMinutes: "低度超时 (分钟)",
+    mediumAction: "中度操作",
+    mediumTimeoutMinutes: "中度超时 (分钟)",
+    highAction: "高度操作",
+    keywords: "关键词列表",
+    timeout: "超时",
+    kick: "踢出",
+    ban: "封禁",
   },
 };
 
@@ -243,11 +270,38 @@ export default function AdminDashboard() {
     refetchInterval: 30000,
   }) as any;
 
+  const { data: moderationSettings = {} as any } = useQuery({
+    queryKey: ["/api/admin/moderation-settings", selectedGuildId],
+    queryFn: async () => {
+      const res = await fetch(`/api/admin/moderation-settings?guildId=${selectedGuildId}`);
+      return res.json();
+    },
+    enabled: selectedGuildId !== null,
+  });
+
   useEffect(() => {
     if (rateLimit?.limit) {
       setSliderValue([rateLimit.limit]);
     }
   }, [rateLimit?.limit]);
+
+  const moderationMutation = useMutation({
+    mutationFn: async (settings: any) => {
+      const res = await apiRequest("POST", "/api/admin/moderation-settings", { ...settings, guildId: selectedGuildId });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/moderation-settings", selectedGuildId] });
+      toast({ description: "モデレーション設定を更新しました", duration: 3000 });
+    },
+    onError: (error: any) => {
+      toast({ 
+        description: error?.message || "設定変更に失敗しました",
+        variant: "destructive",
+        duration: 3000,
+      });
+    },
+  });
 
   const memoryShareMutation = useMutation({
     mutationFn: async (enabled: boolean) => {
@@ -762,6 +816,134 @@ export default function AdminDashboard() {
                 </Button>
               </div>
             </div>
+          </div>
+        </Card>
+
+        {/* Moderation Settings */}
+        <Card className="p-6">
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <span className="inline-block w-1.5 h-6 bg-gradient-to-b from-primary to-primary/50 rounded-full"></span>
+            {t.moderation}
+          </h2>
+          <div className="space-y-6">
+            <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border">
+              <div>
+                <p className="font-medium text-foreground">{t.enabled}</p>
+              </div>
+              <Switch 
+                checked={moderationSettings?.enabled || false}
+                onCheckedChange={(checked) => {
+                  moderationMutation.mutate({
+                    ...moderationSettings,
+                    enabled: checked
+                  });
+                }}
+                disabled={moderationMutation.isPending}
+                data-testid="switch-moderation-enabled"
+              />
+            </div>
+
+            {moderationSettings?.enabled && (
+              <>
+                <div>
+                  <label className="text-sm font-medium text-foreground block mb-2">{t.keywords}</label>
+                  <textarea
+                    className="w-full p-2 border border-border rounded-md text-sm focus:ring-2 focus:ring-primary outline-none resize-none bg-background text-foreground"
+                    placeholder="1行1キーワード"
+                    value={(moderationSettings?.keywords || []).join('\n')}
+                    onChange={(e) => {
+                      moderationMutation.mutate({
+                        ...moderationSettings,
+                        keywords: e.target.value.split('\n').filter((k: string) => k.trim())
+                      });
+                    }}
+                    disabled={moderationMutation.isPending}
+                    rows={4}
+                    data-testid="textarea-keywords"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-foreground block mb-2">{t.lowTimeoutMinutes}</label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={moderationSettings?.lowTimeoutMinutes || 10}
+                      onChange={(e) => {
+                        moderationMutation.mutate({
+                          ...moderationSettings,
+                          lowTimeoutMinutes: parseInt(e.target.value)
+                        });
+                      }}
+                      disabled={moderationMutation.isPending}
+                      className="w-full px-3 py-2 border border-border rounded-md text-sm focus:ring-2 focus:ring-primary outline-none bg-background text-foreground"
+                      data-testid="input-low-timeout"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-foreground block mb-2">{t.mediumAction}</label>
+                    <Select 
+                      value={moderationSettings?.mediumAction || "timeout"}
+                      onValueChange={(value) => {
+                        moderationMutation.mutate({
+                          ...moderationSettings,
+                          mediumAction: value
+                        });
+                      }}
+                      disabled={moderationMutation.isPending}
+                    >
+                      <SelectTrigger data-testid="select-medium-action">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="timeout">{t.timeout}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-foreground block mb-2">{t.mediumTimeoutMinutes}</label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={moderationSettings?.mediumTimeoutMinutes || 30}
+                      onChange={(e) => {
+                        moderationMutation.mutate({
+                          ...moderationSettings,
+                          mediumTimeoutMinutes: parseInt(e.target.value)
+                        });
+                      }}
+                      disabled={moderationMutation.isPending}
+                      className="w-full px-3 py-2 border border-border rounded-md text-sm focus:ring-2 focus:ring-primary outline-none bg-background text-foreground"
+                      data-testid="input-medium-timeout"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-foreground block mb-2">{t.highAction}</label>
+                    <Select 
+                      value={moderationSettings?.highAction || "timeout"}
+                      onValueChange={(value) => {
+                        moderationMutation.mutate({
+                          ...moderationSettings,
+                          highAction: value
+                        });
+                      }}
+                      disabled={moderationMutation.isPending}
+                    >
+                      <SelectTrigger data-testid="select-high-action">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="timeout">{t.timeout}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </Card>
 
