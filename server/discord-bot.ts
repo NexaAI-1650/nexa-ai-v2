@@ -146,46 +146,13 @@ async function summarizeIfTooLong(text: string, guildId?: string): Promise<strin
 
 // サーバー管理コマンドを処理
 async function handleManagementCommand(message: any): Promise<boolean> {
-  const content = message.content;
-  const mentions = message.mentions;
-  
-  // タイムアウト: "@Nexa AI @user をXX分タイムアウトして"
-  if (content.includes("をタイムアウト")) {
-    const userMentions = Array.from(mentions.values()).filter((u: any) => !u.bot);
-    if (userMentions.length >= 1) {
-      const targetUser = userMentions[0];
-      const member = message.guild?.members.cache.get(targetUser.id);
-      
-      const timeMatch = content.match(/(\d+)\s*(分|時間|秒)/);
-      let durationMs = 10 * 60 * 1000;
-      if (timeMatch) {
-        const num = parseInt(timeMatch[1]);
-        const unit = timeMatch[2];
-        if (unit === "秒") durationMs = num * 1000;
-        else if (unit === "分") durationMs = num * 60 * 1000;
-        else if (unit === "時間") durationMs = num * 60 * 60 * 1000;
-      }
-
-      if (member) {
-        try {
-          await member.timeout(durationMs, "タイムアウトコマンド");
-          const durationText = timeMatch ? `${timeMatch[1]}${timeMatch[2]}` : "10分";
-          await message.reply(`✅ ${targetUser.username} を ${durationText} タイムアウトさせました。`);
-          return true;
-        } catch (e) {
-          console.error("Timeout error:", e);
-          await message.reply(`❌ タイムアウトに失敗しました：${e instanceof Error ? e.message : "エラー"}`);
-          return true;
-        }
-      }
-    }
-  }
-
-  // 管理者のみのコマンド
   if (!message.member?.permissions.has("Administrator")) {
     return false;
   }
 
+  const content = message.content;
+  const mentions = message.mentions;
+  
   // ロール付与: "@Nexa AI @user に @role を付与して"
   if (content.includes("に") && content.includes("を付与")) {
     const userMentions = Array.from(mentions.values()).filter((u: any) => !u.bot);
@@ -193,7 +160,6 @@ async function handleManagementCommand(message: any): Promise<boolean> {
       const targetUser = userMentions[0];
       const member = message.guild?.members.cache.get(targetUser.id);
       
-      // ロール名を抽出（"に"と"を付与"の間）
       const roleMatch = content.match(/に\s*<@&?(\d+)>\s*を付与/);
       if (roleMatch) {
         const roleId = roleMatch[1];
@@ -208,43 +174,6 @@ async function handleManagementCommand(message: any): Promise<boolean> {
             return true;
           }
         }
-      }
-    }
-  }
-
-  // キック: "@Nexa AI @user をキックして"
-  if (content.includes("をキック")) {
-    const userMentions = Array.from(mentions.values()).filter((u: any) => !u.bot);
-    if (userMentions.length >= 1) {
-      const targetUser = userMentions[0];
-      const member = message.guild?.members.cache.get(targetUser.id);
-      if (member) {
-        try {
-          await member.kick("管理コマンド");
-          await message.reply(`✅ ${targetUser.username} をキックしました。`);
-          return true;
-        } catch (e) {
-          console.error("Kick error:", e);
-          await message.reply(`❌ キックに失敗しました：${e instanceof Error ? e.message : "エラー"}`);
-          return true;
-        }
-      }
-    }
-  }
-
-  // バン: "@Nexa AI @user をバンして"
-  if (content.includes("をバン")) {
-    const userMentions = Array.from(mentions.values()).filter((u: any) => !u.bot);
-    if (userMentions.length >= 1) {
-      const targetUser = userMentions[0];
-      try {
-        await message.guild?.members.ban(targetUser, { reason: "管理コマンド" });
-        await message.reply(`✅ ${targetUser.username} をバンしました。`);
-        return true;
-      } catch (e) {
-        console.error("Ban error:", e);
-        await message.reply(`❌ バンに失敗しました：${e instanceof Error ? e.message : "エラー"}`);
-        return true;
       }
     }
   }
