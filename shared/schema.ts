@@ -50,6 +50,19 @@ export const messageSchema = z.object({
   isEdited: z.boolean().optional(),
 });
 
+export const moderationSettingsSchema = z.object({
+  guildId: z.string(),
+  enabled: z.boolean().default(true),
+  lowTimeoutMinutes: z.number().default(30),
+  mediumAction: z.enum(["timeout", "kick"]).default("kick"),
+  mediumTimeoutMinutes: z.number().default(60),
+  highAction: z.enum(["kick", "ban"]).default("ban"),
+  keywords: z.array(z.string()).default([
+    "スパム", "詐欺", "売買", "エロ", "ポルノ", "違法", "薬物",
+    "spam", "scam", "porn", "xxx", "illegal", "drugs"
+  ]),
+});
+
 export const conversationSchema = z.object({
   id: z.string(),
   title: z.string(),
@@ -83,3 +96,4 @@ export type Conversation = z.infer<typeof conversationSchema>;
 export type ChatRequest = z.infer<typeof chatRequestSchema>;
 export type AISettings = z.infer<typeof aiSettingsSchema>;
 export type AIModel = typeof aiModels[number];
+export type ModerationSettings = z.infer<typeof moderationSettingsSchema>;
