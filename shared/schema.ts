@@ -7,6 +7,26 @@ export const aiModels = [
   { id: "openai/o4-mini-high", name: "O4 Mini High" },
 ] as const;
 
+export const botEventLogSchema = z.object({
+  id: z.string(),
+  timestamp: z.number(),
+  type: z.enum(["info", "warning", "error"]),
+  message: z.string(),
+  guildId: z.string().optional(),
+});
+
+export const botMetricsSchema = z.object({
+  timestamp: z.number(),
+  responseTime: z.number(),
+  errorCount: z.number(),
+  successCount: z.number(),
+  totalRequests: z.number(),
+  averageResponseTime: z.number(),
+});
+
+export type BotEventLog = z.infer<typeof botEventLogSchema>;
+export type BotMetrics = z.infer<typeof botMetricsSchema>;
+
 export const aiSettingsSchema = z.object({
   customInstructions: z.string().optional(),
   nickname: z.string().optional(),
