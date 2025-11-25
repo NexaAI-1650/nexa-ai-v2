@@ -4,6 +4,10 @@ const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const ADMIN_GUILD_IDS = process.env.ADMIN_GUILD_IDS?.split(",").map(id => id.trim()) || [];
 
+// ダッシュボードURL（環境に応じて動的に設定）
+const DASHBOARD_URL = process.env.DASHBOARD_URL || 
+  (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}/admin` : "https://nexa-ai-fgdx.onrender.com/admin");
+
 // ギルド管理権限チェック
 export function isGuildAdminAllowed(guildId: string): boolean {
   if (ADMIN_GUILD_IDS.length === 0) {
@@ -441,79 +445,108 @@ export async function initDiscordBot() {
         await interaction.editReply("エラーが発生しました");
       }
     } else if (interaction.commandName === "admin") {
-      if (!interaction.inGuild() || !interaction.member) {
-        await interaction.reply({
-          content: "❌ このコマンドはサーバー内でのみ使用できます",
-          flags: 64
-        });
-        return;
-      }
+      try {
+        if (!interaction.inGuild() || !interaction.member) {
+          await interaction.reply({
+            content: "❌ このコマンドはサーバー内でのみ使用できます",
+            flags: 64,
+          });
+          return;
+        }
 
-      const memberPermissions = interaction.member.permissions;
-      if (typeof memberPermissions === "string" || !memberPermissions.has("Administrator")) {
+        const memberPermissions = interaction.member.permissions;
+        if (typeof memberPermissions === "string" || !memberPermissions.has("Administrator")) {
+          await interaction.reply({
+            content: "❌ このコマンドは管理者のみ使用できます",
+            flags: 64,
+          });
+          return;
+        }
+
         await interaction.reply({
-          content: "❌ このコマンドは管理者のみ使用できます",
+          content: `📊 **Bot 管理ダッシュボード**\n${DASHBOARD_URL}`,
           flags: 64,
         });
-        return;
+      } catch (error) {
+        console.error("Admin command error:", error);
+        try {
+          await interaction.reply({
+            content: "❌ コマンド処理中にエラーが発生しました",
+            flags: 64,
+          });
+        } catch {
+          console.error("Failed to send error reply");
+        }
       }
-
-      await interaction.reply({
-        content: `📊 **Bot 管理ダッシュボード**\n${DASHBOARD_URL}`,
-        flags: 64
-      });
     } else if (interaction.commandName === "model") {
-      const now = Date.now();
-      const cooldownMs = 5000;
-      
-      if (now - lastModelChangeTime < cooldownMs) {
-        const remainingMs = cooldownMs - (now - lastModelChangeTime);
+      try {
+        const now = Date.now();
+        const cooldownMs = 5000;
+        
+        if (now - lastModelChangeTime < cooldownMs) {
+          const remainingMs = cooldownMs - (now - lastModelChangeTime);
+          await interaction.reply({
+            content: `⏳ モデル変更はあと ${Math.ceil(remainingMs / 1000)} 秒後に可能です`,
+            flags: 64,
+          });
+          return;
+        }
+        
+        const newModel = interaction.options.getString("model") || "openai/gpt-oss-20b:free";
+        const guildId = interaction.guildId || "dm";
+        setCurrentModel(newModel, guildId);
+        lastModelChangeTime = now;
         await interaction.reply({
-          content: `⏳ モデル変更はあと ${Math.ceil(remainingMs / 1000)} 秒後に可能です`,
-          flags: 64
+          content: `✅ **モデルを変更しました**\n選択: ${newModel}`,
+          flags: 64,
         });
-        return;
+      } catch (error) {
+        console.error("Model command error:", error);
       }
-      
-      const newModel = interaction.options.getString("model") || "openai/gpt-oss-20b:free";
-      const guildId = interaction.guildId || "dm";
-      setCurrentModel(newModel, guildId);
-      lastModelChangeTime = now;
-      await interaction.reply({
-        content: `✅ **モデルを変更しました**\n選択: ${newModel}`,
-        flags: 64
-      });
     } else if (interaction.commandName === "model-current") {
-      const guildId = interaction.guildId || "dm";
-      const currentModel = getCurrentModel(guildId);
-      await interaction.reply({
-        content: `📊 **現在のモデル**\n${currentModel}`,
-        flags: 64
-      });
+      try {
+        const guildId = interaction.guildId || "dm";
+        const currentModel = getCurrentModel(guildId);
+        await interaction.reply({
+          content: `📊 **現在のモデル**\n${currentModel}`,
+          flags: 64,
+        });
+      } catch (error) {
+        console.error("Model-current command error:", error);
+      }
     } else if (interaction.commandName === "clear") {
-      const userId = interaction.user.id;
-      userConversations.delete(userId);
-      await interaction.reply({
-        content: "✅ 会話履歴をクリアしました。新しい話題を始められます。",
-        flags: 64
-      });
+      try {
+        const userId = interaction.user.id;
+        userConversations.delete(userId);
+        await interaction.reply({
+          content: "✅ 会話履歴をクリアしました。新しい話題を始められます。",
+          flags: 64,
+        });
+      } catch (error) {
+        console.error("Clear command error:", error);
+      }
     } else if (interaction.commandName === "stats") {
-      const userId = interaction.user.id;
-      const userStat = userStats.get(userId) || { totalChats: 0, totalMessages: 0 };
-      const isAdmin = interaction.inGuild() && interaction.member?.permissions.has("Administrator");
-      const guildId = interaction.guildId || "dm";
-      const rateLimitMax = getRateLimit(guildId);
-      const rateLimitText = isAdmin ? `無制限/${Math.floor(RATE_LIMIT_WINDOW / 1000)}秒` : `${rateLimitMax}/${Math.floor(RATE_LIMIT_WINDOW / 1000)}秒`;
-      await interaction.reply({
-        content: `📊 **あなたの統計**
+      try {
+        const userId = interaction.user.id;
+        const userStat = userStats.get(userId) || { totalChats: 0, totalMessages: 0 };
+        const isAdmin = interaction.inGuild() && interaction.member?.permissions.has("Administrator");
+        const guildId = interaction.guildId || "dm";
+        const rateLimitMax = getRateLimit(guildId);
+        const rateLimitText = isAdmin ? `無制限/${Math.floor(RATE_LIMIT_WINDOW / 1000)}秒` : `${rateLimitMax}/${Math.floor(RATE_LIMIT_WINDOW / 1000)}秒`;
+        await interaction.reply({
+          content: `📊 **あなたの統計**
 • 総チャット数: ${userStat.totalChats}
 • 総メッセージ数: ${userStat.totalMessages}
 • レート制限: ${rateLimitText}`,
-        flags: 64
-      });
+          flags: 64,
+        });
+      } catch (error) {
+        console.error("Stats command error:", error);
+      }
     } else if (interaction.commandName === "help") {
-      await interaction.reply({
-        content: `🆘 **コマンドヘルプ**
+      try {
+        await interaction.reply({
+          content: `🆘 **コマンドヘルプ**
 
 \`/chat <message>\` - AI に質問を送信します
 \`/clear\` - 会話履歴をクリアします
@@ -527,8 +560,11 @@ export async function initDiscordBot() {
 • google/gemini-2.5-flash
 • openai/o4-mini-high
 • openai/gpt-oss-20b:free`,
-        flags: 64
-      });
+          flags: 64,
+        });
+      } catch (error) {
+        console.error("Help command error:", error);
+      }
     }
   });
 
