@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 const i18n = {
   ja: {
-    title: "Bot管理ダッシュボード",
+    title: "Nexa AI ダッシュボード",
     logout: "ログアウト",
     selectServer: "サーバーを選択",
     selectPlaceholder: "サーバーを選択してください",
@@ -50,7 +50,7 @@ const i18n = {
     selectServerMsg: "サーバーを選択してください",
   },
   en: {
-    title: "Bot Management Dashboard",
+    title: "Nexa AI Dashboard",
     logout: "Logout",
     selectServer: "Select Server",
     selectPlaceholder: "Select a server",
@@ -86,7 +86,7 @@ const i18n = {
     selectServerMsg: "Please select a server",
   },
   zh: {
-    title: "机器人管理仪表板",
+    title: "Nexa AI 仪表板",
     logout: "登出",
     selectServer: "选择服务器",
     selectPlaceholder: "请选择服务器",
@@ -324,21 +324,23 @@ export default function AdminDashboard() {
       <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-background text-foreground flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           <Card className="p-8 shadow-2xl border border-border/50 hover-elevate">
-            <div className="flex items-center justify-between mb-8">
-              <div className="space-y-1">
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">{t.title}</h1>
-                <p className="text-xs text-muted-foreground">{language === "ja" ? "管理ツール" : language === "en" ? "Admin Tool" : "管理工具"}</p>
+            <div className="space-y-4 mb-8">
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-1 flex-1 min-w-0">
+                  <h1 className="text-3xl font-bold text-primary whitespace-normal">{t.title}</h1>
+                  <p className="text-xs text-muted-foreground">{language === "ja" ? "管理ツール" : language === "en" ? "Admin Tool" : "管理工具"}</p>
+                </div>
+                <Select value={language} onValueChange={(value) => setLanguage(value as "ja" | "en" | "zh")}>
+                  <SelectTrigger className="w-auto border-primary/30 hover:border-primary/60 flex-shrink-0" data-testid="select-language-login">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ja">日本語</SelectItem>
+                    <SelectItem value="en">English</SelectItem>
+                    <SelectItem value="zh">中文</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              <Select value={language} onValueChange={(value) => setLanguage(value as "ja" | "en" | "zh")}>
-                <SelectTrigger className="w-auto border-primary/30 hover:border-primary/60" data-testid="select-language-login">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ja">日本語</SelectItem>
-                  <SelectItem value="en">English</SelectItem>
-                  <SelectItem value="zh">中文</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
             
             <p className="text-sm text-muted-foreground mb-8 leading-relaxed">
@@ -399,7 +401,7 @@ export default function AdminDashboard() {
       <header className="border-b bg-gradient-to-r from-card to-card/60 backdrop-blur-md bg-card/90 shadow-lg">
         <div className="flex items-center justify-between px-8 py-5">
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">{t.title}</h1>
+            <h1 className="text-3xl font-bold text-primary break-words leading-tight">{t.title}</h1>
             <p className="text-xs text-muted-foreground mt-1">{language === "ja" ? "サーバー管理画面" : language === "en" ? "Server Management" : "服务器管理"}</p>
           </div>
           <div className="flex items-center gap-6">
