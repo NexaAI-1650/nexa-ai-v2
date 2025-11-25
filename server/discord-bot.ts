@@ -459,7 +459,7 @@ export async function initDiscordBot() {
       }
 
       await interaction.reply({
-        content: "📊 **Bot 管理ダッシュボード**\nhttps://31e4757b-3fe9-4e7e-a72a-7eb38290488b-00-246qpws4g77gm.riker.replit.dev/admin",
+        content: `📊 **Bot 管理ダッシュボード**\n${DASHBOARD_URL}`,
         flags: 64
       });
     } else if (interaction.commandName === "model") {
