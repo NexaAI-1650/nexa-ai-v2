@@ -569,24 +569,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-app.get("/api/admin/my-guilds", async (req: Request, res) => {
-  try {
-    if (!req.user || !req.session?.accessToken) {
-      return res.status(401).json({ error: "Not authenticated" });
-    }
+  app.get("/api/admin/my-guilds", async (req: Request, res) => {
+    try {
+      if (!req.user || !req.session?.accessToken) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
 
-    const userAccessToken = req.session.accessToken;
-    const guildsResponse = await fetch("https://discord.com/api/users/@me/guilds", {
-      headers: { Authorization: `Bearer ${userAccessToken}` },
-    });
+      // Use user's OAuth access token to get their guilds
+      const userAccessToken = req.session.accessToken;
+      const guildsResponse = await fetch("https://discord.com/api/users/@me/guilds", {
+        headers: { Authorization: `Bearer ${userAccessToken}` },
+      });
 
-    if (!guildsResponse.ok) {
-      throw new Error("Failed to fetch user guilds from Discord API");
-    }
+      if (!guildsResponse.ok) {
+        throw new Error("Failed to fetch user guilds from Discord API");
+      }
 
-    const userGuilds = await guildsResponse.json() as any[];
-    const botGuilds = getAvailableGuildsExport();
-    
       const userGuilds = await guildsResponse.json() as any[];
       const botGuilds = getAvailableGuildsExport();
       
@@ -602,9 +600,9 @@ app.get("/api/admin/my-guilds", async (req: Request, res) => {
 
       res.json({ guilds: adminGuilds });
     } catch (error) {
-      console.error("Guilds get error:", error);
+      console.error("My guilds error:", error);
       res.status(500).json({
-        error: error instanceof Error ? error.message : "サーバー情報取得に失敗しました",
+        error: error instanceof Error ? error.message : "管理サーバー取得に失敗しました",
       });
     }
   });
