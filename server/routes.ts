@@ -1,6 +1,6 @@
 import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
-import { chatRequestSchema } from "@shared/schema";
+import { chatRequestSchema, type BotEventLog, type BotMetrics } from "@shared/schema";
 import { storage } from "./storage";
 import { restartDiscordBot, shutdownDiscordBot, getBotStatus, startDiscordBot, getBotChatStats, getMemoryShareEnabled, setMemoryShareEnabled, getCurrentModel, setCurrentModel, getRateLimit, setRateLimit, registerSlashCommands, getAllGuildSettings, getAvailableGuildsExport, isGuildAdminAllowed } from "./discord-bot";
 import { Client, GatewayIntentBits } from "discord.js";
@@ -57,12 +57,12 @@ async function getDiscordAccessToken() {
 }
 
 async function getDiscordOAuthCredentials() {
-  const clientId = process.env.DISCORD_OAUTH_CLIENT_ID;
-  const clientSecret = process.env.DISCORD_OAUTH_CLIENT_SECRET;
+  const clientId = process.env.DISCORD_OAUTH_CLIENT_ID || process.env.DISCORD_CLIENT_ID;
+  const clientSecret = process.env.DISCORD_OAUTH_CLIENT_SECRET || process.env.DISCORD_CLIENT_SECRET;
   
   if (!clientId || !clientSecret) {
     throw new Error(
-      "Discord OAuth credentials not configured. Please set DISCORD_OAUTH_CLIENT_ID and DISCORD_OAUTH_CLIENT_SECRET environment variables. " +
+      "Discord OAuth credentials not configured. Please set DISCORD_CLIENT_ID and DISCORD_CLIENT_SECRET environment variables. " +
       "Get them from https://discord.com/developers/applications"
     );
   }
@@ -71,7 +71,9 @@ async function getDiscordOAuthCredentials() {
 }
 
 function getRedirectUri(req: Request): string {
-  const protocol = req.protocol || "http";
+  // Get protocol from X-Forwarded-Proto header (for reverse proxies like Render)
+  // Falls back to req.protocol for local development
+  const protocol = req.get("X-Forwarded-Proto") || req.protocol || "http";
   const host = req.get("host") || "localhost:5000";
   return `${protocol}://${host}/api/auth/callback`;
 }
@@ -589,7 +591,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const botGuilds = getAvailableGuildsExport();
       
       const adminGuilds = userGuilds
-        .filter((ug: any) => (ug.permissions & 8) === 8)
+        .filter((ug: any) => (ug.permissions & 8) === 8) // ADMINISTRATOR permission
         .filter((ug: any) => botGuilds.some((bg) => bg.guildId === ug.id))
         .filter((ug: any) => isGuildAdminAllowed(ug.id))
         .map((ug: any) => ({
@@ -603,6 +605,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("My guilds error:", error);
       res.status(500).json({
         error: error instanceof Error ? error.message : "管理サーバー取得に失敗しました",
+      });
+    }
+  });
+
+  app.get("/api/admin/guilds", async (_req, res) => {
+    try {
+      const guilds = getAvailableGuildsExport().filter(guild => isGuildAdminAllowed(guild.guildId));
+      res.json({ guilds });
+    } catch (error) {
+      console.error("Guilds get error:", error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "サーバー情報取得に失敗しました",
       });
     }
   });
@@ -696,6 +710,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Rate limit set error:", error);
       res.status(500).json({
         error: error instanceof Error ? error.message : "レート制限設定に失敗しました",
+      });
+    }
+  });
+
+  app.get("/api/admin/event-logs", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 50;
+      const logs = await storage.getEventLogs(limit);
+      res.json({ logs });
+    } catch (error) {
+      console.error("Get event logs error:", error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "ログ取得に失敗しました",
+      });
+    }
+  });
+
+  app.post("/api/admin/event-log", async (req, res) => {
+    try {
+      const { type, message, guildId } = req.body;
+      const log = await storage.addEventLog({ type, message, guildId, timestamp: Date.now() });
+      res.json(log);
+    } catch (error) {
+      console.error("Add event log error:", error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "ログ追加に失敗しました",
+      });
+    }
+  });
+
+  app.get("/api/admin/bot-metrics", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 100;
+      const metrics = await storage.getMetrics(limit);
+      res.json({ metrics });
+    } catch (error) {
+      console.error("Get metrics error:", error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "メトリクス取得に失敗しました",
+      });
+    }
+  });
+
+  app.post("/api/admin/bot-metrics", async (req, res) => {
+    try {
+      const { responseTime, errorCount, successCount } = req.body;
+      const totalRequests = errorCount + successCount;
+      const averageResponseTime = responseTime;
+      const metrics = await storage.addMetrics({
+        responseTime,
+        errorCount,
+        successCount,
+        totalRequests,
+        averageResponseTime,
+      });
+      res.json(metrics);
+    } catch (error) {
+      console.error("Add metrics error:", error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "メトリクス保存に失敗しました",
       });
     }
   });
