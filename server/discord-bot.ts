@@ -283,22 +283,32 @@ async function checkInappropriateMessage(message: any): Promise<void> {
     // ボット、管理者、DM は対象外
     if (!message?.author || message.author.bot || message.member?.permissions.has("Administrator") || !message.guild) return;
     
+    const guildId = message.guild.id;
+    let settings: any = null;
+    
     try {
-      const guildId = message.guild.id;
-      const settings = await storage.getModerationSettings(guildId);
-      
-      if (!settings?.enabled) return;
-      
-      const messageText = (message.content || "").toLowerCase();
-      if (!messageText) return;
-      
-      const hasKeyword = settings.keywords?.some((keyword: string) => messageText.includes(keyword.toLowerCase()));
-      
-      if (!hasKeyword) return;
-
-      // AI に詳細な判定を依頼
-      if (!OPENROUTER_API_KEY) return;
-      
+      settings = await storage.getModerationSettings(guildId);
+    } catch (e) {
+      return;
+    }
+    
+    if (!settings?.enabled || !settings?.keywords || settings.keywords.length === 0) return;
+    
+    const messageText = (message.content || "").toLowerCase();
+    if (!messageText) return;
+    
+    const hasKeyword = settings.keywords.some((keyword: string) => {
+      try {
+        return messageText.includes((keyword || "").toLowerCase());
+      } catch {
+        return false;
+      }
+    });
+    
+    if (!hasKeyword) return;
+    if (!OPENROUTER_API_KEY) return;
+    
+    try {
       const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -321,51 +331,36 @@ async function checkInappropriateMessage(message: any): Promise<void> {
 
       const data = (await response.json()) as any;
       const responseText = data.choices?.[0]?.message?.content || "{}";
-      
       const judgment = JSON.parse(responseText);
       
-      if (judgment.inappropriate && message.member) {
-        const member = message.member;
-        let action = "timeout";
+      if (!judgment.inappropriate || !message.member) return;
+      
+      const member = message.member;
+      let action = "timeout";
 
-        // severity に応じてアクションを決定
-        if (judgment.severity === "high") {
-          action = settings.highAction;
-        } else if (judgment.severity === "medium") {
-          action = settings.mediumAction;
-        }
-
-        // アクション実行
-        try {
-          if (action === "timeout") {
-            const timeoutMs = settings.lowTimeoutMinutes * 60 * 1000;
-            await member.timeout(timeoutMs, "不適切なメッセージ");
-            await message.reply(`⚠️ 不適切なメッセージが検出されました。${member.user.username} を ${settings.lowTimeoutMinutes} 分タイムアウトさせました。`);
-            try {
-              await message.delete();
-            } catch {}
-          } else if (action === "kick") {
-            await member.kick("不適切なメッセージ");
-            await message.channel.send(`⚠️ 不適切なメッセージが検出されました。${member.user.username} をキックしました。`);
-            try {
-              await message.delete();
-            } catch {}
-          } else if (action === "ban") {
-            await message.guild?.members.ban(member, { reason: "不適切なメッセージ" });
-            await message.channel.send(`⚠️ 不適切なメッセージが検出されました。${member.user.username} をバンしました。`);
-            try {
-              await message.delete();
-            } catch {}
-          }
-        } catch (actionError) {
-          console.error("モデレーションアクション実行エラー:", actionError);
-        }
+      if (judgment.severity === "high") {
+        action = settings.highAction || "timeout";
+      } else if (judgment.severity === "medium") {
+        action = settings.mediumAction || "timeout";
       }
-    } catch (processingError) {
-      console.error("メッセージ監視処理エラー:", processingError);
+
+      try {
+        if (action === "timeout") {
+          const timeoutMs = (settings.lowTimeoutMinutes || 10) * 60 * 1000;
+          await member.timeout(timeoutMs, "不適切なメッセージ");
+        } else if (action === "kick") {
+          await member.kick("不適切なメッセージ");
+        } else if (action === "ban") {
+          await message.guild?.members.ban(member, { reason: "不適切なメッセージ" });
+        }
+      } catch (actionError) {
+        // アクション実行失敗は無視
+      }
+    } catch (e) {
+      // API エラーは無視
     }
   } catch (error) {
-    console.error("メッセージ監視エラー:", error);
+    // 最外層のエラーは無視
   }
 }
 
