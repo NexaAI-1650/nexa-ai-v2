@@ -587,24 +587,20 @@ app.get("/api/admin/my-guilds", async (req: Request, res) => {
     const userGuilds = await guildsResponse.json() as any[];
     const botGuilds = getAvailableGuildsExport();
     
-    const adminGuilds = userGuilds
-      .filter((ug: any) => (ug.permissions & 8) === 8)
-      .filter((ug: any) => botGuilds.some((bg) => bg.guildId === ug.id))
-      .filter((ug: any) => isGuildAdminAllowed(ug.id));
+      const userGuilds = await guildsResponse.json() as any[];
+      const botGuilds = getAvailableGuildsExport();
+      
+      const adminGuilds = userGuilds
+        .filter((ug: any) => (ug.permissions & 8) === 8)
+        .filter((ug: any) => botGuilds.some((bg) => bg.guildId === ug.id))
+        .filter((ug: any) => isGuildAdminAllowed(ug.id))
+        .map((ug: any) => ({
+          guildId: ug.id,
+          guildName: ug.name,
+          icon: ug.icon,
+        }));
 
-    res.json({ guilds: adminGuilds });
-  } catch (error) {
-    console.error("My guilds error:", error);
-    res.status(500).json({
-      error: error instanceof Error ? error.message : "管理サーバー取得に失敗しました",
-    });
-  }
-});
-
-  app.get("/api/admin/guilds", async (_req, res) => {
-    try {
-      const guilds = getAvailableGuildsExport().filter(guild => isGuildAdminAllowed(guild.guildId));
-      res.json({ guilds });
+      res.json({ guilds: adminGuilds });
     } catch (error) {
       console.error("Guilds get error:", error);
       res.status(500).json({
