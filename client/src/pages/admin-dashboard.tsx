@@ -828,7 +828,7 @@ export default function AdminDashboard() {
           <div className="space-y-6">
             <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border">
               <div>
-                <p className="font-medium text-foreground">{t.enabled}</p>
+                <p className="font-medium text-foreground">{moderationSettings?.enabled ? t.enabled : t.disabled}</p>
               </div>
               <Switch 
                 checked={moderationSettings?.enabled || false}
