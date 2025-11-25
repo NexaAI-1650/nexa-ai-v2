@@ -12,6 +12,81 @@ import { Slider } from "@/components/ui/slider";
 import { useEffect } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+const i18n = {
+  ja: {
+    title: "Bot管理ダッシュボード",
+    logout: "ログアウト",
+    selectServer: "サーバーを選択",
+    selectPlaceholder: "サーバーを選択してください",
+    noServers: "Bot が入っているサーバーがありません",
+    botStats: "Bot 統計 (30秒ごと更新)",
+    totalChats: "総チャット数",
+    totalMessages: "総メッセージ数",
+    totalTokens: "推定トークン数",
+    modelCount: "利用モデル数",
+    models: "利用中のAIモデル (Bot) (5分ごと更新)",
+    usage: "使用",
+    noData: "データなし",
+    botControl: "Bot コントロール",
+    currentModel: "現在のモデル",
+    rateLimit: "レート制限 (1分間のメッセージ数)",
+    perMin: "/60秒",
+    memoryShare: "記憶共有",
+    memoryDesc: "会話履歴を共有する",
+    enabled: "有効",
+    disabled: "無効",
+    preset10: "プリセット: 10",
+    preset20: "プリセット: 20",
+    preset50: "プリセット: 50",
+    botRunning: "Bot 実行中",
+    botStopped: "Bot 停止中",
+    uptime: "稼働時間",
+    commandCount: "実行したコマンド数",
+    help: "ヘルプ",
+    testLogin: "開発用テストログイン",
+    testLoginDesc: "（開発テスト用）",
+    discordLogin: "Discord でログイン",
+    notAuthenticated: "認証が必要です",
+    selectServerMsg: "サーバーを選択してください",
+  },
+  en: {
+    title: "Bot Management Dashboard",
+    logout: "Logout",
+    selectServer: "Select Server",
+    selectPlaceholder: "Select a server",
+    noServers: "No servers found where Bot is present",
+    botStats: "Bot Stats (Updated every 30 seconds)",
+    totalChats: "Total Chats",
+    totalMessages: "Total Messages",
+    totalTokens: "Estimated Tokens",
+    modelCount: "Models Used",
+    models: "AI Models in Use (Bot) (Updated every 5 minutes)",
+    usage: "Usage",
+    noData: "No data",
+    botControl: "Bot Control",
+    currentModel: "Current Model",
+    rateLimit: "Rate Limit (Messages per minute)",
+    perMin: "/60 seconds",
+    memoryShare: "Memory Share",
+    memoryDesc: "Share conversation history",
+    enabled: "Enabled",
+    disabled: "Disabled",
+    preset10: "Preset: 10",
+    preset20: "Preset: 20",
+    preset50: "Preset: 50",
+    botRunning: "Bot Running",
+    botStopped: "Bot Stopped",
+    uptime: "Uptime",
+    commandCount: "Commands Executed",
+    help: "Help",
+    testLogin: "Test Login (Dev)",
+    testLoginDesc: "(For development testing)",
+    discordLogin: "Login with Discord",
+    notAuthenticated: "Authentication required",
+    selectServerMsg: "Please select a server",
+  },
+};
+
 export default function AdminDashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -19,11 +94,12 @@ export default function AdminDashboard() {
   const [selectedGuildId, setSelectedGuildId] = useState<string | null>(null);
   const [language, setLanguage] = useState<"ja" | "en">("ja");
   const sliderTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const t = i18n[language];
 
   const { data: user } = useQuery({
     queryKey: ["/api/auth/me"],
     retry: 1,
-  });
+  }) as any;
 
   const { data: guilds = [] } = useQuery({
     queryKey: ["/api/admin/my-guilds"],
@@ -31,30 +107,31 @@ export default function AdminDashboard() {
     enabled: !!user,
     queryFn: async () => {
       const res = await fetch("/api/admin/my-guilds");
-      if (res.status === 401) return [];
-      return res.json().then(d => d.guilds || []);
+      if (res.status === 401) return { guilds: [] };
+      return res.json().then(d => ({ guilds: d.guilds || [] }));
     },
-  });
+  }) as any;
+  
   const { data: conversations = [] } = useQuery<Conversation[]>({
     queryKey: ["/api/conversations"],
   });
 
-  const { data: botStatus } = useQuery({
+  const { data: botStatus = {} as any } = useQuery({
     queryKey: ["/api/admin/bot-status"],
     refetchInterval: 2000,
   });
 
-  const { data: botStats } = useQuery({
+  const { data: botStats = {} as any } = useQuery({
     queryKey: ["/api/admin/bot-stats"],
     refetchInterval: 30000,
   });
 
-  const { data: botModels } = useQuery({
+  const { data: botModels = {} as any } = useQuery({
     queryKey: ["/api/admin/bot-models"],
     refetchInterval: 300000,
   });
 
-  const { data: memoryShare } = useQuery({
+  const { data: memoryShare = {} as any } = useQuery({
     queryKey: ["/api/admin/memory-share", selectedGuildId],
     queryFn: async () => {
       const res = await fetch(`/api/admin/memory-share?guildId=${selectedGuildId}`);
@@ -64,7 +141,7 @@ export default function AdminDashboard() {
     enabled: selectedGuildId !== null,
   });
 
-  const { data: currentBotModel } = useQuery({
+  const { data: currentBotModel = {} as any } = useQuery({
     queryKey: ["/api/admin/bot-current-model", selectedGuildId],
     queryFn: async () => {
       const res = await fetch(`/api/admin/bot-current-model?guildId=${selectedGuildId}`);
@@ -82,12 +159,13 @@ export default function AdminDashboard() {
     },
     refetchInterval: 5000,
     enabled: selectedGuildId !== null,
-    onSuccess: (data) => {
-      if (data?.limit) {
-        setSliderValue([data.limit]);
-      }
-    },
   });
+
+  useEffect(() => {
+    if (rateLimit?.limit) {
+      setSliderValue([rateLimit.limit]);
+    }
+  }, [rateLimit?.limit]);
 
   const memoryShareMutation = useMutation({
     mutationFn: async (enabled: boolean) => {
@@ -209,9 +287,19 @@ export default function AdminDashboard() {
     return (
       <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
         <Card className="p-8 max-w-md">
-          <h1 className="text-2xl font-bold mb-4">管理ダッシュボード</h1>
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-2xl font-bold">{t.title}</h1>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => setLanguage(language === "ja" ? "en" : "ja")}
+              data-testid="button-language-login"
+            >
+              <Globe className="h-4 w-4" />
+            </Button>
+          </div>
           <p className="text-muted-foreground mb-6">
-            Discord アカウントで連携してダッシュボードにアクセスしてください。
+            {language === "ja" ? "Discord アカウントで連携してダッシュボードにアクセスしてください。" : "Access the dashboard by linking your Discord account."}
           </p>
           <Button 
             className="w-full mb-3" 
@@ -224,11 +312,11 @@ export default function AdminDashboard() {
             data-testid="button-discord-login"
           >
             <LogIn className="w-4 h-4 mr-2" />
-            Discord でログイン
+            {t.discordLogin}
           </Button>
           <div className="border-t my-4 pt-4">
             <p className="text-xs text-muted-foreground text-center mb-3">
-              （開発テスト用）
+              {t.testLoginDesc}
             </p>
             <Button 
               className="w-full" 
@@ -243,7 +331,7 @@ export default function AdminDashboard() {
               }}
               data-testid="button-test-login"
             >
-              開発用テストログイン
+              {t.testLogin}
             </Button>
           </div>
         </Card>
@@ -256,7 +344,7 @@ export default function AdminDashboard() {
       {/* Header */}
       <header className="border-b bg-card backdrop-blur-sm bg-card/80 shadow-sm">
         <div className="flex items-center justify-between px-6 py-4">
-          <h1 className="text-2xl font-bold">Bot管理ダッシュボード</h1>
+          <h1 className="text-2xl font-bold">{t.title}</h1>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">{user?.username}</span>
@@ -278,7 +366,7 @@ export default function AdminDashboard() {
               data-testid="button-logout"
             >
               <LogOut className="h-4 w-4 mr-2" />
-              ログアウト
+              {t.logout}
             </Button>
           </div>
         </div>
@@ -288,16 +376,16 @@ export default function AdminDashboard() {
       <div className="border-b bg-card/50 px-6 py-4">
         <div className="max-w-6xl mx-auto">
           <div className="mb-2">
-            <label className="text-sm font-medium">サーバーを選択</label>
+            <label className="text-sm font-medium">{t.selectServer}</label>
           </div>
           <Select value={selectedGuildId || ""} onValueChange={setSelectedGuildId}>
             <SelectTrigger data-testid="select-guild" className="w-full max-w-xs">
-              <SelectValue placeholder="サーバーを選択してください" />
+              <SelectValue placeholder={t.selectPlaceholder} />
             </SelectTrigger>
             <SelectContent>
               {(guilds?.guilds || []).length === 0 ? (
                 <SelectItem value="_none" disabled>
-                  Bot が入っているサーバーがありません
+                  {t.noServers}
                 </SelectItem>
               ) : (
                 (guilds?.guilds || []).map((guild: any) => (
@@ -326,17 +414,17 @@ export default function AdminDashboard() {
       <main className="p-6 max-w-6xl mx-auto">
         {!selectedGuildId ? (
           <Card className="p-8 text-center">
-            <p className="text-muted-foreground">サーバーを選択してください</p>
+            <p className="text-muted-foreground">{t.selectServerMsg}</p>
           </Card>
         ) : (
           <>
         {/* Bot Stats */}
         <div className="mb-8">
-          <h2 className="text-lg font-semibold mb-4">Bot 統計 (30秒ごと更新)</h2>
+          <h2 className="text-lg font-semibold mb-4">{t.botStats}</h2>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card className="p-6 space-y-2">
               <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">総チャット数</p>
+                <p className="text-sm text-muted-foreground">{t.totalChats}</p>
                 <MessageSquare className="h-4 w-4 text-primary" />
               </div>
               <p className="text-3xl font-bold">{botStats?.totalChats || 0}</p>
@@ -344,7 +432,7 @@ export default function AdminDashboard() {
 
             <Card className="p-6 space-y-2">
               <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">総メッセージ数</p>
+                <p className="text-sm text-muted-foreground">{t.totalMessages}</p>
                 <Users className="h-4 w-4 text-primary" />
               </div>
               <p className="text-3xl font-bold">{botStats?.totalMessages || 0}</p>
@@ -352,7 +440,7 @@ export default function AdminDashboard() {
 
             <Card className="p-6 space-y-2">
               <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">推定トークン数</p>
+                <p className="text-sm text-muted-foreground">{t.totalTokens}</p>
                 <BarChart3 className="h-4 w-4 text-primary" />
               </div>
               <p className="text-3xl font-bold">
@@ -362,7 +450,7 @@ export default function AdminDashboard() {
 
             <Card className="p-6 space-y-2">
               <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">利用モデル数</p>
+                <p className="text-sm text-muted-foreground">{t.modelCount}</p>
                 <BarChart3 className="h-4 w-4 text-primary" />
               </div>
               <p className="text-3xl font-bold">{botStats?.modelCount || 0}</p>
@@ -372,7 +460,7 @@ export default function AdminDashboard() {
 
         {/* Models Section - Bot (5分ごと更新) */}
         <Card className="p-6 mb-8">
-          <h2 className="text-lg font-semibold mb-4">利用中のAIモデル (Bot) (5分ごと更新)</h2>
+          <h2 className="text-lg font-semibold mb-4">{t.models}</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {botModels && Object.entries(botModels).map(([model, count]) => (
               <div
@@ -383,13 +471,13 @@ export default function AdminDashboard() {
                   {model}
                 </p>
                 <p className="text-xs text-muted-foreground mt-2">
-                  使用: {count as number}
+                  {t.usage}: {count as number}
                 </p>
               </div>
             ))}
             {(!botModels || Object.keys(botModels).length === 0) && (
               <p className="text-xs text-muted-foreground col-span-2">
-                データなし
+                {t.noData}
               </p>
             )}
           </div>
@@ -397,11 +485,11 @@ export default function AdminDashboard() {
 
         {/* Bot Control */}
         <Card className="p-6 mb-8">
-          <h2 className="text-lg font-semibold mb-4">Bot コントロール</h2>
+          <h2 className="text-lg font-semibold mb-4">{t.botControl}</h2>
           <div className="space-y-4">
             <div className="p-4 bg-muted/30 rounded-lg border border-border">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-medium">現在のモデル</span>
+                <span className="text-sm font-medium">{t.currentModel}</span>
               </div>
               <p className="text-lg font-semibold font-mono break-all">
                 {currentBotModel?.model || "loading..."}
@@ -410,7 +498,7 @@ export default function AdminDashboard() {
 
             <div className="p-4 bg-muted/30 rounded-lg border border-border">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-medium">レート制限 (1分間のメッセージ数)</span>
+                <span className="text-sm font-medium">{t.rateLimit}</span>
               </div>
               <div className="space-y-4">
                 <div className="flex items-center gap-4">
@@ -438,7 +526,7 @@ export default function AdminDashboard() {
                   </div>
                   <div className="flex items-center gap-1 whitespace-nowrap">
                     <span className="text-lg font-semibold">{sliderValue[0]}</span>
-                    <span className="text-xs text-muted-foreground">/60秒</span>
+                    <span className="text-xs text-muted-foreground">{t.perMin}</span>
                   </div>
                 </div>
                 <div className="flex gap-2">
@@ -452,9 +540,9 @@ export default function AdminDashboard() {
                     disabled={rateLimitMutation.isPending || sliderValue[0] === 20}
                     data-testid="button-rate-limit-reset"
                   >
-                    リセット
+                    {language === "ja" ? "リセット" : "Reset"}
                   </Button>
-                  {[20, 50, 100].map((val) => (
+                  {[10, 20, 50].map((val) => (
                     <Button
                       key={val}
                       size="sm"
@@ -467,7 +555,7 @@ export default function AdminDashboard() {
                       className="text-xs"
                       data-testid={`button-rate-limit-${val}`}
                     >
-                      {val}
+                      {language === "ja" ? `プリセット: ${val}` : `Preset: ${val}`}
                     </Button>
                   ))}
                 </div>
@@ -476,7 +564,7 @@ export default function AdminDashboard() {
 
             <div className="p-4 bg-muted/30 rounded-lg border border-border">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-medium">全モデル記憶共有</span>
+                <span className="text-sm font-medium">{t.memoryShare}</span>
                 <Switch 
                   checked={memoryShare?.enabled || false}
                   onCheckedChange={(checked) => memoryShareMutation.mutate(checked)}
@@ -485,24 +573,24 @@ export default function AdminDashboard() {
                 />
               </div>
               <p className="text-xs text-muted-foreground">
-                {memoryShare?.enabled ? "有効：過去の会話を含めて AI が応答します" : "無効：現在のメッセージのみで応答します"}
+                {memoryShare?.enabled ? (language === "ja" ? "有効：過去の会話を含めて AI が応答します" : "Enabled: AI includes past conversations") : (language === "ja" ? "無効：現在のメッセージのみで応答します" : "Disabled: AI responds to current message only")}
               </p>
             </div>
 
             <div className="p-4 bg-muted/30 rounded-lg border border-border">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-medium">Bot ステータス</span>
+                <span className="text-sm font-medium">{language === "ja" ? "Bot ステータス" : "Bot Status"}</span>
                 <span className={`inline-flex items-center gap-2 text-xs px-2 py-1 rounded ${
                   botStatus?.isRunning 
                     ? "bg-green-500/20 text-green-700 dark:text-green-400" 
                     : "bg-red-500/20 text-red-700 dark:text-red-400"
                 }`}>
                   <span className={`h-2 w-2 rounded-full ${botStatus?.isRunning ? "bg-green-500" : "bg-red-500"}`} />
-                  {botStatus?.isRunning ? "実行中" : "停止中"}
+                  {botStatus?.isRunning ? (language === "ja" ? "実行中" : "Running") : (language === "ja" ? "停止中" : "Stopped")}
                 </span>
               </div>
               <p className="text-xs text-muted-foreground mb-3">
-                コマンド実行数: {botStatus?.commandCount || 0}
+                {t.commandCount}: {botStatus?.commandCount || 0}
               </p>
               <div className="flex gap-2">
                 <Button
@@ -513,7 +601,7 @@ export default function AdminDashboard() {
                   data-testid="button-bot-start"
                 >
                   <PowerOff className="h-4 w-4 mr-2" />
-                  起動
+                  {language === "ja" ? "起動" : "Start"}
                 </Button>
                 <Button
                   size="sm"
@@ -523,7 +611,7 @@ export default function AdminDashboard() {
                   data-testid="button-bot-restart"
                 >
                   <RotateCcw className="h-4 w-4 mr-2" />
-                  再起動
+                  {language === "ja" ? "再起動" : "Restart"}
                 </Button>
                 <Button
                   size="sm"
