@@ -189,118 +189,6 @@ async function handleManagementCommand(message: any): Promise<boolean> {
   return false;
 }
 
-// 不適切メッセージを検出してアクションを実行
-async function checkInappropriateMessage(message: any): Promise<void> {
-  try {
-    // ボット、管理者、DM は対象外
-    if (
-      !message?.author ||
-      message.author.bot ||
-      message.member?.permissions.has("Administrator") ||
-      !message.guild
-    )
-      return;
-
-    const guildId = message.guild.id;
-    let settings: any = null;
-
-    try {
-      settings = await storage.getModerationSettings(guildId);
-    } catch (e) {
-      return;
-    }
-
-    if (
-      !settings?.enabled ||
-      !settings?.keywords ||
-      settings.keywords.length === 0
-    )
-      return;
-
-    const messageText = (message.content || "").toLowerCase();
-    if (!messageText) return;
-
-    const hasKeyword = settings.keywords.some((keyword: string) => {
-      try {
-        return messageText.includes((keyword || "").toLowerCase());
-      } catch {
-        return false;
-      }
-    });
-
-    if (!hasKeyword) return;
-    if (!OPENROUTER_API_KEY) return;
-
-    try {
-      const response = await fetch(
-        "https://openrouter.ai/api/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-            "HTTP-Referer": "https://replit.dev",
-            "X-Title": "AI Chat Discord Bot",
-          },
-          body: JSON.stringify({
-            model: "openai/gpt-3.5-turbo",
-            messages: [
-              {
-                role: "user",
-                content: `このDiscordメッセージは不適切ですか？返答は JSON 形式で {"inappropriate": true/false, "severity": "low/medium/high"} で返してください。\n\nメッセージ: "${messageText}"`,
-              },
-            ],
-            max_tokens: 50,
-          }),
-        },
-      );
-
-      if (!response.ok) return;
-
-      const data = (await response.json()) as any;
-      const responseText = data.choices?.[0]?.message?.content || "{}";
-      const judgment = JSON.parse(responseText);
-
-      if (!judgment.inappropriate || !message.member) return;
-
-      const member = message.member;
-      let action = "timeout";
-
-      if (judgment.severity === "high") {
-        action = settings.highAction || "timeout";
-      } else if (judgment.severity === "medium") {
-        action = settings.mediumAction || "timeout";
-      }
-
-      try {
-        if (action === "timeout") {
-          const timeoutMs = (settings.lowTimeoutMinutes || 10) * 60 * 1000;
-          await member.timeout(timeoutMs, "不適切なメッセージ");
-          console.log(
-            `[MODERATION] ${member.user?.username} をタイムアウト（${settings.lowTimeoutMinutes}分）`,
-          );
-        } else if (action === "kick") {
-          await member.kick("不適切なメッセージ");
-          console.log(`[MODERATION] ${member.user?.username} をキック`);
-        } else if (action === "ban") {
-          await message.guild?.members.ban(member, {
-            reason: "不適切なメッセージ",
-          });
-          console.log(`[MODERATION] ${member.user?.username} をバン`);
-        }
-      } catch (actionError) {
-        console.error(
-          `[MODERATION ERROR] アクション実行失敗:`,
-          actionError instanceof Error ? actionError.message : "Unknown error",
-        );
-      }
-    } catch (e) {
-      // API エラーは無視
-    }
-  } catch (error) {
-    // 最外層のエラーは無視
-  }
-}
 
 // 定期的に古い会話を削除
 setInterval(() => {
@@ -347,9 +235,6 @@ export async function initDiscordBot() {
   client.on("messageCreate", async (message) => {
     if (message.author.bot) return;
     if (!client) return;
-
-    // 全メッセージの不適切性をチェック（バックグラウンド実行）
-    checkInappropriateMessage(message).catch(console.error);
 
     const isMentioned = message.mentions.has(client.user!.id);
     const isReply = message.reference !== null;
@@ -615,6 +500,35 @@ export async function initDiscordBot() {
       await interaction.deferReply();
 
       try {
+        // スレッドを作成
+        const thread = await interaction.channel?.threads.create({
+          name: `${interaction.user.username}の会話`,
+          autoArchiveDuration: 60,
+        });
+
+        if (!thread) {
+          await interaction.editReply("スレッド作成に失敗しました");
+          return;
+        }
+
+        // ピン留めするメッセージを投稿
+        const pinMessage = await thread.send({
+          content: `**⚙️ Economy Mode**
+**🔧 Advanced Settings**
+
+**🌐 GIPHY API** - GIF送信機能
+**🔍 Bing Search** - Web検索機能
+**🔍 Google Search** - Google検索機能
+
+**🗑️ Delete Conversation**
+**📋 Duplicate Chat**
+**🔗 Share Conversation**`,
+        });
+
+        // メッセージをピン留め
+        await pinMessage.pin().catch(() => {});
+
+        // AIに質問を送信
         const response = await fetch(
           "https://openrouter.ai/api/v1/chat/completions",
           {
@@ -645,7 +559,8 @@ export async function initDiscordBot() {
               "❌ APIの利用制限に達しました。後でもう一度試してください。";
           }
 
-          await interaction.editReply(userMessage);
+          await thread.send(userMessage);
+          await interaction.editReply(`✅ スレッドで回答を投稿しました: ${thread.url}`);
           return;
         }
 
@@ -657,6 +572,7 @@ export async function initDiscordBot() {
           aiResponse = await summarizeIfTooLong(aiResponse);
         }
 
+        // スレッドに応答を投稿
         if (aiResponse.length > 2000) {
           const formattedText = formatLongText(aiResponse);
           const attachment = new AttachmentBuilder(
@@ -665,14 +581,17 @@ export async function initDiscordBot() {
               name: "response.txt",
             },
           );
-          await interaction.editReply({
+          await thread.send({
             files: [attachment],
           });
         } else {
-          await interaction.editReply({
+          await thread.send({
             content: aiResponse,
           });
         }
+
+        // リプライでスレッドへのリンクを表示
+        await interaction.editReply(`✅ スレッドで回答を投稿しました: ${thread.url}`);
       } catch (error) {
         console.error("Discord Bot エラー:", error);
         await interaction.editReply("エラーが発生しました");
