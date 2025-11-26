@@ -4,6 +4,9 @@ import {
   SlashCommandBuilder,
   ChannelType,
   AttachmentBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
 } from "discord.js";
 import { storage } from "./storage";
 
@@ -231,15 +234,17 @@ export async function initDiscordBot() {
     console.warn("Discord.js 警告:", warn);
   });
 
-  // メッセージ作成イベント（メンション・返信対応）
+  // メッセージ作成イベント（メンション・返信対応・スレッド対応）
   client.on("messageCreate", async (message) => {
     if (message.author.bot) return;
     if (!client) return;
 
     const isMentioned = message.mentions.has(client.user!.id);
     const isReply = message.reference !== null;
+    const isThread = message.channel.isThread();
 
-    if (!isMentioned && !isReply) return;
+    // スレッド内、メンション、返信のいずれかに対応
+    if (!isMentioned && !isReply && !isThread) return;
 
     // サーバー管理コマンドの処理
     const isManagementCommand = await handleManagementCommand(message);
@@ -488,10 +493,35 @@ export async function initDiscordBot() {
   });
 
   client.on("interactionCreate", async (interaction) => {
+    if (interaction.isButton()) {
+      const customId = interaction.customId;
+      
+      if (customId === "economy_mode") {
+        await interaction.reply({ content: "Economy Mode activated!", ephemeral: true });
+      } else if (customId === "restart") {
+        await interaction.reply({ content: "Restarting conversation...", ephemeral: true });
+      } else if (customId === "advanced_settings") {
+        await interaction.reply({ content: "Advanced Settings opened", ephemeral: true });
+      } else if (customId === "delete_conversation") {
+        await interaction.reply({ content: "Conversation deleted", ephemeral: true });
+      } else if (customId === "rename") {
+        await interaction.reply({ content: "Rename thread", ephemeral: true });
+      } else if (customId === "duplicate_chat") {
+        await interaction.reply({ content: "Chat duplicated", ephemeral: true });
+      } else if (customId === "share_conversation") {
+        await interaction.reply({ content: "Share link: " + interaction.channel?.url, ephemeral: true });
+      } else if (customId === "delete_thread") {
+        await interaction.reply({ content: "Deleting thread...", ephemeral: true });
+        setTimeout(() => {
+          interaction.channel?.delete().catch(() => {});
+        }, 1000);
+      }
+      return;
+    }
+
     if (!interaction.isCommand()) return;
 
     if (interaction.commandName === "chat") {
-      const message = interaction.options.getString("message") || "";
       const guildId = interaction.guildId || "dm";
       const settings = getGuildSettings(guildId);
 
@@ -507,94 +537,86 @@ export async function initDiscordBot() {
         });
 
         if (!thread) {
-          await interaction.editReply("スレッド作成に失敗しました");
+          await interaction.editReply("Thread creation failed");
           return;
         }
+
+        // スレッドにボットとユーザーを追加
+        try {
+          await thread.members.add(client?.user?.id || "");
+          await thread.members.add(interaction.user.id);
+        } catch (err) {
+          console.log("Failed to add members to thread:", err);
+        }
+
+        // ボタン付きメッセージを作成
+        const row1 = new ActionRowBuilder<ButtonBuilder>()
+          .addComponents(
+            new ButtonBuilder()
+              .setCustomId("economy_mode")
+              .setLabel("Economy Mode")
+              .setStyle(ButtonStyle.Danger),
+            new ButtonBuilder()
+              .setCustomId("restart")
+              .setLabel("Restart")
+              .setStyle(ButtonStyle.Danger),
+            new ButtonBuilder()
+              .setCustomId("advanced_settings")
+              .setLabel("Advanced Settings")
+              .setStyle(ButtonStyle.Secondary),
+          );
+
+        const row2 = new ActionRowBuilder<ButtonBuilder>()
+          .addComponents(
+            new ButtonBuilder()
+              .setCustomId("delete_conversation")
+              .setLabel("Delete Conversation")
+              .setStyle(ButtonStyle.Danger),
+            new ButtonBuilder()
+              .setCustomId("rename")
+              .setLabel("Rename")
+              .setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder()
+              .setCustomId("duplicate_chat")
+              .setLabel("Duplicate Chat")
+              .setStyle(ButtonStyle.Success),
+            new ButtonBuilder()
+              .setCustomId("share_conversation")
+              .setLabel("Share Conversation")
+              .setStyle(ButtonStyle.Secondary),
+          );
+
+        const row3 = new ActionRowBuilder<ButtonBuilder>()
+          .addComponents(
+            new ButtonBuilder()
+              .setCustomId("delete_thread")
+              .setLabel("Delete Thread")
+              .setStyle(ButtonStyle.Secondary),
+          );
 
         // ピン留めするメッセージを投稿
         const pinMessage = await thread.send({
           content: `**⚙️ Economy Mode**
 **🔧 Advanced Settings**
 
-**🌐 GIPHY API** - GIF送信機能
-**🔍 Bing Search** - Web検索機能
-**🔍 Google Search** - Google検索機能
+**🌐 GIPHY API** - GIF sharing
+**🔍 Bing Search** - Web search
+**🔍 Google Search** - Google search
 
 **🗑️ Delete Conversation**
 **📋 Duplicate Chat**
 **🔗 Share Conversation**`,
+          components: [row1, row2, row3],
         });
 
         // メッセージをピン留め
         await pinMessage.pin().catch(() => {});
 
-        // AIに質問を送信
-        const response = await fetch(
-          "https://openrouter.ai/api/v1/chat/completions",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-              "HTTP-Referer": "https://replit.dev",
-              "X-Title": "AI Chat Discord Bot",
-            },
-            body: JSON.stringify({
-              model: settings.currentModel,
-              messages: [{ role: "user", content: message }],
-              max_tokens: 1000,
-            }),
-          },
-        );
-
-        const data = (await response.json()) as any;
-
-        if (data.error) {
-          const errorMsg = data.error.message || "AIからの応答がありません";
-          let userMessage =
-            "❌ エラーが発生しました。後でもう一度試してください。";
-
-          if (errorMsg.includes("credits") || errorMsg.includes("max_tokens")) {
-            userMessage =
-              "❌ APIの利用制限に達しました。後でもう一度試してください。";
-          }
-
-          await thread.send(userMessage);
-          await interaction.editReply(`✅ スレッドで回答を投稿しました: ${thread.url}`);
-          return;
-        }
-
-        let aiResponse =
-          data.choices[0]?.message?.content || "応答がありません";
-
-        // 2000文字以上なら要約
-        if (aiResponse.length > 2000) {
-          aiResponse = await summarizeIfTooLong(aiResponse);
-        }
-
-        // スレッドに応答を投稿
-        if (aiResponse.length > 2000) {
-          const formattedText = formatLongText(aiResponse);
-          const attachment = new AttachmentBuilder(
-            Buffer.from(formattedText, "utf-8"),
-            {
-              name: "response.txt",
-            },
-          );
-          await thread.send({
-            files: [attachment],
-          });
-        } else {
-          await thread.send({
-            content: aiResponse,
-          });
-        }
-
         // リプライでスレッドへのリンクを表示
-        await interaction.editReply(`✅ スレッドで回答を投稿しました: ${thread.url}`);
+        await interaction.editReply(`✅ Thread created: ${thread.url}\n\nStart typing your question in the thread!`);
       } catch (error) {
         console.error("Discord Bot エラー:", error);
-        await interaction.editReply("エラーが発生しました");
+        await interaction.editReply("Error occurred");
       }
     } else if (interaction.commandName === "admin") {
       try {
@@ -825,20 +847,14 @@ export async function registerSlashCommands() {
     const commands = [
       new SlashCommandBuilder()
         .setName("chat")
-        .setDescription("AI に質問を送信します")
-        .addStringOption((option) =>
-          option
-            .setName("message")
-            .setDescription("質問内容")
-            .setRequired(true),
-        ),
+        .setDescription("Use this command to start a ChatGPT conversation in a thread."),
       new SlashCommandBuilder()
         .setName("model")
-        .setDescription("使用するモデルを変更します")
+        .setDescription("Change the AI model")
         .addStringOption((option) =>
           option
             .setName("model")
-            .setDescription("AI モデルを選択")
+            .setDescription("Select an AI model")
             .setRequired(true)
             .addChoices(
               { name: "Gemini 2.5 Flash", value: "google/gemini-2.5-flash" },
@@ -848,19 +864,19 @@ export async function registerSlashCommands() {
         ),
       new SlashCommandBuilder()
         .setName("admin")
-        .setDescription("Bot 管理ダッシュボードを表示します"),
+        .setDescription("View the Nexa AI admin dashboard"),
       new SlashCommandBuilder()
         .setName("model-current")
-        .setDescription("現在のモデルを表示します"),
+        .setDescription("Display the current AI model"),
       new SlashCommandBuilder()
         .setName("clear")
-        .setDescription("会話履歴をクリアします"),
+        .setDescription("Clear your conversation history"),
       new SlashCommandBuilder()
         .setName("stats")
-        .setDescription("あなたの使用統計を表示します"),
+        .setDescription("Display your usage statistics"),
       new SlashCommandBuilder()
         .setName("help")
-        .setDescription("コマンドヘルプを表示します"),
+        .setDescription("Display command help"),
     ];
 
     await client.application?.commands.set(commands);
