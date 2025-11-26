@@ -68,6 +68,12 @@ interface UserConversation {
   lastUpdated: number;
 }
 
+// ユーザー設定
+interface UserSettings {
+  economyMode: boolean;
+  selectedPlugin?: string;
+}
+
 // 拡張子キャッシュ
 const EXTENSION_CACHE = {
   images: new Set([".png", ".jpg", ".jpeg", ".gif", ".webp"]),
@@ -87,6 +93,7 @@ const EXTENSION_CACHE = {
 };
 
 let userConversations: Map<string, UserConversation> = new Map();
+let userSettings: Map<string, UserSettings> = new Map();
 let lastModelChangeTime = 0;
 const MAX_USER_HISTORY = 10;
 const HISTORY_CLEANUP_INTERVAL = 30 * 60 * 1000;
@@ -137,6 +144,57 @@ interface RateLimit {
 let userRateLimits: Map<string, RateLimit> = new Map();
 let userStats: Map<string, { totalChats: number; totalMessages: number }> =
   new Map();
+
+// ユーザー設定を取得
+function getUserSettings(userId: string): UserSettings {
+  if (!userSettings.has(userId)) {
+    userSettings.set(userId, { economyMode: false });
+  }
+  return userSettings.get(userId)!;
+}
+
+// Economy Mode有効時に長文を要約
+async function summarizeIfEconomyMode(
+  text: string,
+  userId: string,
+  guildId?: string,
+): Promise<string> {
+  const settings = getUserSettings(userId);
+  if (!settings.economyMode) return text;
+  if (text.length <= 1500) return text;
+
+  try {
+    const guildSettings = getGuildSettings(guildId);
+    const response = await fetch(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+          "HTTP-Referer": "https://replit.dev",
+          "X-Title": "AI Chat Discord Bot",
+        },
+        body: JSON.stringify({
+          model: guildSettings.currentModel,
+          messages: [
+            {
+              role: "user",
+              content: `Summarize this concisely in 500 characters or less:\n\n${text}`,
+            },
+          ],
+          max_tokens: 200,
+        }),
+      },
+    );
+
+    const data = (await response.json()) as any;
+    if (data.error) return text;
+    return data.choices[0]?.message?.content || text;
+  } catch {
+    return text;
+  }
+}
 
 // テキストに改行を挿入して見やすくする
 function formatLongText(text: string, lineLength: number = 60): string {
@@ -400,6 +458,9 @@ export async function initDiscordBot() {
       }
 
       const startTime = Date.now();
+      const userSet = getUserSettings(userId);
+      const maxTokens = userSet.economyMode ? 400 : 800;
+
       const response = await fetch(
         "https://openrouter.ai/api/v1/chat/completions",
         {
@@ -413,7 +474,7 @@ export async function initDiscordBot() {
           body: JSON.stringify({
             model: settings.currentModel,
             messages: messagesForAPI,
-            max_tokens: 800,
+            max_tokens: maxTokens,
           }),
         },
       );
@@ -440,10 +501,8 @@ export async function initDiscordBot() {
 
       let aiResponse = data.choices[0]?.message?.content || "応答がありません";
 
-      // 2000文字以上なら要約
-      if (aiResponse.length > 2000) {
-        aiResponse = await summarizeIfTooLong(aiResponse, guildId);
-      }
+      // Economy Mode時は長文を要約
+      aiResponse = await summarizeIfEconomyMode(aiResponse, userId, guildId);
 
       // ユーザー履歴に保存
       userConv.messages.push({ role: "assistant", content: aiResponse });
@@ -472,17 +531,11 @@ export async function initDiscordBot() {
         const formattedText = formatLongText(finalResponse);
         const attachment = new AttachmentBuilder(
           Buffer.from(formattedText, "utf-8"),
-          {
-            name: "response.txt",
-          },
+          { name: "response.txt" },
         );
-        await message.reply({
-          files: [attachment],
-        });
+        await message.reply({ files: [attachment] });
       } else {
-        await message.reply({
-          content: finalResponse,
-        });
+        await message.reply({ content: finalResponse });
       }
 
       if (typingInterval) clearInterval(typingInterval);
@@ -493,28 +546,77 @@ export async function initDiscordBot() {
   });
 
   client.on("interactionCreate", async (interaction) => {
+    // ドロップダウン処理
+    if (interaction.isStringSelectMenu()) {
+      const customId = interaction.customId;
+      const userId = interaction.user.id;
+
+      if (customId === "model_change") {
+        const selectedModel = interaction.values[0];
+        const guildId = interaction.guildId || "dm";
+        setCurrentModel(selectedModel, guildId);
+        await interaction.reply({
+          content: `✅ Model changed to: **${selectedModel}**`,
+          ephemeral: true,
+        });
+      } else if (customId === "plugin_select") {
+        const selectedPlugin = interaction.values[0];
+        const userSet = getUserSettings(userId);
+        userSet.selectedPlugin = selectedPlugin;
+        await interaction.reply({
+          content: `✅ Plugin selected: **${selectedPlugin}**\n(Not yet integrated - coming soon!)`,
+          ephemeral: true,
+        });
+      }
+      return;
+    }
+
+    // ボタン処理
     if (interaction.isButton()) {
       const customId = interaction.customId;
-      
+      const userId = interaction.user.id;
+      const guildId = interaction.guildId || "dm";
+
       if (customId === "economy_mode") {
-        await interaction.reply({ content: "Economy Mode activated!", ephemeral: true });
+        const userSet = getUserSettings(userId);
+        userSet.economyMode = !userSet.economyMode;
+        const status = userSet.economyMode ? "ON" : "OFF";
+        await interaction.reply({
+          content: `♻️ **Economy Mode: ${status}**\n\nWhen ON:\n• Max tokens reduced to 400\n• Long responses automatically summarized\n• Reduced server load`,
+          ephemeral: true,
+        });
       } else if (customId === "restart") {
-        await interaction.reply({ content: "Restarting conversation...", ephemeral: true });
-      } else if (customId === "advanced_settings") {
-        await interaction.reply({ content: "Advanced Settings opened", ephemeral: true });
+        // スレッドのユーザー会話をクリア
+        const threadId = interaction.channelId;
+        userConversations.delete(userId);
+        await interaction.reply({
+          content:
+            "🔄 **Thread cache cleared!**\nConversation history has been reset for this thread.",
+          ephemeral: true,
+        });
       } else if (customId === "delete_conversation") {
-        await interaction.reply({ content: "Conversation deleted", ephemeral: true });
+        // ユーザーの全会話を削除
+        userConversations.delete(userId);
+        await interaction.reply({
+          content:
+            "🗑️ **Conversation deleted!**\nAll your conversation history has been removed.",
+          ephemeral: true,
+        });
       } else if (customId === "rename") {
-        await interaction.reply({ content: "Rename thread", ephemeral: true });
-      } else if (customId === "duplicate_chat") {
-        await interaction.reply({ content: "Chat duplicated", ephemeral: true });
-      } else if (customId === "share_conversation") {
-        await interaction.reply({ content: "Share link: " + interaction.channel?.url, ephemeral: true });
-      } else if (customId === "delete_thread") {
-        await interaction.reply({ content: "Deleting thread...", ephemeral: true });
-        setTimeout(() => {
-          interaction.channel?.delete().catch(() => {});
-        }, 1000);
+        // スレッド名を変更（ユーザーに新しい名前をPrompt）
+        const thread = interaction.channel;
+        if (thread?.isThread()) {
+          await interaction.reply({
+            content:
+              "📝 **To rename this thread, send a message starting with `/rename ` followed by the new name**\n\nExample: `/rename My New Thread Name`",
+            ephemeral: true,
+          });
+        } else {
+          await interaction.reply({
+            content: "❌ This command only works in threads.",
+            ephemeral: true,
+          });
+        }
       }
       return;
     }
@@ -549,9 +651,26 @@ export async function initDiscordBot() {
           console.log("Failed to add members to thread:", err);
         }
 
-        // ボタン付きメッセージを作成
-        const row1 = new ActionRowBuilder<ButtonBuilder>()
+        // ボタン・ドロップダウン付きメッセージを作成
+        const { StringSelectMenuBuilder, StringSelectMenuOptionBuilder } = require("discord.js");
+
+        const row1 = new ActionRowBuilder()
           .addComponents(
+            new StringSelectMenuBuilder()
+              .setCustomId("model_change")
+              .setPlaceholder("Select AI Model")
+              .addOptions(
+                new StringSelectMenuOptionBuilder()
+                  .setLabel("gpt-oss-20b:free")
+                  .setValue("openai/gpt-oss-20b:free")
+                  .setDefault(true),
+                new StringSelectMenuOptionBuilder()
+                  .setLabel("google/gemini-2.5-flash")
+                  .setValue("google/gemini-2.5-flash"),
+                new StringSelectMenuOptionBuilder()
+                  .setLabel("openai/o4-mini-high")
+                  .setValue("openai/o4-mini-high"),
+              ),
             new ButtonBuilder()
               .setCustomId("economy_mode")
               .setLabel("Economy Mode")
@@ -560,13 +679,27 @@ export async function initDiscordBot() {
               .setCustomId("restart")
               .setLabel("Restart")
               .setStyle(ButtonStyle.Danger),
-            new ButtonBuilder()
-              .setCustomId("advanced_settings")
-              .setLabel("Advanced Settings")
-              .setStyle(ButtonStyle.Secondary),
           );
 
-        const row2 = new ActionRowBuilder<ButtonBuilder>()
+        const row2 = new ActionRowBuilder()
+          .addComponents(
+            new StringSelectMenuBuilder()
+              .setCustomId("plugin_select")
+              .setPlaceholder("Select Plugin")
+              .addOptions(
+                new StringSelectMenuOptionBuilder()
+                  .setLabel("Calculator")
+                  .setValue("calculator"),
+                new StringSelectMenuOptionBuilder()
+                  .setLabel("WolframAlpha")
+                  .setValue("wolframalpha"),
+                new StringSelectMenuOptionBuilder()
+                  .setLabel("Google Search")
+                  .setValue("google_search"),
+              ),
+          );
+
+        const row3 = new ActionRowBuilder<ButtonBuilder>()
           .addComponents(
             new ButtonBuilder()
               .setCustomId("delete_conversation")
@@ -576,36 +709,20 @@ export async function initDiscordBot() {
               .setCustomId("rename")
               .setLabel("Rename")
               .setStyle(ButtonStyle.Secondary),
-            new ButtonBuilder()
-              .setCustomId("duplicate_chat")
-              .setLabel("Duplicate Chat")
-              .setStyle(ButtonStyle.Success),
-            new ButtonBuilder()
-              .setCustomId("share_conversation")
-              .setLabel("Share Conversation")
-              .setStyle(ButtonStyle.Secondary),
-          );
-
-        const row3 = new ActionRowBuilder<ButtonBuilder>()
-          .addComponents(
-            new ButtonBuilder()
-              .setCustomId("delete_thread")
-              .setLabel("Delete Thread")
-              .setStyle(ButtonStyle.Secondary),
           );
 
         // ピン留めするメッセージを投稿
         const pinMessage = await thread.send({
-          content: `**⚙️ Economy Mode**
-**🔧 Advanced Settings**
+          content: `**⚙️ Chat Controls**
 
-**🌐 GIPHY API** - GIF sharing
-**🔍 Bing Search** - Web search
-**🔍 Google Search** - Google search
+**Model Change** - Select AI model
+**♻️ Economy Mode** - Cost-saving mode
+**🔄 Restart** - Clear thread cache
 
-**🗑️ Delete Conversation**
-**📋 Duplicate Chat**
-**🔗 Share Conversation**`,
+**Plugin** - Select tool (Calculator, WolframAlpha, Google Search)
+
+**🗑️ Delete Conversation** - Delete chat history
+**✎ Rename** - Change thread name`,
           components: [row1, row2, row3],
         });
 
@@ -728,23 +845,64 @@ export async function initDiscordBot() {
       } catch (error) {
         console.error("Stats command error:", error);
       }
+    } else if (interaction.commandName === "rename") {
+      try {
+        const newName = interaction.options.getString("name");
+        if (!newName) {
+          await interaction.reply({
+            content: "❌ Thread name is required",
+            flags: 64,
+          });
+          return;
+        }
+
+        const thread = interaction.channel;
+        if (!thread?.isThread()) {
+          await interaction.reply({
+            content: "❌ This command only works in threads.",
+            flags: 64,
+          });
+          return;
+        }
+
+        await thread.setName(newName);
+        await interaction.reply({
+          content: `✅ **Thread renamed to: ${newName}**`,
+          flags: 64,
+        });
+      } catch (error) {
+        console.error("Rename command error:", error);
+        await interaction.reply({
+          content: "❌ Failed to rename thread",
+          flags: 64,
+        });
+      }
     } else if (interaction.commandName === "help") {
       try {
         await interaction.reply({
           content: `🆘 **コマンドヘルプ**
 
-\`/chat <message>\` - AI に質問を送信します
-\`/clear\` - 会話履歴をクリアします
-\`/stats\` - あなたの使用統計を表示します
-\`/model <model>\` - 使用するモデルを変更します (クールダウン: 5秒)
-\`/model-current\` - 現在のモデルを表示します
-\`/admin\` - 管理ダッシュボードを表示します
-\`/help\` - このメッセージを表示します
+\`/chat\` - Start a conversation thread
+\`/rename <name>\` - Rename the current thread
+\`/clear\` - Clear your conversation history
+\`/stats\` - Display your usage statistics
+\`/model <model>\` - Change the AI model (cooldown: 5 seconds)
+\`/model-current\` - Display the current AI model
+\`/admin\` - Open the admin dashboard
+\`/help\` - Display this help message
 
 **利用可能なモデル:**
 • google/gemini-2.5-flash
 • openai/o4-mini-high
-• openai/gpt-oss-20b:free`,
+• openai/gpt-oss-20b:free
+
+**スレッド内のコントロール:**
+• Model Change dropdown - AIモデルを即座に変更
+• Economy Mode button - コスト削減モード（トークン削減＆自動要約）
+• Restart button - スレッドキャッシュをリセット
+• Plugin dropdown - Calculator/WolframAlpha/Google Search
+• Delete Conversation - 全会話履歴を削除
+• Rename button - スレッド名を変更`,
           flags: 64,
         });
       } catch (error) {
@@ -874,6 +1032,15 @@ export async function registerSlashCommands() {
       new SlashCommandBuilder()
         .setName("stats")
         .setDescription("Display your usage statistics"),
+      new SlashCommandBuilder()
+        .setName("rename")
+        .setDescription("Rename the current thread")
+        .addStringOption((option) =>
+          option
+            .setName("name")
+            .setDescription("New thread name")
+            .setRequired(true),
+        ),
       new SlashCommandBuilder()
         .setName("help")
         .setDescription("Display command help"),
