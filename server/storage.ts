@@ -3,8 +3,6 @@ import {
   type Message,
   type BotEventLog,
   type BotMetrics,
-  type ModerationSettings,
-  moderationSettingsSchema,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -30,18 +28,12 @@ export interface IStorage {
     metrics: Omit<BotMetrics, "timestamp"> & { timestamp?: number },
   ): Promise<BotMetrics>;
   getMetrics(limit?: number): Promise<BotMetrics[]>;
-  getModerationSettings(guildId: string): Promise<ModerationSettings>;
-  updateModerationSettings(
-    guildId: string,
-    settings: Partial<ModerationSettings>,
-  ): Promise<ModerationSettings>;
 }
 
 export class MemStorage implements IStorage {
   private conversations: Map<string, Conversation>;
   private eventLogs: BotEventLog[] = [];
   private metrics: BotMetrics[] = [];
-  private moderationSettings: Map<string, ModerationSettings> = new Map();
 
   constructor() {
     this.conversations = new Map();
@@ -182,50 +174,6 @@ export class MemStorage implements IStorage {
 
   async getMetrics(limit: number = 100): Promise<BotMetrics[]> {
     return this.metrics.slice(-limit);
-  }
-
-  async getModerationSettings(guildId: string): Promise<ModerationSettings> {
-    if (!this.moderationSettings.has(guildId)) {
-      const defaultSettings = moderationSettingsSchema.parse({
-        guildId,
-        enabled: true,
-        lowTimeoutMinutes: 30,
-        mediumAction: "kick",
-        mediumTimeoutMinutes: 60,
-        highAction: "ban",
-        keywords: [
-          "スパム",
-          "詐欺",
-          "売買",
-          "エロ",
-          "ポルノ",
-          "違法",
-          "薬物",
-          "spam",
-          "scam",
-          "porn",
-          "xxx",
-          "illegal",
-          "drugs",
-        ],
-      });
-      this.moderationSettings.set(guildId, defaultSettings);
-    }
-    return this.moderationSettings.get(guildId)!;
-  }
-
-  async updateModerationSettings(
-    guildId: string,
-    settings: Partial<ModerationSettings>,
-  ): Promise<ModerationSettings> {
-    const existing = await this.getModerationSettings(guildId);
-    const updated = moderationSettingsSchema.parse({
-      ...existing,
-      ...settings,
-      guildId,
-    });
-    this.moderationSettings.set(guildId, updated);
-    return updated;
   }
 }
 
