@@ -22,11 +22,11 @@ const DASHBOARD_URL =
     ? `https://${process.env.REPLIT_DEV_DOMAIN}/admin`
     : "https://nexa-ai-fgdx.onrender.com/admin");
 
-// ギルド管理権限チェック
+// Check if guild admin is allowed
 export function isGuildAdminAllowed(guildId: string): boolean {
   if (ADMIN_GUILD_IDS.length === 0) {
     console.warn(
-      "⚠️  警告: ADMIN_GUILD_IDS が設定されていません。すべてのギルドが管理可能です。",
+      "⚠️  Warning: ADMIN_GUILD_IDS not configured. All guilds are manageable.",
     );
     return true;
   }
@@ -35,14 +35,14 @@ export function isGuildAdminAllowed(guildId: string): boolean {
 
 let client: Client | null = null;
 
-// サーバー設定インターフェース
+// Guild settings interface
 interface GuildSettings {
   currentModel: string;
   rateLimitMax: number;
   memoryShareEnabled: boolean;
 }
 
-// サーバーごとの設定
+// Per-guild settings
 const guildSettings = new Map<string, GuildSettings>();
 const DEFAULT_SETTINGS: GuildSettings = {
   currentModel: "openai/gpt-oss-20b:free",
@@ -62,19 +62,19 @@ let botChatStats = {
   modelCounts: {} as Record<string, number>,
 };
 
-// ユーザー会話履歴
+// User conversation history
 interface UserConversation {
   messages: Array<{ role: "user" | "assistant"; content: string }>;
   lastUpdated: number;
 }
 
-// ユーザー設定
+// User settings
 interface UserSettings {
   economyMode: boolean;
   selectedPlugin?: string;
 }
 
-// 拡張子キャッシュ
+// File extension cache
 const EXTENSION_CACHE = {
   images: new Set([".png", ".jpg", ".jpeg", ".gif", ".webp"]),
   videos: new Set([".mp4", ".webm", ".mov"]),
@@ -136,7 +136,7 @@ function getAvailableGuilds(): Array<{
   return guilds;
 }
 
-// ユーザーごとのレート制限
+// Rate limiting per user
 interface RateLimit {
   count: number;
   resetTime: number;
@@ -145,7 +145,7 @@ let userRateLimits: Map<string, RateLimit> = new Map();
 let userStats: Map<string, { totalChats: number; totalMessages: number }> =
   new Map();
 
-// ユーザー設定を取得
+// Get user settings
 function getUserSettings(userId: string): UserSettings {
   if (!userSettings.has(userId)) {
     userSettings.set(userId, { economyMode: false });
@@ -153,7 +153,7 @@ function getUserSettings(userId: string): UserSettings {
   return userSettings.get(userId)!;
 }
 
-// Economy Mode有効時に長文を要約
+// Summarize long responses in Economy Mode
 async function summarizeIfEconomyMode(
   text: string,
   userId: string,
@@ -196,7 +196,7 @@ async function summarizeIfEconomyMode(
   }
 }
 
-// テキストに改行を挿入して見やすくする
+// Format long text with line breaks
 function formatLongText(text: string, lineLength: number = 60): string {
   let result = "";
   for (let i = 0; i < text.length; i += lineLength) {
@@ -251,10 +251,10 @@ async function handleManagementCommand(message: any): Promise<boolean> {
 }
 
 
-// 定期的に古い会話を削除
+// Periodically clean up old conversations
 setInterval(() => {
   const now = Date.now();
-  const MAX_AGE = 2 * 60 * 60 * 1000; // 2時間以上古いデータは削除
+  const MAX_AGE = 2 * 60 * 60 * 1000; // Remove data older than 2 hours
   for (const [userId, conv] of userConversations.entries()) {
     if (now - conv.lastUpdated > MAX_AGE) {
       userConversations.delete(userId);
@@ -289,10 +289,10 @@ export async function initDiscordBot() {
   });
 
   client.on("warn", (warn) => {
-    console.warn("Discord.js 警告:", warn);
+    console.warn("Discord.js Warning:", warn);
   });
 
-  // メッセージ作成イベント（メンション・返信対応・スレッド対応）
+  // Handle message creation (mentions, replies, threads)
   client.on("messageCreate", async (message) => {
     if (message.author.bot) return;
     if (!client) return;
@@ -301,10 +301,10 @@ export async function initDiscordBot() {
     const isReply = message.reference !== null;
     const isThread = message.channel.isThread();
 
-    // スレッド内、メンション、返信のいずれかに対応
+    // Respond to threads, mentions, or replies
     if (!isMentioned && !isReply && !isThread) return;
 
-    // サーバー管理コマンドの処理
+    // Handle management commands
     const isManagementCommand = await handleManagementCommand(message);
     if (isManagementCommand) return;
 
@@ -351,7 +351,7 @@ export async function initDiscordBot() {
 
       await message.channel.sendTyping();
 
-      // 添付ファイル処理
+      // Handle attachments
       let attachmentText = "";
       const imageContents: any[] = [];
       const videoContents: any[] = [];
@@ -365,7 +365,7 @@ export async function initDiscordBot() {
               .toLowerCase();
 
             if (attachment.size > MAX_SIZE) {
-              attachmentText += `\n【${attachment.name}】ファイルサイズが大きすぎます（20MB以下）`;
+              attachmentText += `\n【${attachment.name}】File size too large (max 20MB)`;
               continue;
             }
 
@@ -403,42 +403,42 @@ export async function initDiscordBot() {
               const text = new TextDecoder("utf-8").decode(fileBuffer);
               attachmentText += `\n【${attachment.name}】\n${text}`;
             } else {
-              attachmentText += `\n【${attachment.name}】非対応形式です`;
+              attachmentText += `\n【${attachment.name}】Unsupported format`;
             }
           } catch {
-            attachmentText += `\n【${attachment.name}】読み込み失敗`;
+            attachmentText += `\n【${attachment.name}】Load failed`;
           }
         }
       }
 
       const fullMessage = userMessage + attachmentText;
 
-      // ユーザー会話履歴を取得または作成
+      // Get or create user conversation
       let userConv = userConversations.get(userId);
       if (!userConv) {
         userConv = { messages: [], lastUpdated: Date.now() };
         userConversations.set(userId, userConv);
       }
 
-      // メッセージコンテンツを構築
+      // Build message content
       const messageContent: any = [
         {
           type: "text",
-          text: `簡潔に答えてください。2000文字以下で。${fullMessage}`,
+          text: `Answer concisely in 2000 characters or less.\n\n${fullMessage}`,
         },
         ...imageContents,
         ...videoContents,
       ];
 
-      // メッセージをユーザー履歴に追加
+      // Add message to user history
       userConv.messages.push({ role: "user", content: fullMessage });
 
-      // 履歴を最大サイズまで制限
+      // Limit history to max size
       if (userConv.messages.length > MAX_USER_HISTORY) {
         userConv.messages = userConv.messages.slice(-MAX_USER_HISTORY);
       }
 
-      // 履歴を含めるかどうか決定
+      // Decide whether to include history
       let messagesForAPI: any[] = [];
       if (settings.memoryShareEnabled && userConv.messages.length > 1) {
         messagesForAPI = userConv.messages.map((msg) => ({
@@ -448,7 +448,7 @@ export async function initDiscordBot() {
               ? [
                   {
                     type: "text",
-                    text: `簡潔に答えてください。2000文字以下で。${msg.content}`,
+                    text: `Answer concisely in 2000 characters or less.\n\n${msg.content}`,
                   },
                 ]
               : msg.content,
@@ -483,13 +483,13 @@ export async function initDiscordBot() {
       const data = (await response.json()) as any;
 
       if (data.error) {
-        const errorMsg = data.error.message || "AIからの応答がありません";
+        const errorMsg = data.error.message || "No response from AI";
         let errorMessage =
-          "❌ エラーが発生しました。後でもう一度試してください。";
+          "❌ An error occurred. Please try again later.";
 
         if (errorMsg.includes("credits") || errorMsg.includes("max_tokens")) {
           errorMessage =
-            "❌ APIの利用制限に達しました。後でもう一度試してください。";
+            "❌ API rate limit reached. Please try again later.";
         }
 
         await message.reply({
@@ -499,12 +499,12 @@ export async function initDiscordBot() {
         return;
       }
 
-      let aiResponse = data.choices[0]?.message?.content || "応答がありません";
+      let aiResponse = data.choices[0]?.message?.content || "No response";
 
-      // Economy Mode時は長文を要約
+      // Summarize long responses in Economy Mode
       aiResponse = await summarizeIfEconomyMode(aiResponse, userId, guildId);
 
-      // ユーザー履歴に保存
+      // Save to user history
       userConv.messages.push({ role: "assistant", content: aiResponse });
       userConv.lastUpdated = Date.now();
 
@@ -516,7 +516,7 @@ export async function initDiscordBot() {
         (botChatStats.modelCounts[settings.currentModel] || 0) + 1;
       botChatStats.totalChats = Object.keys(botChatStats.modelCounts).length;
 
-      // ユーザー統計を更新
+      // Update user statistics
       let userStat = userStats.get(userId);
       if (!userStat) userStat = { totalChats: 0, totalMessages: 0 };
       userStat.totalMessages += 2;
@@ -524,7 +524,7 @@ export async function initDiscordBot() {
         userStat.totalChats += 1;
       userStats.set(userId, userStat);
 
-      // 応答スピード付きで返信
+      // Reply with response time
       const finalResponse = `⏱️ ${responseTime}ms\n\n${aiResponse}`;
 
       if (finalResponse.length > 2000) {
@@ -540,8 +540,8 @@ export async function initDiscordBot() {
 
       if (typingInterval) clearInterval(typingInterval);
     } catch (error) {
-      console.error("Discord Bot メッセージ処理エラー:", error);
-      await message.reply("エラーが発生しました");
+      console.error("Discord Bot message processing error:", error);
+      await message.reply("An error occurred");
     }
   });
 
@@ -586,8 +586,7 @@ export async function initDiscordBot() {
           ephemeral: true,
         });
       } else if (customId === "restart") {
-        // スレッドのユーザー会話をクリア
-        const threadId = interaction.channelId;
+        // Clear thread conversation cache
         userConversations.delete(userId);
         await interaction.reply({
           content:
@@ -595,7 +594,7 @@ export async function initDiscordBot() {
           ephemeral: true,
         });
       } else if (customId === "delete_conversation") {
-        // ユーザーの全会話を削除
+        // Delete all user conversations
         userConversations.delete(userId);
         await interaction.reply({
           content:
@@ -603,7 +602,7 @@ export async function initDiscordBot() {
           ephemeral: true,
         });
       } else if (customId === "rename") {
-        // スレッド名を変更（ユーザーに新しい名前をPrompt）
+        // Prompt user to rename thread
         const thread = interaction.channel;
         if (thread?.isThread()) {
           await interaction.reply({
@@ -632,9 +631,9 @@ export async function initDiscordBot() {
       await interaction.deferReply();
 
       try {
-        // スレッドを作成
+        // Create thread
         const thread = await interaction.channel?.threads.create({
-          name: `${interaction.user.username}の会話`,
+          name: "Nexa AI|Conversation",
           autoArchiveDuration: 60,
         });
 
@@ -643,7 +642,7 @@ export async function initDiscordBot() {
           return;
         }
 
-        // スレッドにボットとユーザーを追加
+        // Add bot and user to thread
         try {
           await thread.members.add(client?.user?.id || "");
           await thread.members.add(interaction.user.id);
@@ -651,7 +650,7 @@ export async function initDiscordBot() {
           console.log("Failed to add members to thread:", err);
         }
 
-        // ボタン・ドロップダウン付きメッセージを作成
+        // Create message with buttons and dropdowns
         const { StringSelectMenuBuilder, StringSelectMenuOptionBuilder } = require("discord.js");
 
         const row1 = new ActionRowBuilder()
@@ -711,7 +710,7 @@ export async function initDiscordBot() {
               .setStyle(ButtonStyle.Secondary),
           );
 
-        // ピン留めするメッセージを投稿
+        // Send pinned UI message
         const pinMessage = await thread.send({
           content: `**⚙️ Chat Controls**
 
@@ -726,10 +725,12 @@ export async function initDiscordBot() {
           components: [row1, row2, row3],
         });
 
-        // メッセージをピン留め
-        await pinMessage.pin().catch(() => {});
+        // Pin the message
+        if (pinMessage) {
+          await pinMessage.pin().catch((err) => console.error("Failed to pin message:", err));
+        }
 
-        // リプライでスレッドへのリンクを表示
+        // Reply with thread link
         await interaction.editReply(`✅ Thread created: ${thread.url}\n\nStart typing your question in the thread!`);
       } catch (error) {
         console.error("Discord Bot エラー:", error);
@@ -780,7 +781,7 @@ export async function initDiscordBot() {
         if (now - lastModelChangeTime < cooldownMs) {
           const remainingMs = cooldownMs - (now - lastModelChangeTime);
           await interaction.reply({
-            content: `⏳ モデル変更はあと ${Math.ceil(remainingMs / 1000)} 秒後に可能です`,
+            content: `⏳ Model change available in ${Math.ceil(remainingMs / 1000)} seconds`,
             flags: 64,
           });
           return;
@@ -792,7 +793,7 @@ export async function initDiscordBot() {
         setCurrentModel(newModel, guildId);
         lastModelChangeTime = now;
         await interaction.reply({
-          content: `✅ **モデルを変更しました**\n選択: ${newModel}`,
+          content: `✅ **Model changed**\nSelected: ${newModel}`,
           flags: 64,
         });
       } catch (error) {
@@ -803,7 +804,7 @@ export async function initDiscordBot() {
         const guildId = interaction.guildId || "dm";
         const currentModel = getCurrentModel(guildId);
         await interaction.reply({
-          content: `📊 **現在のモデル**\n${currentModel}`,
+          content: `📊 **Current Model**\n${currentModel}`,
           flags: 64,
         });
       } catch (error) {
@@ -814,7 +815,7 @@ export async function initDiscordBot() {
         const userId = interaction.user.id;
         userConversations.delete(userId);
         await interaction.reply({
-          content: "✅ 会話履歴をクリアしました。新しい話題を始められます。",
+          content: "✅ Conversation history cleared! You can start a new conversation.",
           flags: 64,
         });
       } catch (error) {
@@ -833,13 +834,13 @@ export async function initDiscordBot() {
         const guildId = interaction.guildId || "dm";
         const rateLimitMax = getRateLimit(guildId);
         const rateLimitText = isAdmin
-          ? `無制限/${Math.floor(RATE_LIMIT_WINDOW / 1000)}秒`
-          : `${rateLimitMax}/${Math.floor(RATE_LIMIT_WINDOW / 1000)}秒`;
+          ? `Unlimited/${Math.floor(RATE_LIMIT_WINDOW / 1000)}s`
+          : `${rateLimitMax}/${Math.floor(RATE_LIMIT_WINDOW / 1000)}s`;
         await interaction.reply({
-          content: `📊 **あなたの統計**
-• 総チャット数: ${userStat.totalChats}
-• 総メッセージ数: ${userStat.totalMessages}
-• レート制限: ${rateLimitText}`,
+          content: `📊 **Your Statistics**
+• Total Chats: ${userStat.totalChats}
+• Total Messages: ${userStat.totalMessages}
+• Rate Limit: ${rateLimitText}`,
           flags: 64,
         });
       } catch (error) {
@@ -880,7 +881,7 @@ export async function initDiscordBot() {
     } else if (interaction.commandName === "help") {
       try {
         await interaction.reply({
-          content: `🆘 **コマンドヘルプ**
+          content: `🆘 **Command Help**
 
 \`/chat\` - Start a conversation thread
 \`/rename <name>\` - Rename the current thread
@@ -891,18 +892,18 @@ export async function initDiscordBot() {
 \`/admin\` - Open the admin dashboard
 \`/help\` - Display this help message
 
-**利用可能なモデル:**
+**Available Models:**
 • google/gemini-2.5-flash
 • openai/o4-mini-high
 • openai/gpt-oss-20b:free
 
-**スレッド内のコントロール:**
-• Model Change dropdown - AIモデルを即座に変更
-• Economy Mode button - コスト削減モード（トークン削減＆自動要約）
-• Restart button - スレッドキャッシュをリセット
+**Thread Controls:**
+• Model Change dropdown - Change AI model instantly
+• Economy Mode button - Cost-saving mode (reduced tokens & auto-summarize)
+• Restart button - Reset thread cache
 • Plugin dropdown - Calculator/WolframAlpha/Google Search
-• Delete Conversation - 全会話履歴を削除
-• Rename button - スレッド名を変更`,
+• Delete Conversation - Remove all chat history
+• Rename button - Change thread name`,
           flags: 64,
         });
       } catch (error) {
@@ -915,7 +916,7 @@ export async function initDiscordBot() {
     await client.login(DISCORD_TOKEN);
     botStats.isRunning = true;
   } catch (error) {
-    console.error("Discord Bot ログイン失敗:", error);
+    console.error("Discord Bot login failed:", error);
   }
 }
 
@@ -943,7 +944,7 @@ export async function shutdownDiscordBot() {
 
 export async function startDiscordBot() {
   if (botStats.isRunning) {
-    console.log("Discord Bot:既に実行中です");
+    console.log("Discord Bot: Already running");
     return;
   }
   await initDiscordBot();
@@ -1047,8 +1048,8 @@ export async function registerSlashCommands() {
     ];
 
     await client.application?.commands.set(commands);
-    console.log("Discord Bot: スラッシュコマンドを登録しました");
+    console.log("Discord Bot: Slash commands registered");
   } catch (error) {
-    console.error("コマンド登録エラー:", error);
+    console.error("Command registration error:", error);
   }
 }
