@@ -774,46 +774,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/admin/moderation-settings", async (req, res) => {
-    try {
-      const guildId = req.query.guildId as string | undefined;
-      if (!guildId) {
-        return res.status(400).json({ error: "guildId is required" });
-      }
-      if (!isGuildAdminAllowed(guildId)) {
-        console.warn("Not admin for guild:", guildId);
-        return res.status(403).json({ error: "このサーバーの管理権限がありません" });
-      }
-      const settings = await storage.getModerationSettings(guildId);
-      res.json(settings);
-    } catch (error) {
-      console.error("Get moderation settings error:", error);
-      res.status(500).json({
-        error: error instanceof Error ? error.message : "モデレーション設定取得に失敗しました",
-      });
-    }
-  });
-
-  app.post("/api/admin/moderation-settings", async (req, res) => {
-    try {
-      const { guildId, ...settings } = req.body;
-      if (!guildId) {
-        return res.status(400).json({ error: "guildId is required" });
-      }
-      if (!isGuildAdminAllowed(guildId)) {
-        console.warn("Not admin for guild:", guildId);
-        return res.status(403).json({ error: "このサーバーの管理権限がありません" });
-      }
-      const updated = await storage.updateModerationSettings(guildId, { guildId, ...settings });
-      res.json(updated);
-    } catch (error) {
-      console.error("Update moderation settings error:", error);
-      res.status(500).json({
-        error: error instanceof Error ? error.message : "モデレーション設定更新に失敗しました",
-      });
-    }
-  });
-
   const httpServer = createServer(app);
 
   return httpServer;
