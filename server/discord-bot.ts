@@ -633,7 +633,7 @@ export async function initDiscordBot() {
       try {
         // Create thread
         const thread = await interaction.channel?.threads.create({
-          name: "Nexa AI|Conversation",
+          name: "Nexa AI | Conversation",
           autoArchiveDuration: 60,
         });
 
@@ -670,6 +670,10 @@ export async function initDiscordBot() {
                   .setLabel("openai/o4-mini-high")
                   .setValue("openai/o4-mini-high"),
               ),
+          );
+
+        const row2 = new ActionRowBuilder<ButtonBuilder>()
+          .addComponents(
             new ButtonBuilder()
               .setCustomId("economy_mode")
               .setLabel("Economy Mode")
@@ -680,7 +684,7 @@ export async function initDiscordBot() {
               .setStyle(ButtonStyle.Danger),
           );
 
-        const row2 = new ActionRowBuilder()
+        const row3 = new ActionRowBuilder()
           .addComponents(
             new StringSelectMenuBuilder()
               .setCustomId("plugin_select")
@@ -698,7 +702,7 @@ export async function initDiscordBot() {
               ),
           );
 
-        const row3 = new ActionRowBuilder<ButtonBuilder>()
+        const row4 = new ActionRowBuilder<ButtonBuilder>()
           .addComponents(
             new ButtonBuilder()
               .setCustomId("delete_conversation")
@@ -722,7 +726,7 @@ export async function initDiscordBot() {
 
 **🗑️ Delete Conversation** - Delete chat history
 **✎ Rename** - Change thread name`,
-          components: [row1, row2, row3],
+          components: [row1, row2, row3, row4],
         });
 
         // Pin the message
