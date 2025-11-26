@@ -58,15 +58,6 @@ const i18n = {
     errorRate: "エラー率",
     successRate: "成功率",
     ms: "ms",
-    moderation: "モデレーション設定",
-    lowTimeoutMinutes: "低度のタイムアウト (分)",
-    mediumAction: "中度のアクション",
-    mediumTimeoutMinutes: "中度のタイムアウト (分)",
-    highAction: "高度のアクション",
-    keywords: "NG ワード一覧",
-    timeout: "タイムアウト",
-    kick: "キック",
-    ban: "バン",
   },
   en: {
     title: "Nexa AI Dashboard",
@@ -112,15 +103,6 @@ const i18n = {
     errorRate: "Error Rate",
     successRate: "Success Rate",
     ms: "ms",
-    moderation: "Moderation Settings",
-    lowTimeoutMinutes: "Low Timeout (minutes)",
-    mediumAction: "Medium Action",
-    mediumTimeoutMinutes: "Medium Timeout (minutes)",
-    highAction: "High Action",
-    keywords: "Keywords List",
-    timeout: "Timeout",
-    kick: "Kick",
-    ban: "Ban",
   },
   zh: {
     title: "Nexa AI 仪表板",
@@ -166,15 +148,6 @@ const i18n = {
     errorRate: "错误率",
     successRate: "成功率",
     ms: "毫秒",
-    moderation: "审核设置",
-    lowTimeoutMinutes: "低度超时 (分钟)",
-    mediumAction: "中度操作",
-    mediumTimeoutMinutes: "中度超时 (分钟)",
-    highAction: "高度操作",
-    keywords: "关键词列表",
-    timeout: "超时",
-    kick: "踢出",
-    ban: "封禁",
   },
 };
 
@@ -270,52 +243,11 @@ export default function AdminDashboard() {
     refetchInterval: 30000,
   }) as any;
 
-  const { data: moderationSettings = {} as any } = useQuery({
-    queryKey: ["/api/admin/moderation-settings", selectedGuildId],
-    queryFn: async () => {
-      const res = await fetch(`/api/admin/moderation-settings?guildId=${selectedGuildId}`);
-      return res.json();
-    },
-    enabled: selectedGuildId !== null,
-  });
-
   useEffect(() => {
     if (rateLimit?.limit) {
       setSliderValue([rateLimit.limit]);
     }
   }, [rateLimit?.limit]);
-
-  const [pendingModeration, setPendingModeration] = useState<any>(null);
-
-  const moderationMutation = useMutation({
-    mutationFn: async (settings: any) => {
-      if (!selectedGuildId) {
-        throw new Error("サーバーを選択してください");
-      }
-      const res = await fetch("/api/admin/moderation-settings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...settings, guildId: selectedGuildId }),
-      });
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({ error: "エラーが発生しました" }));
-        throw new Error(errData.error || "設定更新に失敗しました");
-      }
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/moderation-settings", selectedGuildId] });
-      setPendingModeration(null);
-      toast({ description: "モデレーション設定を保存しました", duration: 3000 });
-    },
-    onError: (error: any) => {
-      toast({ 
-        description: error instanceof Error ? error.message : "設定保存に失敗しました",
-        variant: "destructive",
-        duration: 3000,
-      });
-    },
-  });
 
   const memoryShareMutation = useMutation({
     mutationFn: async (enabled: boolean) => {
@@ -830,111 +762,6 @@ export default function AdminDashboard() {
                 </Button>
               </div>
             </div>
-          </div>
-        </Card>
-
-        {/* Moderation Settings */}
-        <Card className="p-6">
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <span className="inline-block w-1.5 h-6 bg-gradient-to-b from-primary to-primary/50 rounded-full"></span>
-            {t.moderation}
-          </h2>
-          <div className="space-y-6">
-            <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border">
-              <div>
-                <p className="font-medium text-foreground">{moderationSettings?.enabled ? t.enabled : t.disabled}</p>
-              </div>
-              <Switch 
-                checked={moderationSettings?.enabled || false}
-                onCheckedChange={(checked) => {
-                  moderationMutation.mutate({
-                    ...moderationSettings,
-                    enabled: checked
-                  });
-                }}
-                disabled={moderationMutation.isPending}
-                data-testid="switch-moderation-enabled"
-              />
-            </div>
-
-            {moderationSettings?.enabled && (
-              <>
-                <div>
-                  <label className="text-sm font-medium text-foreground block mb-2">{t.keywords}</label>
-                  <textarea
-                    className="w-full p-2 border border-border rounded-md text-sm focus:ring-2 focus:ring-primary outline-none resize-none bg-background text-foreground"
-                    placeholder="1行1キーワード"
-                    value={(pendingModeration?.keywords || moderationSettings?.keywords || []).join('\n')}
-                    onChange={(e) => {
-                      setPendingModeration({
-                        ...pendingModeration,
-                        keywords: e.target.value.split('\n').filter((k: string) => k.trim())
-                      });
-                    }}
-                    disabled={moderationMutation.isPending}
-                    rows={5}
-                    data-testid="textarea-keywords"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 gap-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium text-foreground block mb-2">{t.lowTimeoutMinutes}</label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="1440"
-                        value={pendingModeration?.lowTimeoutMinutes ?? moderationSettings?.lowTimeoutMinutes ?? 10}
-                        onChange={(e) => {
-                          setPendingModeration({
-                            ...pendingModeration,
-                            lowTimeoutMinutes: parseInt(e.target.value)
-                          });
-                        }}
-                        disabled={moderationMutation.isPending}
-                        className="w-full px-3 py-2 border border-border rounded-md text-sm focus:ring-2 focus:ring-primary outline-none bg-background text-foreground"
-                        data-testid="input-low-timeout"
-                      />
-                      <p className="text-xs text-muted-foreground mt-1">低：キーワードマッチ時のタイムアウト</p>
-                    </div>
-
-                    <div>
-                      <label className="text-sm font-medium text-foreground block mb-2">{t.mediumTimeoutMinutes}</label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="1440"
-                        value={pendingModeration?.mediumTimeoutMinutes ?? moderationSettings?.mediumTimeoutMinutes ?? 30}
-                        onChange={(e) => {
-                          setPendingModeration({
-                            ...pendingModeration,
-                            mediumTimeoutMinutes: parseInt(e.target.value)
-                          });
-                        }}
-                        disabled={moderationMutation.isPending}
-                        className="w-full px-3 py-2 border border-border rounded-md text-sm focus:ring-2 focus:ring-primary outline-none bg-background text-foreground"
-                        data-testid="input-medium-timeout"
-                      />
-                      <p className="text-xs text-muted-foreground mt-1">中度：中程度の違反時のタイムアウト</p>
-                    </div>
-                  </div>
-
-                  <Button
-                    onClick={() => {
-                      moderationMutation.mutate({
-                        ...moderationSettings,
-                        ...pendingModeration
-                      });
-                    }}
-                    disabled={moderationMutation.isPending || !pendingModeration}
-                    data-testid="button-save-moderation"
-                  >
-                    {moderationMutation.isPending ? "保存中..." : "設定を保存"}
-                  </Button>
-                </div>
-              </>
-            )}
           </div>
         </Card>
 
