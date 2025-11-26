@@ -7,6 +7,8 @@ import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  StringSelectMenuBuilder,
+  StringSelectMenuOptionBuilder,
 } from "discord.js";
 import { storage } from "./storage";
 
@@ -542,6 +544,7 @@ export async function initDiscordBot() {
     } catch (error) {
       console.error("Discord Bot message processing error:", error);
       await message.reply("An error occurred");
+      if (typingInterval) clearInterval(typingInterval);
     }
   });
 
@@ -650,73 +653,70 @@ export async function initDiscordBot() {
           console.log("Failed to add members to thread:", err);
         }
 
-        // Create message with buttons and dropdowns
-        const { StringSelectMenuBuilder, StringSelectMenuOptionBuilder } = require("discord.js");
+        try {
+          const row1 = new ActionRowBuilder<StringSelectMenuBuilder>()
+            .addComponents(
+              new StringSelectMenuBuilder()
+                .setCustomId("model_change")
+                .setPlaceholder("Select AI Model")
+                .addOptions(
+                  new StringSelectMenuOptionBuilder()
+                    .setLabel("gpt-oss-20b:free")
+                    .setValue("openai/gpt-oss-20b:free")
+                    .setDefault(true),
+                  new StringSelectMenuOptionBuilder()
+                    .setLabel("google/gemini-2.5-flash")
+                    .setValue("google/gemini-2.5-flash"),
+                  new StringSelectMenuOptionBuilder()
+                    .setLabel("openai/o4-mini-high")
+                    .setValue("openai/o4-mini-high"),
+                ),
+            );
 
-        const row1 = new ActionRowBuilder()
-          .addComponents(
-            new StringSelectMenuBuilder()
-              .setCustomId("model_change")
-              .setPlaceholder("Select AI Model")
-              .addOptions(
-                new StringSelectMenuOptionBuilder()
-                  .setLabel("gpt-oss-20b:free")
-                  .setValue("openai/gpt-oss-20b:free")
-                  .setDefault(true),
-                new StringSelectMenuOptionBuilder()
-                  .setLabel("google/gemini-2.5-flash")
-                  .setValue("google/gemini-2.5-flash"),
-                new StringSelectMenuOptionBuilder()
-                  .setLabel("openai/o4-mini-high")
-                  .setValue("openai/o4-mini-high"),
-              ),
-          );
+          const row2 = new ActionRowBuilder<ButtonBuilder>()
+            .addComponents(
+              new ButtonBuilder()
+                .setCustomId("economy_mode")
+                .setLabel("Economy Mode")
+                .setStyle(ButtonStyle.Danger),
+              new ButtonBuilder()
+                .setCustomId("restart")
+                .setLabel("Restart")
+                .setStyle(ButtonStyle.Danger),
+            );
 
-        const row2 = new ActionRowBuilder<ButtonBuilder>()
-          .addComponents(
-            new ButtonBuilder()
-              .setCustomId("economy_mode")
-              .setLabel("Economy Mode")
-              .setStyle(ButtonStyle.Danger),
-            new ButtonBuilder()
-              .setCustomId("restart")
-              .setLabel("Restart")
-              .setStyle(ButtonStyle.Danger),
-          );
+          const row3 = new ActionRowBuilder<StringSelectMenuBuilder>()
+            .addComponents(
+              new StringSelectMenuBuilder()
+                .setCustomId("plugin_select")
+                .setPlaceholder("Select Plugin")
+                .addOptions(
+                  new StringSelectMenuOptionBuilder()
+                    .setLabel("Calculator")
+                    .setValue("calculator"),
+                  new StringSelectMenuOptionBuilder()
+                    .setLabel("WolframAlpha")
+                    .setValue("wolframalpha"),
+                  new StringSelectMenuOptionBuilder()
+                    .setLabel("Google Search")
+                    .setValue("google_search"),
+                ),
+            );
 
-        const row3 = new ActionRowBuilder()
-          .addComponents(
-            new StringSelectMenuBuilder()
-              .setCustomId("plugin_select")
-              .setPlaceholder("Select Plugin")
-              .addOptions(
-                new StringSelectMenuOptionBuilder()
-                  .setLabel("Calculator")
-                  .setValue("calculator"),
-                new StringSelectMenuOptionBuilder()
-                  .setLabel("WolframAlpha")
-                  .setValue("wolframalpha"),
-                new StringSelectMenuOptionBuilder()
-                  .setLabel("Google Search")
-                  .setValue("google_search"),
-              ),
-          );
+          const row4 = new ActionRowBuilder<ButtonBuilder>()
+            .addComponents(
+              new ButtonBuilder()
+                .setCustomId("delete_conversation")
+                .setLabel("Delete Conversation")
+                .setStyle(ButtonStyle.Danger),
+              new ButtonBuilder()
+                .setCustomId("rename")
+                .setLabel("Rename")
+                .setStyle(ButtonStyle.Secondary),
+            );
 
-        const row4 = new ActionRowBuilder<ButtonBuilder>()
-          .addComponents(
-            new ButtonBuilder()
-              .setCustomId("delete_conversation")
-              .setLabel("Delete Conversation")
-              .setStyle(ButtonStyle.Danger),
-            new ButtonBuilder()
-              .setCustomId("rename")
-              .setLabel("Rename")
-              .setStyle(ButtonStyle.Secondary),
-          );
-
-        // Send pinned UI message
-        const pinMessage = await thread.send({
-          content: `**⚙️ Chat Controls**
+          const pinMessage = await thread.send({
+            content: `**⚙️ Chat Controls**
 
 **Model Change** - Select AI model
 **♻️ Economy Mode** - Cost-saving mode
@@ -726,18 +726,20 @@ export async function initDiscordBot() {
 
 **🗑️ Delete Conversation** - Delete chat history
 **✎ Rename** - Change thread name`,
-          components: [row1, row2, row3, row4],
-        });
+            components: [row1, row2, row3, row4],
+          });
 
-        // Pin the message
-        if (pinMessage) {
-          await pinMessage.pin().catch((err) => console.error("Failed to pin message:", err));
+          if (pinMessage) {
+            await pinMessage.pin().catch((err) => console.error("Failed to pin message:", err));
+          }
+
+          await interaction.editReply(`✅ Thread created: ${thread.url}\n\nStart typing your question in the thread!`);
+        } catch (error) {
+          console.error("Failed to send UI message:", error);
+          await interaction.editReply("Thread created but failed to send UI message. Please try again.");
         }
-
-        // Reply with thread link
-        await interaction.editReply(`✅ Thread created: ${thread.url}\n\nStart typing your question in the thread!`);
       } catch (error) {
-        console.error("Discord Bot エラー:", error);
+        console.error("Discord Bot error:", error);
         await interaction.editReply("Error occurred");
       }
     } else if (interaction.commandName === "admin") {
