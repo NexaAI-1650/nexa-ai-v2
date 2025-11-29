@@ -621,6 +621,129 @@ export async function initDiscordBot() {
             ephemeral: true,
           });
         }
+      } else if (customId === "next_section" || customId === "prev_section") {
+        // Handle section navigation
+        const message = interaction.message;
+        const content = message.content;
+        
+        // Determine current section
+        let currentSection = 0;
+        if (content.includes("**━━ Tools ━━**")) {
+          currentSection = 1;
+        } else if (content.includes("**━━ Management ━━**")) {
+          currentSection = 2;
+        }
+        
+        // Calculate next section
+        let nextSection = customId === "next_section" ? currentSection + 1 : currentSection - 1;
+        if (nextSection < 0) nextSection = 2;
+        if (nextSection > 2) nextSection = 0;
+        
+        // Get model dropdown for section 0
+        const row1 = new ActionRowBuilder()
+          .addComponents(
+            new StringSelectMenuBuilder()
+              .setCustomId("model_change")
+              .setPlaceholder("Select AI Model")
+              .addOptions(
+                new StringSelectMenuOptionBuilder()
+                  .setLabel("gpt-oss-20b:free")
+                  .setValue("openai/gpt-oss-20b:free")
+                  .setDefault(nextSection === 0),
+                new StringSelectMenuOptionBuilder()
+                  .setLabel("google/gemini-2.5-flash")
+                  .setValue("google/gemini-2.5-flash"),
+                new StringSelectMenuOptionBuilder()
+                  .setLabel("openai/o4-mini-high")
+                  .setValue("openai/o4-mini-high"),
+              ),
+          );
+
+        // Get buttons for section 0
+        const row2 = new ActionRowBuilder()
+          .addComponents(
+            new ButtonBuilder()
+              .setCustomId("economy_mode")
+              .setLabel("Economy Mode")
+              .setStyle(ButtonStyle.Danger),
+            new ButtonBuilder()
+              .setCustomId("restart")
+              .setLabel("Restart")
+              .setStyle(ButtonStyle.Danger),
+          );
+
+        // Get plugin dropdown for section 1
+        const row3 = new ActionRowBuilder()
+          .addComponents(
+            new StringSelectMenuBuilder()
+              .setCustomId("plugin_select")
+              .setPlaceholder("Select Plugin")
+              .addOptions(
+                new StringSelectMenuOptionBuilder()
+                  .setLabel("Calculator")
+                  .setValue("calculator"),
+                new StringSelectMenuOptionBuilder()
+                  .setLabel("WolframAlpha")
+                  .setValue("wolframalpha"),
+                new StringSelectMenuOptionBuilder()
+                  .setLabel("Google Search")
+                  .setValue("google_search"),
+              ),
+          );
+
+        // Get management buttons for section 2
+        const row4 = new ActionRowBuilder()
+          .addComponents(
+            new ButtonBuilder()
+              .setCustomId("delete_conversation")
+              .setLabel("Delete Conversation")
+              .setStyle(ButtonStyle.Danger),
+            new ButtonBuilder()
+              .setCustomId("rename")
+              .setLabel("Rename")
+              .setStyle(ButtonStyle.Secondary),
+          );
+
+        // Navigation buttons
+        const navRow = new ActionRowBuilder()
+          .addComponents(
+            new ButtonBuilder()
+              .setCustomId("prev_section")
+              .setLabel("◀")
+              .setStyle(ButtonStyle.Primary),
+            new ButtonBuilder()
+              .setCustomId("next_section")
+              .setLabel("▶")
+              .setStyle(ButtonStyle.Primary),
+          );
+
+        // Create section content
+        let newContent = "**⚙️ Chat Controls**\n\n";
+        let components: any[] = [];
+
+        if (nextSection === 0) {
+          newContent += `**━━ AI Settings ━━**
+🤖 **Model** - Select your AI model
+♻️ **Economy Mode** - Reduce tokens & auto-summarize
+🔄 **Restart** - Clear conversation cache`;
+          components = [row1, row2, navRow];
+        } else if (nextSection === 1) {
+          newContent += `**━━ Tools ━━**
+🔧 **Plugins** - Calculator • WolframAlpha • Google Search`;
+          components = [row3, navRow];
+        } else if (nextSection === 2) {
+          newContent += `**━━ Management ━━**
+🗑️ **Delete** - Clear chat history
+✏️ **Rename** - Change thread name`;
+          components = [row4, navRow];
+        }
+
+        newContent += `\n\n*Page ${nextSection + 1}/3*`;
+
+        await interaction.update({
+          content: newContent,
+          components: components,
+        });
       }
       return;
     }
