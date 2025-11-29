@@ -74,6 +74,38 @@ interface UserConversation {
 interface UserSettings {
   economyMode: boolean;
   selectedPlugin?: string;
+  language: "en" | "ja";
+}
+
+// Messages in multiple languages
+const messages = {
+  en: {
+    economyModeOn: "♻️ **Economy Mode: ON**\n\nWhen ON:\n• Max tokens reduced to 400\n• Long responses automatically summarized\n• Reduced server load",
+    economyModeOff: "♻️ **Economy Mode: OFF**",
+    restartThread: "🔄 **Thread cache cleared!**\nConversation history has been reset for this thread.",
+    deleteConversation: "🗑️ **Conversation deleted!**\nAll your conversation history has been removed.",
+    renamePrompt: "📝 **To rename this thread, send a message starting with `/rename ` followed by the new name**\n\nExample: `/rename My New Thread Name`",
+    renameError: "❌ This command only works in threads.",
+    languageChanged: "🌐 **Language changed to English**",
+    modelChanged: "✅ Model changed to: **{model}**",
+    pluginSelected: "✅ Plugin selected: **{plugin}**\n(Not yet integrated - coming soon!)",
+  },
+  ja: {
+    economyModeOn: "♻️ **エコノミーモード：ON**\n\nON時：\n• 最大トークンを400に削減\n• 長い回答を自動要約\n• サーバー負荷を削減",
+    economyModeOff: "♻️ **エコノミーモード：OFF**",
+    restartThread: "🔄 **スレッドキャッシュをクリアしました！**\nこのスレッドの会話履歴がリセットされました。",
+    deleteConversation: "🗑️ **会話を削除しました！**\nすべての会話履歴が削除されました。",
+    renamePrompt: "📝 **スレッド名を変更するには、メッセージを `/rename ` で始めて新しい名前を入力してください**\n\n例：`/rename 新しいスレッド名`",
+    renameError: "❌ このコマンドはスレッド内でのみ使用できます。",
+    languageChanged: "🌐 **言語を日本語に変更しました**",
+    modelChanged: "✅ モデルが変更されました：**{model}**",
+    pluginSelected: "✅ プラグインが選択されました：**{plugin}**\n（まだ統合されていません - 近日中に対応予定！）",
+  },
+};
+
+function getUserLanguage(userId: string): "en" | "ja" {
+  const settings = userSettings.get(userId);
+  return settings?.language || "en";
 }
 
 // File extension cache
@@ -150,7 +182,7 @@ let userStats: Map<string, { totalChats: number; totalMessages: number }> =
 // Get user settings
 function getUserSettings(userId: string): UserSettings {
   if (!userSettings.has(userId)) {
-    userSettings.set(userId, { economyMode: false });
+    userSettings.set(userId, { economyMode: false, language: "en" });
   }
   return userSettings.get(userId)!;
 }
@@ -207,7 +239,7 @@ function formatLongText(text: string, lineLength: number = 60): string {
   return result;
 }
 
-// 長いテキストを要約する
+// Summarize long text
 async function summarizeIfTooLong(
   text: string,
   guildId?: string,
@@ -267,7 +299,7 @@ setInterval(() => {
 export async function initDiscordBot() {
   if (!DISCORD_TOKEN || !OPENROUTER_API_KEY) {
     console.log(
-      "Discord Bot: DISCORD_TOKEN または OPENROUTER_API_KEY が設定されていません",
+      "Discord Bot: DISCORD_TOKEN or OPENROUTER_API_KEY is not configured",
     );
     return;
   }
@@ -313,7 +345,7 @@ export async function initDiscordBot() {
     let userMessage = message.content.replace(/<@!?\d+>/g, "").trim();
     if (!userMessage && message.attachments.size === 0) return;
 
-    // レート制限チェック（管理者は免除）
+    // Rate limit check (admins are exempt)
     const userId = message.author.id;
     const guildId = message.guildId || "dm";
     const settings = getGuildSettings(guildId);
@@ -331,7 +363,7 @@ export async function initDiscordBot() {
       if (rateLimit.count >= settings.rateLimitMax) {
         const remainingSec = Math.ceil((rateLimit.resetTime - now) / 1000);
         await message.reply({
-          content: `⏳ レート制限中です。${remainingSec}秒後に再度使用できます。`,
+          content: `⏳ Rate limited. You can use it again in ${remainingSec} seconds.`,
         });
         return;
       }
@@ -342,7 +374,7 @@ export async function initDiscordBot() {
     botStats.commandCount++;
 
     try {
-      // 定期的に typing を送信（3秒ごと）
+      // Send typing indicator periodically (every 3 seconds)
       let typingInterval: NodeJS.Timeout | null = setInterval(async () => {
         try {
           await message.channel.sendTyping();
@@ -555,21 +587,32 @@ export async function initDiscordBot() {
     if (interaction.isStringSelectMenu()) {
       const customId = interaction.customId;
       const userId = interaction.user.id;
+      const lang = getUserLanguage(userId);
 
       if (customId === "model_change") {
         const selectedModel = interaction.values[0];
         const guildId = interaction.guildId || "dm";
         setCurrentModel(selectedModel, guildId);
+        const content = messages[lang].modelChanged.replace("{model}", selectedModel);
         await interaction.reply({
-          content: `✅ Model changed to: **${selectedModel}**`,
+          content,
           ephemeral: true,
         });
       } else if (customId === "plugin_select") {
         const selectedPlugin = interaction.values[0];
         const userSet = getUserSettings(userId);
         userSet.selectedPlugin = selectedPlugin;
+        const content = messages[lang].pluginSelected.replace("{plugin}", selectedPlugin);
         await interaction.reply({
-          content: `✅ Plugin selected: **${selectedPlugin}**\n(Not yet integrated - coming soon!)`,
+          content,
+          ephemeral: true,
+        });
+      } else if (customId === "language_select") {
+        const userSet = getUserSettings(userId);
+        userSet.language = interaction.values[0] as "en" | "ja";
+        const newLang = userSet.language;
+        await interaction.reply({
+          content: messages[newLang].languageChanged,
           ephemeral: true,
         });
       }
@@ -585,42 +628,51 @@ export async function initDiscordBot() {
       if (customId === "economy_mode") {
         const userSet = getUserSettings(userId);
         userSet.economyMode = !userSet.economyMode;
-        const status = userSet.economyMode ? "ON" : "OFF";
+        const lang = userSet.language;
+        const content = userSet.economyMode
+          ? messages[lang].economyModeOn
+          : messages[lang].economyModeOff;
         await interaction.reply({
-          content: `♻️ **Economy Mode: ${status}**\n\nWhen ON:\n• Max tokens reduced to 400\n• Long responses automatically summarized\n• Reduced server load`,
+          content,
           ephemeral: true,
         });
       } else if (customId === "restart") {
-        // Clear thread conversation cache
         userConversations.delete(userId);
+        const lang = getUserLanguage(userId);
         await interaction.reply({
-          content:
-            "🔄 **Thread cache cleared!**\nConversation history has been reset for this thread.",
+          content: messages[lang].restartThread,
           ephemeral: true,
         });
       } else if (customId === "delete_conversation") {
-        // Delete all user conversations
         userConversations.delete(userId);
+        const lang = getUserLanguage(userId);
         await interaction.reply({
-          content:
-            "🗑️ **Conversation deleted!**\nAll your conversation history has been removed.",
+          content: messages[lang].deleteConversation,
           ephemeral: true,
         });
       } else if (customId === "rename") {
-        // Prompt user to rename thread
         const thread = interaction.channel;
+        const lang = getUserLanguage(userId);
         if (thread?.isThread()) {
           await interaction.reply({
-            content:
-              "📝 **To rename this thread, send a message starting with `/rename ` followed by the new name**\n\nExample: `/rename My New Thread Name`",
+            content: messages[lang].renamePrompt,
             ephemeral: true,
           });
         } else {
           await interaction.reply({
-            content: "❌ This command only works in threads.",
+            content: messages[lang].renameError,
             ephemeral: true,
           });
         }
+      } else if (customId === "language_select") {
+        const userSet = getUserSettings(userId);
+        userSet.language = interaction.values[0] as "en" | "ja";
+        const newLang = userSet.language;
+        await interaction.reply({
+          content: messages[newLang].languageChanged,
+          ephemeral: true,
+        });
+        return;
       } else if (customId === "next_section" || customId === "prev_section") {
         // Handle section navigation
         const message = interaction.message;
@@ -840,6 +892,21 @@ export async function initDiscordBot() {
                 .setStyle(ButtonStyle.Secondary),
             );
 
+          const langRow = new ActionRowBuilder()
+            .addComponents(
+              new StringSelectMenuBuilder()
+                .setCustomId("language_select")
+                .setPlaceholder("Select Language / 言語を選択")
+                .addOptions(
+                  new StringSelectMenuOptionBuilder()
+                    .setLabel("English")
+                    .setValue("en"),
+                  new StringSelectMenuOptionBuilder()
+                    .setLabel("日本語")
+                    .setValue("ja"),
+                ),
+            );
+
           const navRow = new ActionRowBuilder()
             .addComponents(
               new ButtonBuilder()
@@ -861,7 +928,7 @@ export async function initDiscordBot() {
 🔄 **Restart** - Clear conversation cache
 
 *Page 1/3*`,
-            components: [row1, row2, navRow],
+            components: [row1, row2, langRow, navRow],
           });
 
           console.log("UI message sent successfully");
@@ -883,7 +950,7 @@ export async function initDiscordBot() {
       try {
         if (!interaction.inGuild() || !interaction.member) {
           await interaction.reply({
-            content: "❌ このコマンドはサーバー内でのみ使用できます",
+            content: "❌ This command can only be used within a server",
             flags: 64,
           });
           return;
@@ -895,21 +962,21 @@ export async function initDiscordBot() {
           !memberPermissions.has("Administrator")
         ) {
           await interaction.reply({
-            content: "❌ このコマンドは管理者のみ使用できます",
+            content: "❌ This command can only be used by administrators",
             flags: 64,
           });
           return;
         }
 
         await interaction.reply({
-          content: `📊 **Bot 管理ダッシュボード**\n${DASHBOARD_URL}`,
+          content: `📊 **Bot Management Dashboard**\n${DASHBOARD_URL}`,
           flags: 64,
         });
       } catch (error) {
         console.error("Admin command error:", error);
         try {
           await interaction.reply({
-            content: "❌ コマンド処理中にエラーが発生しました",
+            content: "❌ An error occurred while processing the command",
             flags: 64,
           });
         } catch {
@@ -1141,7 +1208,7 @@ export function getAvailableGuildsExport() {
 
 export async function registerSlashCommands() {
   if (!client || !client.isReady()) {
-    console.log("Discord Bot がまだ準備完了していません");
+    console.log("Discord Bot is not ready yet");
     return;
   }
 
