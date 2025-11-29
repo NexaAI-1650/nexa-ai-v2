@@ -541,10 +541,12 @@ export async function initDiscordBot() {
       }
 
       if (typingInterval) clearInterval(typingInterval);
+      return;
     } catch (error) {
       console.error("Discord Bot message processing error:", error);
       await message.reply("An error occurred");
       if (typingInterval) clearInterval(typingInterval);
+      return;
     }
   });
 
@@ -654,7 +656,7 @@ export async function initDiscordBot() {
         }
 
         try {
-          const row1 = new ActionRowBuilder<StringSelectMenuBuilder>()
+          const row1 = new ActionRowBuilder()
             .addComponents(
               new StringSelectMenuBuilder()
                 .setCustomId("model_change")
@@ -673,7 +675,7 @@ export async function initDiscordBot() {
                 ),
             );
 
-          const row2 = new ActionRowBuilder<ButtonBuilder>()
+          const row2 = new ActionRowBuilder()
             .addComponents(
               new ButtonBuilder()
                 .setCustomId("economy_mode")
@@ -685,7 +687,7 @@ export async function initDiscordBot() {
                 .setStyle(ButtonStyle.Danger),
             );
 
-          const row3 = new ActionRowBuilder<StringSelectMenuBuilder>()
+          const row3 = new ActionRowBuilder()
             .addComponents(
               new StringSelectMenuBuilder()
                 .setCustomId("plugin_select")
@@ -703,7 +705,7 @@ export async function initDiscordBot() {
                 ),
             );
 
-          const row4 = new ActionRowBuilder<ButtonBuilder>()
+          const row4 = new ActionRowBuilder()
             .addComponents(
               new ButtonBuilder()
                 .setCustomId("delete_conversation")
@@ -718,16 +720,21 @@ export async function initDiscordBot() {
           const pinMessage = await thread.send({
             content: `**⚙️ Chat Controls**
 
-**Model Change** - Select AI model
-**♻️ Economy Mode** - Cost-saving mode
-**🔄 Restart** - Clear thread cache
+**━━ AI Settings ━━**
+🤖 **Model** - Select your AI model
+♻️ **Economy Mode** - Reduce tokens & auto-summarize
+🔄 **Restart** - Clear conversation cache
 
-**Plugin** - Select tool (Calculator, WolframAlpha, Google Search)
+**━━ Tools ━━**
+🔧 **Plugins** - Calculator • WolframAlpha • Google Search
 
-**🗑️ Delete Conversation** - Delete chat history
-**✎ Rename** - Change thread name`,
+**━━ Management ━━**
+🗑️ **Delete** - Clear chat history
+✏️ **Rename** - Change thread name`,
             components: [row1, row2, row3, row4],
           });
+
+          console.log("UI message sent successfully");
 
           if (pinMessage) {
             await pinMessage.pin().catch((err) => console.error("Failed to pin message:", err));
@@ -736,7 +743,7 @@ export async function initDiscordBot() {
           await interaction.editReply(`✅ Thread created: ${thread.url}\n\nStart typing your question in the thread!`);
         } catch (error) {
           console.error("Failed to send UI message:", error);
-          await interaction.editReply("Thread created but failed to send UI message. Please try again.");
+          console.log("Error details:", JSON.stringify(error, null, 2));
         }
       } catch (error) {
         console.error("Discord Bot error:", error);
