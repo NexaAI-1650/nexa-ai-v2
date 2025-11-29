@@ -840,6 +840,18 @@ export async function initDiscordBot() {
                 .setStyle(ButtonStyle.Secondary),
             );
 
+          const navRow = new ActionRowBuilder()
+            .addComponents(
+              new ButtonBuilder()
+                .setCustomId("prev_section")
+                .setLabel("◀")
+                .setStyle(ButtonStyle.Primary),
+              new ButtonBuilder()
+                .setCustomId("next_section")
+                .setLabel("▶")
+                .setStyle(ButtonStyle.Primary),
+            );
+
           const pinMessage = await thread.send({
             content: `**⚙️ Chat Controls**
 
@@ -848,13 +860,8 @@ export async function initDiscordBot() {
 ♻️ **Economy Mode** - Reduce tokens & auto-summarize
 🔄 **Restart** - Clear conversation cache
 
-**━━ Tools ━━**
-🔧 **Plugins** - Calculator • WolframAlpha • Google Search
-
-**━━ Management ━━**
-🗑️ **Delete** - Clear chat history
-✏️ **Rename** - Change thread name`,
-            components: [row1, row2, row3, row4],
+*Page 1/3*`,
+            components: [row1, row2, navRow],
           });
 
           console.log("UI message sent successfully");
