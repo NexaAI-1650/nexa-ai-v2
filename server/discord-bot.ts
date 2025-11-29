@@ -9,6 +9,9 @@ import {
   ButtonStyle,
   StringSelectMenuBuilder,
   StringSelectMenuOptionBuilder,
+  ModalBuilder,
+  TextInputBuilder,
+  TextInputStyle,
 } from "discord.js";
 import { storage } from "./storage";
 
@@ -84,7 +87,7 @@ const messages = {
     economyModeOff: "♻️ **Economy Mode: OFF**",
     restartThread: "🔄 **Thread cache cleared!**\nConversation history has been reset for this thread.",
     deleteConversation: "🗑️ **Conversation deleted!**\nAll your conversation history has been removed.",
-    renamePrompt: "📝 **To rename this thread, send a message starting with `/rename ` followed by the new name**\n\nExample: `/rename My New Thread Name`",
+    renamePrompt: "📝 **Enter the new thread name in the form that appeared.**",
     renameError: "❌ This command only works in threads.",
     languageChanged: "🌐 **Language changed to English**",
     modelChanged: "✅ Model changed to: **{model}**",
@@ -95,7 +98,7 @@ const messages = {
     economyModeOff: "♻️ **エコノミーモード：OFF**",
     restartThread: "🔄 **スレッドキャッシュをクリアしました！**\nこのスレッドの会話履歴がリセットされました。",
     deleteConversation: "🗑️ **会話を削除しました！**\nすべての会話履歴が削除されました。",
-    renamePrompt: "📝 **スレッド名を変更するには、メッセージを `/rename ` で始めて新しい名前を入力してください**\n\n例：`/rename 新しいスレッド名`",
+    renamePrompt: "📝 **表示されたフォームに新しいスレッド名を入力してください。**",
     renameError: "❌ このコマンドはスレッド内でのみ使用できます。",
     languageChanged: "🌐 **言語を日本語に変更しました**",
     modelChanged: "✅ モデルが変更されました：**{model}**",
@@ -356,7 +359,8 @@ export async function initDiscordBot() {
     const isReply = message.reference !== null;
     const isThread = message.channel.isThread();
 
-    // If it's a thread, only respond if Nexa AI created the thread
+    // CRITICAL: If it's a thread, ONLY respond if Nexa AI created the thread
+    // Do NOT send typing indicator for non-Nexa AI threads
     if (isThread) {
       const thread = message.channel;
       const threadOwnerId = (thread as any).ownerId;
@@ -410,7 +414,8 @@ export async function initDiscordBot() {
     let typingInterval: NodeJS.Timeout | null = null;
 
     try {
-      // Send typing indicator periodically (every 3 seconds)
+      // ONLY send typing indicator after all validation checks pass
+      // This ensures we only type in valid threads (Nexa AI-created ones)
       typingInterval = setInterval(async () => {
         try {
           await message.channel.sendTyping();
@@ -649,6 +654,33 @@ export async function initDiscordBot() {
   });
 
   client.on("interactionCreate", async (interaction) => {
+    // モーダル処理
+    if (interaction.isModalSubmit()) {
+      if (interaction.customId.startsWith("rename_modal_")) {
+        try {
+          const newName = interaction.fields.getTextInputValue("thread_name_input");
+          const thread = interaction.channel;
+          const lang = getUserLanguage(interaction.user.id);
+          
+          if (thread?.isThread() && newName) {
+            await thread.setName(newName);
+            await interaction.reply({
+              content: `✅ ${lang === "ja" ? "スレッドの名前を変更しました" : "Thread renamed successfully"}`,
+              ephemeral: true,
+            });
+          }
+        } catch (error) {
+          console.error("Rename modal error:", error);
+          const lang = getUserLanguage(interaction.user.id);
+          await interaction.reply({
+            content: messages[lang].renameError,
+            ephemeral: true,
+          });
+        }
+      }
+      return;
+    }
+    
     // ドロップダウン処理
     if (interaction.isStringSelectMenu()) {
       const customId = interaction.customId;
@@ -712,10 +744,22 @@ export async function initDiscordBot() {
         const thread = interaction.channel;
         const lang = getUserLanguage(userId);
         if (thread?.isThread()) {
-          await interaction.reply({
-            content: messages[lang].renamePrompt,
-            ephemeral: true,
-          });
+          const modal = new ModalBuilder()
+            .setCustomId(`rename_modal_${userId}`)
+            .setTitle(lang === "ja" ? "スレッド名を変更" : "Rename Thread");
+          
+          const textInput = new TextInputBuilder()
+            .setCustomId("thread_name_input")
+            .setLabel(lang === "ja" ? "新しいスレッド名" : "New Thread Name")
+            .setStyle(TextInputStyle.Short)
+            .setMaxLength(100)
+            .setRequired(true);
+          
+          const actionRow = new ActionRowBuilder<TextInputBuilder>()
+            .addComponents(textInput);
+          
+          modal.addComponents(actionRow);
+          await interaction.showModal(modal);
         } else {
           await interaction.reply({
             content: messages[lang].renameError,
@@ -792,12 +836,6 @@ export async function initDiscordBot() {
                 new StringSelectMenuOptionBuilder()
                   .setLabel("Calculator")
                   .setValue("calculator"),
-                new StringSelectMenuOptionBuilder()
-                  .setLabel("WolframAlpha")
-                  .setValue("wolframalpha"),
-                new StringSelectMenuOptionBuilder()
-                  .setLabel("Google Search")
-                  .setValue("google_search"),
               ),
           );
 
