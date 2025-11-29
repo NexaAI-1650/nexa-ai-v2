@@ -133,6 +133,27 @@ const MAX_USER_HISTORY = 10;
 const HISTORY_CLEANUP_INTERVAL = 30 * 60 * 1000;
 const RATE_LIMIT_WINDOW = 60 * 1000; // 1分
 
+// Plugin helper functions
+async function executePlugin(plugin: string, userMessage: string): Promise<string | null> {
+  if (plugin === "calculator") {
+    try {
+      // Simple calculator using regex for basic math
+      const mathExpression = userMessage
+        .replace(/[^0-9+\-*/(). ]/g, "")
+        .trim();
+      if (!mathExpression) return null;
+      
+      // Safe eval for math expressions
+      const result = Function('"use strict"; return (' + mathExpression + ')')();
+      return `🧮 **Calculation Result:**\n${mathExpression} = **${result}**`;
+    } catch (e) {
+      return "❌ Invalid mathematical expression";
+    }
+  }
+  // WolframAlpha and Google Search would need API keys - return null for now
+  return null;
+}
+
 // ヘルパー関数
 function getGuildSettings(guildId?: string): GuildSettings {
   if (!guildId) return { ...DEFAULT_SETTINGS };
@@ -335,7 +356,20 @@ export async function initDiscordBot() {
     const isReply = message.reference !== null;
     const isThread = message.channel.isThread();
 
-    // Respond to threads, mentions, or replies
+    // If it's a thread, only respond if Nexa AI created the thread
+    if (isThread) {
+      const thread = message.channel;
+      const threadOwnerId = (thread as any).ownerId;
+      const botId = client.user?.id;
+      
+      // Only respond to threads created by the bot
+      if (threadOwnerId !== botId) {
+        console.log(`Skipping thread message. Owner: ${threadOwnerId}, Bot: ${botId}`);
+        return;
+      }
+    }
+
+    // Respond to threads created by Nexa AI, mentions, or replies
     if (!isMentioned && !isReply && !isThread) return;
 
     // Handle management commands
@@ -535,6 +569,14 @@ export async function initDiscordBot() {
 
       let aiResponse = data.choices[0]?.message?.content || "No response";
 
+      // Check if plugin is selected and execute
+      if (userSet.selectedPlugin) {
+        const pluginResult = await executePlugin(userSet.selectedPlugin, userMessage);
+        if (pluginResult) {
+          aiResponse = pluginResult + "\n\n---\n\n" + aiResponse;
+        }
+      }
+
       // Summarize long responses in Economy Mode
       aiResponse = await summarizeIfEconomyMode(aiResponse, userId, guildId);
 
@@ -607,14 +649,6 @@ export async function initDiscordBot() {
           content,
           ephemeral: true,
         });
-      } else if (customId === "language_select") {
-        const userSet = getUserSettings(userId);
-        userSet.language = interaction.values[0] as "en" | "ja";
-        const newLang = userSet.language;
-        await interaction.reply({
-          content: messages[newLang].languageChanged,
-          ephemeral: true,
-        });
       }
       return;
     }
@@ -677,7 +711,7 @@ export async function initDiscordBot() {
         // Handle section navigation
         const message = interaction.message;
         const content = message.content;
-        
+
         // Determine current section
         let currentSection = 0;
         if (content.includes("**━━ Tools ━━**")) {
@@ -685,12 +719,12 @@ export async function initDiscordBot() {
         } else if (content.includes("**━━ Management ━━**")) {
           currentSection = 2;
         }
-        
+
         // Calculate next section
         let nextSection = customId === "next_section" ? currentSection + 1 : currentSection - 1;
         if (nextSection < 0) nextSection = 2;
         if (nextSection > 2) nextSection = 0;
-        
+
         // Get model dropdown for section 0
         const row1 = new ActionRowBuilder()
           .addComponents(
@@ -870,13 +904,8 @@ export async function initDiscordBot() {
                 .addOptions(
                   new StringSelectMenuOptionBuilder()
                     .setLabel("Calculator")
-                    .setValue("calculator"),
-                  new StringSelectMenuOptionBuilder()
-                    .setLabel("WolframAlpha")
-                    .setValue("wolframalpha"),
-                  new StringSelectMenuOptionBuilder()
-                    .setLabel("Google Search")
-                    .setValue("google_search"),
+                    .setValue("calculator")
+                    .setDescription("Perform mathematical calculations"),
                 ),
             );
 
@@ -890,21 +919,6 @@ export async function initDiscordBot() {
                 .setCustomId("rename")
                 .setLabel("Rename")
                 .setStyle(ButtonStyle.Secondary),
-            );
-
-          const langRow = new ActionRowBuilder()
-            .addComponents(
-              new StringSelectMenuBuilder()
-                .setCustomId("language_select")
-                .setPlaceholder("Select Language / 言語を選択")
-                .addOptions(
-                  new StringSelectMenuOptionBuilder()
-                    .setLabel("English")
-                    .setValue("en"),
-                  new StringSelectMenuOptionBuilder()
-                    .setLabel("日本語")
-                    .setValue("ja"),
-                ),
             );
 
           const navRow = new ActionRowBuilder()
@@ -928,7 +942,7 @@ export async function initDiscordBot() {
 🔄 **Restart** - Clear conversation cache
 
 *Page 1/3*`,
-            components: [row1, row2, langRow, navRow],
+            components: [row1, row2, navRow],
           });
 
           console.log("UI message sent successfully");
