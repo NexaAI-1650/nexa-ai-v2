@@ -407,13 +407,18 @@ export async function initDiscordBot() {
 
     botStats.commandCount++;
 
+    let typingInterval: NodeJS.Timeout | null = null;
+
     try {
       // Send typing indicator periodically (every 3 seconds)
-      let typingInterval: NodeJS.Timeout | null = setInterval(async () => {
+      typingInterval = setInterval(async () => {
         try {
           await message.channel.sendTyping();
         } catch (e) {
-          if (typingInterval) clearInterval(typingInterval);
+          if (typingInterval) {
+            clearInterval(typingInterval);
+            typingInterval = null;
+          }
         }
       }, 3000);
 
@@ -563,7 +568,10 @@ export async function initDiscordBot() {
         await message.reply({
           content: errorMessage,
         });
-        if (typingInterval) clearInterval(typingInterval);
+        if (typingInterval) {
+          clearInterval(typingInterval);
+          typingInterval = null;
+        }
         return;
       }
 
@@ -614,13 +622,29 @@ export async function initDiscordBot() {
         await message.reply({ content: finalResponse });
       }
 
-      if (typingInterval) clearInterval(typingInterval);
+      if (typingInterval) {
+        clearInterval(typingInterval);
+        typingInterval = null;
+      }
       return;
     } catch (error) {
       console.error("Discord Bot message processing error:", error);
-      await message.reply("An error occurred");
-      if (typingInterval) clearInterval(typingInterval);
+      try {
+        await message.reply("An error occurred");
+      } catch (e) {
+        console.error("Failed to send error reply:", e);
+      }
+      if (typingInterval) {
+        clearInterval(typingInterval);
+        typingInterval = null;
+      }
       return;
+    } finally {
+      // Ensure typing indicator is always cleared
+      if (typingInterval) {
+        clearInterval(typingInterval);
+        typingInterval = null;
+      }
     }
   });
 
